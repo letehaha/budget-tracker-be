@@ -7,6 +7,7 @@ const currencies = require('./models/currencies.seed');
 const paymentTypes = require('./models/payment-types.seed');
 const transactionTypes = require('./models/transaction-types.seed');
 const { seedTestAccount } = require('./account.seed');
+const { seedTestTransaction } = require('./transaction.seed');
 
 const DB_HOST = process.env.SERVICES_API_DB_HOST;
 const DB_PORT = process.env.SERVICES_API_DB_PORT;
@@ -37,6 +38,7 @@ mongoose.connection.once('open', async () => {
   await Promise.all(seeds.map((seed) => seed.save()));
 
   await seedTestAccount();
+  await seedTestTransaction();
 
   mongoose.disconnect();
 });
