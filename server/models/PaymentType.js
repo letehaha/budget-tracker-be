@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
+
 const { Schema } = mongoose;
 
 const PaymentType = new Schema({
   name: {
     type: String,
-    required: [true, 'Payment type name is required']
+    required: [true, 'Payment type name is required'],
   },
 });
 

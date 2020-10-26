@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
+
 const { Schema } = mongoose;
 
 const Currency = new Schema({
   currency: {
     type: String,
-    required: [true, 'Currency: currency is required']
+    required: [true, 'Currency: currency is required'],
   },
   digits: {
     type: Number,
@@ -12,11 +13,11 @@ const Currency = new Schema({
   },
   number: {
     type: Number,
-    required: [true, 'Currency: number is required']
+    required: [true, 'Currency: number is required'],
   },
   code: {
     type: String,
-    required: [true, 'Currency: code is required']
+    required: [true, 'Currency: code is required'],
   },
   countries: {
     type: [String],

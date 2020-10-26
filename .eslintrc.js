@@ -9,6 +9,11 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 12,
   },
+  rules: {
+    'no-underscore-dangle': ['warn', {
+      allow: ['_id'],
+    }],
+  },
   settings: {
     'import/resolver': {
       alias: {
