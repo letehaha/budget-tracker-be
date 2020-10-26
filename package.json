@@ -1,0 +1,40 @@
+{
+  "name": "budget-tracker-be",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "NODE_ENV=development nodemon ./server/index",
+    "seed": "node ./server/seed/index",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/letehaha/budget-tracker-be.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/letehaha/budget-tracker-be/issues"
+  },
+  "_moduleAliases": {
+    "@models": "server/models",
+    "@controllers": "server/controllers",
+    "@middlewares": "server/middlewares",
+    "@routes": "server/routes"
+  },
+  "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
+  "dependencies": {
+    "currency-codes": "^2.1.0",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-validator": "^6.6.1",
+    "locale": "^0.1.0",
+    "module-alias": "^2.2.2",
+    "mongoose": "^5.10.10",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}
