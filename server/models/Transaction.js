@@ -4,7 +4,8 @@ const { Schema } = mongoose;
 
 const Transaction = new Schema({
   account: {
-    type: mongoose.ObjectId,
+    type: Schema.Types.ObjectId,
+    ref: 'Account',
     required: [true, 'Transaction account is required'],
   },
   amount: {
@@ -12,14 +13,16 @@ const Transaction = new Schema({
     required: [true, 'Transaction amount is required'],
   },
   category: {
-    type: mongoose.ObjectId,
+    type: Schema.Types.ObjectId,
+    ref: 'Category',
     required: [true, 'Transaction category is required'],
   },
   note: {
     type: String,
   },
   paymentType: {
-    type: mongoose.ObjectId,
+    type: Schema.Types.ObjectId,
+    ref: 'PaymentType',
     required: [true, 'Transaction paymentType is required'],
   },
   time: {
@@ -27,7 +30,8 @@ const Transaction = new Schema({
     required: [true, 'Transaction time is required'],
   },
   type: {
-    type: mongoose.ObjectId,
+    type: Schema.Types.ObjectId,
+    ref: 'TransactionType',
     required: [true, 'Transaction type is required'],
   },
 });
