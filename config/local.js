@@ -1,11 +1,9 @@
-
 module.exports = {
   name: 'budget-tracker-be',
   env: 'development',
   envShort: 'dev',
   sendGridApiKey: '',
   host: process.env.SERVICES_API_HOST,
-  lstn: process.env.SERVICES_API_LSTN,
   port: process.env.SERVICES_API_PORT,
   apiPrefix: '/api/v1',
   sessionSecret: '',
