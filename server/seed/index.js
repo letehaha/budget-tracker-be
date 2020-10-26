@@ -1,5 +1,5 @@
-require('dotenv').config()
-require('module-alias/register')
+require('dotenv').config();
+require('module-alias/register');
 const mongoose = require('mongoose');
 const accountTypes = require('./models/account-types.seed');
 const categories = require('./models/categories.seed');
@@ -16,13 +16,13 @@ mongoose.connect(`mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`, {
   useNewUrlParser: true,
 });
 
-mongoose.connection.once('open', async function () {
+mongoose.connection.once('open', async () => {
   const collections = (
     await mongoose.connection.db.listCollections().toArray()
-  ).map(item => item.name);
+  ).map((item) => item.name);
 
   await Promise.all(
-    collections.map(collection => mongoose.connection.db.dropCollection(collection)),
+    collections.map((collection) => mongoose.connection.db.dropCollection(collection)),
   );
 
   const seeds = [
@@ -33,7 +33,7 @@ mongoose.connection.once('open', async function () {
     ...transactionTypes,
   ];
 
-  await Promise.all(seeds.map(seed => seed.save()));
+  await Promise.all(seeds.map((seed) => seed.save()));
 
   mongoose.disconnect();
 });

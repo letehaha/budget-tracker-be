@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "NODE_ENV=development nodemon ./server/index",
     "seed": "node ./server/seed/index",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint"
   },
   "repository": {
     "type": "git",
@@ -17,11 +18,17 @@
   "bugs": {
     "url": "https://github.com/letehaha/budget-tracker-be/issues"
   },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run lint",
+      "pre-commit": "npm run lint"
+    }
+  },
   "_moduleAliases": {
-    "@models": "server/models",
-    "@controllers": "server/controllers",
-    "@middlewares": "server/middlewares",
-    "@routes": "server/routes"
+    "@models": "./server/models",
+    "@controllers": "./server/controllers",
+    "@middlewares": "./server/middlewares",
+    "@routes": "./server/routes"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
@@ -35,6 +42,11 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "eslint": "^7.12.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.22.1",
+    "husky": "^4.3.0",
     "nodemon": "^2.0.6"
   }
 }
