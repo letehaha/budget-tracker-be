@@ -1,3 +1,5 @@
+const isWindows = process.platform === 'win32' || process.platform === 'win64';
+
 module.exports = {
   env: {
     browser: false,
@@ -13,6 +15,7 @@ module.exports = {
     'no-underscore-dangle': ['warn', {
       allow: ['_id'],
     }],
+    'linebreak-style': ['error', (isWindows ? 'windows' : 'unix')],
   },
   settings: {
     'import/resolver': {
