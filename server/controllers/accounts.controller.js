@@ -24,7 +24,7 @@ exports.createAccount = async (req, res, next) => {
   try {
     const typeRecord = await AccountType.findById(type);
     if (!typeRecord) {
-      return next({
+      return res.status(404).json({
         message: `No "account type" found with such id ${type}`,
         statusCode: 404,
       });
@@ -32,7 +32,7 @@ exports.createAccount = async (req, res, next) => {
 
     const currencyRecord = await Currency.findById(currency);
     if (!currencyRecord) {
-      return next({
+      return res.status(404).json({
         message: `No "currency" found with such id ${currency}`,
         statusCode: 404,
       });
