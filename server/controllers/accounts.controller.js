@@ -96,10 +96,10 @@ exports.updateAccount = async (req, res, next) => {
 
     const query = { _id: accountRecord._id };
     const update = {
-      ...!!name && { name },
-      ...!!type && { type: typeRecord._id },
-      ...!!currency && { currency: currencyRecord._id },
-      ...!!currentBalance && { currentBalance },
+      ...name !== undefined && { name },
+      ...type !== undefined && { type: typeRecord._id },
+      ...currency !== undefined && { currency: currencyRecord._id },
+      ...currentBalance !== undefined && { currentBalance },
     };
     await Account.updateOne(query, update);
 
