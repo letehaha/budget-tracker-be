@@ -1,13 +1,13 @@
 const Transaction = require('@models/Transaction');
 const Category = require('@models/Category');
-const Account = require('@models/Account');
 const PaymentType = require('@models/PaymentType');
 const TransactionType = require('@models/TransactionType');
+const User = require('@models/User');
 
 async function seedTestTransaction() {
-  const account = await Account.find({
-    name: 'Test',
-  });
+  const [user] = await User.find();
+
+  const account = await user.accounts[0];
   const category = await Category.find({
     name: 'Food & Drinks',
   });
@@ -19,7 +19,7 @@ async function seedTestTransaction() {
   });
 
   const tx = new Transaction({
-    account: account[0]._id,
+    account: account._id,
     amount: 0,
     category: category[0]._id,
     note: '',
@@ -28,7 +28,8 @@ async function seedTestTransaction() {
     type: transactioType[0]._id,
   });
 
-  await tx.save();
+  user.transactions.push(tx);
+  await user.save();
 }
 
 module.exports = {
