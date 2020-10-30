@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Transaction = require('./Transaction');
 const Account = require('./Account');
+const Currency = require('./Currency');
+const Category = require('./Category');
 
 const { Schema } = mongoose;
 
@@ -44,6 +46,14 @@ const User = new Schema(
     },
     accounts: {
       type: [Account.schema],
+      default: [],
+    },
+    currencies: {
+      type: [Currency.schema],
+      default: [],
+    },
+    categories: {
+      type: [Category.schema],
       default: [],
     },
     totalBalance: {
