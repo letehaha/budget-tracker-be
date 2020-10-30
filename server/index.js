@@ -9,6 +9,7 @@ const locale = require('locale');
 /**
  *  Routes
  * */
+const usersRoutes = require('@routes/users.route');
 const accountsRoutes = require('@routes/accounts.route');
 const transactionsRoutes = require('@routes/transactions.route');
 const modelsAccountTypesRoutes = require('@routes/models/account-types.route');
@@ -47,6 +48,7 @@ app.use(locale(supportedLocales));
 /**
  *  Routes include
  * */
+app.use(`${apiPrefix}/users`, usersRoutes());
 app.use(`${apiPrefix}/accounts`, accountsRoutes());
 app.use(`${apiPrefix}/transactions`, transactionsRoutes());
 app.use(`${apiPrefix}/models/account-types`, modelsAccountTypesRoutes());
