@@ -15,6 +15,7 @@ async function seedTestAccount() {
     type: at[0]._id,
     currency: cur[0]._id,
     currentBalance: 0,
+    creditLimit: 0,
   });
 
   await account.save();

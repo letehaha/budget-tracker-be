@@ -20,6 +20,10 @@ const Account = new Schema({
     type: Number,
     default: 0,
   },
+  creditLimit: {
+    type: Number,
+    default: 0,
+  },
 });
 
 module.exports = mongoose.model('Account', Account);
