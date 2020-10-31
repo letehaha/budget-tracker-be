@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const Transaction = require('./Transaction');
 const Account = require('./Account');
-const Currency = require('./Currency');
 const Category = require('./Category');
 
 const { Schema } = mongoose;
@@ -49,7 +48,7 @@ const User = new Schema(
       default: [],
     },
     currencies: {
-      type: [Currency.schema],
+      type: [Schema.Types.ObjectId],
       default: [],
     },
     categories: {

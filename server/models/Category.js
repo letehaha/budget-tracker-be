@@ -8,7 +8,10 @@ Category.add({
     type: String,
     required: [true, 'Category name is required'],
   },
-  subcategories: [Category],
+  parentId: {
+    type: Schema.Types.ObjectId,
+    default: null,
+  },
 });
 
 module.exports = mongoose.model('Category', Category);
