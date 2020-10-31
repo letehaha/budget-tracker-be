@@ -8,9 +8,30 @@ module.exports = [
     name: 'Cash',
   }),
   new AccountType({
-    name: 'Credit Card',
+    name: 'Current account',
   }),
   new AccountType({
-    name: 'Saving Account',
+    name: 'Credit card',
+  }),
+  new AccountType({
+    name: 'Saving account',
+  }),
+  new AccountType({
+    name: 'Bonus',
+  }),
+  new AccountType({
+    name: 'Insurance',
+  }),
+  new AccountType({
+    name: 'Investment',
+  }),
+  new AccountType({
+    name: 'Loan',
+  }),
+  new AccountType({
+    name: 'Mortgage',
+  }),
+  new AccountType({
+    name: 'Account with overdraft',
   }),
 ];

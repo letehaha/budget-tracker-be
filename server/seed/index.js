@@ -2,7 +2,6 @@ require('dotenv').config();
 require('module-alias/register');
 const mongoose = require('mongoose');
 const accountTypes = require('./models/account-types.seed');
-const categories = require('./models/categories.seed');
 const currencies = require('./models/currencies.seed');
 const paymentTypes = require('./models/payment-types.seed');
 const transactionTypes = require('./models/transaction-types.seed');
@@ -30,7 +29,6 @@ mongoose.connection.once('open', async () => {
 
   const seeds = [
     ...currencies,
-    ...categories,
     ...accountTypes,
     ...paymentTypes,
     ...transactionTypes,

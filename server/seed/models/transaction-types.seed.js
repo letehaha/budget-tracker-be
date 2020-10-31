@@ -3,14 +3,14 @@ const TransactionType = require('@models/TransactionType');
 module.exports = [
   new TransactionType({
     name: 'Income',
-    type: 'income'
+    type: 'income',
   }),
   new TransactionType({
     name: 'Expense',
-    type: 'expense'
+    type: 'expense',
   }),
   new TransactionType({
     name: 'Transfer',
-    type: 'transfer'
+    type: 'transfer',
   }),
 ];
