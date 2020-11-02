@@ -1,13 +1,22 @@
-const mongoose = require('mongoose');
-const Account = require('@models/Account');
-const Currency = require('@models/Currency');
-const AccountType = require('@models/AccountType');
+const { Accounts } = require('@models');
 
 exports.getAccounts = async (req, res, next) => {
   try {
-    const data = await Account.find();
+    const accounts = await Accounts.getAccounts();
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({ response: accounts });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
+exports.getAccountById = async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const accounts = await Accounts.getAccountById({ id });
+
+    return res.status(200).json({ response: accounts });
   } catch (err) {
     return next(new Error(err));
   }
@@ -15,35 +24,21 @@ exports.getAccounts = async (req, res, next) => {
 
 exports.createAccount = async (req, res, next) => {
   const {
+    accountTypeId,
+    currencyId,
     name,
-    type,
-    currency,
     currentBalance,
+    creditLimit,
   } = req.body;
 
   try {
-    const typeRecord = await AccountType.findById(type);
-    if (!typeRecord) {
-      return res.status(404).json({
-        message: `No "account type" found with such id ${type}`,
-        statusCode: 404,
-      });
-    }
-
-    const currencyRecord = await Currency.findById(currency);
-    if (!currencyRecord) {
-      return res.status(404).json({
-        message: `No "currency" found with such id ${currency}`,
-        statusCode: 404,
-      });
-    }
-
-    const data = await new Account({
+    const data = await Accounts.createAccount({
+      accountTypeId,
+      currencyId,
       name,
-      type: typeRecord._id,
-      currency: currencyRecord._id,
       currentBalance,
-    }).save();
+      creditLimit,
+    });
 
     return res.status(200).json({ response: data });
   } catch (err) {
@@ -54,56 +49,22 @@ exports.createAccount = async (req, res, next) => {
 exports.updateAccount = async (req, res, next) => {
   const { id } = req.params;
   const {
+    accountTypeId,
+    currencyId,
     name,
-    type,
-    currency,
     currentBalance,
+    creditLimit,
   } = req.body;
 
   try {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: 'Account id is invalid',
-      });
-    }
-
-    const accountRecord = await Account.findById(id);
-    if (!accountRecord) {
-      return res.status(404).json({
-        message: `No "account" found with such id "${id}"`,
-      });
-    }
-
-    let typeRecord;
-    if (type) {
-      typeRecord = await AccountType.findById(type);
-      if (!typeRecord) {
-        return res.status(404).json({
-          message: `No "account type" found with such id ${type}`,
-        });
-      }
-    }
-
-    let currencyRecord;
-    if (currency) {
-      currencyRecord = await Currency.findById(currency);
-      if (!currencyRecord) {
-        return res.status(404).json({
-          message: `No "currency" found with such id ${currency}`,
-        });
-      }
-    }
-
-    const query = { _id: accountRecord._id };
-    const update = {
-      ...name !== undefined && { name },
-      ...type !== undefined && { type: typeRecord._id },
-      ...currency !== undefined && { currency: currencyRecord._id },
-      ...currentBalance !== undefined && { currentBalance },
-    };
-    await Account.updateOne(query, update);
-
-    const data = await Account.findById(query._id);
+    const data = await Accounts.updateAccountById({
+      id,
+      accountTypeId,
+      currencyId,
+      name,
+      currentBalance,
+      creditLimit,
+    });
 
     return res.status(200).json({ response: data });
   } catch (err) {
@@ -115,20 +76,7 @@ exports.deleteAccount = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: 'Account id is invalid',
-      });
-    }
-
-    const accountRecord = await Account.findById(id);
-    if (!accountRecord) {
-      return res.status(404).json({
-        message: `No "account" found with such id "${id}"`,
-      });
-    }
-
-    await Account.findByIdAndDelete(id);
+    await Accounts.deleteAccountById({ id });
 
     return res.status(200).json({ response: {} });
   } catch (err) {

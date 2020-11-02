@@ -1,14 +1,10 @@
-const mongoose = require('mongoose');
-const User = require('@models/User');
-
-const { ObjectId } = mongoose.Types;
-const validateObjectId = (id) => ObjectId.isValid(id) && (new ObjectId(id)).toString() === id;
+const { Users } = require('@models');
 
 exports.getUsers = async (req, res, next) => {
   try {
-    const data = await User.find();
+    const users = await Users.getUsers();
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({ response: users });
   } catch (err) {
     return next(new Error(err));
   }
@@ -18,15 +14,9 @@ exports.getUser = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    if (!validateObjectId(id)) {
-      return res.status(400).json({
-        message: 'User "id" is invalid',
-      });
-    }
+    const user = await Users.getUserById({ id });
 
-    const data = await User.findById(id);
-
-    return res.status(200).json({ response: data });
+    return res.status(200).json({ response: user });
   } catch (err) {
     return next(new Error(err));
   }
@@ -35,32 +25,28 @@ exports.getUser = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   const {
     username,
+    email,
     firstName,
     lastName,
     middleName,
     password,
     avatar,
-    transactions,
-    accounts,
     totalBalance,
-    email,
   } = req.body;
 
   try {
-    const data = await new User({
+    const user = await Users.createUser({
       username,
+      email,
       firstName,
       lastName,
       middleName,
       password,
       avatar,
-      transactions,
-      accounts,
       totalBalance,
-      email,
-    }).save();
+    });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({ response: user });
   } catch (err) {
     return next(new Error(err));
   }
@@ -69,8 +55,8 @@ exports.createUser = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
   const { id } = req.params;
   const {
-    email,
     username,
+    email,
     firstName,
     lastName,
     middleName,
@@ -80,35 +66,19 @@ exports.updateUser = async (req, res, next) => {
   } = req.body;
 
   try {
-    if (!validateObjectId(id)) {
-      return res.status(400).json({
-        message: 'User id is invalid',
-      });
-    }
+    const user = await Users.updateUserById({
+      id,
+      username,
+      email,
+      firstName,
+      lastName,
+      middleName,
+      password,
+      avatar,
+      totalBalance,
+    });
 
-    const userRecord = await User.findById(id);
-    if (!userRecord) {
-      return res.status(404).json({
-        message: `No User found with such id "${id}"`,
-      });
-    }
-
-    const query = { _id: userRecord._id };
-    const update = {
-      ...email !== undefined && { email },
-      ...username !== undefined && { username },
-      ...firstName !== undefined && { firstName },
-      ...lastName !== undefined && { lastName },
-      ...middleName !== undefined && { middleName },
-      ...password !== undefined && { password },
-      ...avatar !== undefined && { avatar },
-      ...totalBalance !== undefined && { totalBalance },
-    };
-    await User.updateOne(query, update);
-
-    const data = await User.findById(query._id);
-
-    return res.status(200).json({ response: data });
+    return res.status(200).json({ response: user });
   } catch (err) {
     return next(new Error(err));
   }
@@ -118,20 +88,7 @@ exports.deleteUser = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    if (!validateObjectId(id)) {
-      return res.status(400).json({
-        message: 'User id is invalid',
-      });
-    }
-
-    const userRecord = await User.findById(id);
-    if (!userRecord) {
-      return res.status(404).json({
-        message: `No User found with such id "${id}"`,
-      });
-    }
-
-    await User.findByIdAndDelete(id);
+    await Users.deleteUserById({ id });
 
     return res.status(200).json({ response: {} });
   } catch (err) {
