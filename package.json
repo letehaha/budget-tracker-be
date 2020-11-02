@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
+    "config": "^3.3.2",
     "cors": "^2.8.5",
     "currency-codes": "^2.1.0",
     "dotenv": "^8.2.0",

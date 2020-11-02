@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('module-alias/register');
+const config = require('config');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -21,9 +22,9 @@ const { supportedLocales } = require('./translations');
 
 const app = express();
 
-const apiPrefix = '/api/v1';
+const apiPrefix = config.get('apiPrefix');
 
-app.set('port', process.env.SERVICES_API_PORT);
+app.set('port', config.get('port'));
 
 app.use(cors());
 app.use(express.json());
