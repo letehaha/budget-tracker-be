@@ -25,6 +25,7 @@ module.exports = {
           ['@controllers', './server/controllers'],
           ['@middlewares', './server/middlewares'],
           ['@routes', './server/routes'],
+          ['@js', './server/js'],
         ],
         extensions: ['.ts', '.js', '.json'],
       },

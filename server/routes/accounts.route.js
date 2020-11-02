@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const {
   getAccounts,
+  getAccountById,
   createAccount,
   updateAccount,
   deleteAccount,
@@ -11,6 +12,7 @@ module.exports = () => {
   const router = Router({});
 
   router.get('/', [], validation, getAccounts);
+  router.get('/:id', [], validation, getAccountById);
   router.post('/', [], validation, createAccount);
   router.put('/:id', [], validation, updateAccount);
   router.delete('/:id', [], validation, deleteAccount);

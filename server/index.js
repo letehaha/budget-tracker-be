@@ -2,7 +2,6 @@ require('dotenv').config();
 require('module-alias/register');
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const morgan = require('morgan');
 const locale = require('locale');
 
@@ -12,11 +11,11 @@ const locale = require('locale');
 const usersRoutes = require('@routes/users.route');
 const accountsRoutes = require('@routes/accounts.route');
 const transactionsRoutes = require('@routes/transactions.route');
-const modelsAccountTypesRoutes = require('@routes/models/account-types.route');
-const modelsCategoriesRoutes = require('@routes/models/categories.route');
-const modelsCurrenciesRoutes = require('@routes/models/currencies.route');
-const modelsPaymentTypesRoutes = require('@routes/models/payment-types.route');
-const modelsTransactionTypesRoutes = require('@routes/models/transaction-types.route');
+const modelsAccountTypesRoutes = require('@routes/account-types.route');
+const modelsCategoriesRoutes = require('@routes/categories.route');
+const modelsCurrenciesRoutes = require('@routes/currencies.route');
+const modelsPaymentTypesRoutes = require('@routes/payment-types.route');
+const modelsTransactionTypesRoutes = require('@routes/transaction-types.route');
 
 const { supportedLocales } = require('./translations');
 
@@ -24,20 +23,7 @@ const app = express();
 
 const apiPrefix = '/api/v1';
 
-const DB_HOST = process.env.SERVICES_API_DB_HOST;
-const DB_PORT = process.env.SERVICES_API_DB_PORT;
-const DB_NAME = process.env.SERVICES_API_DB_NAME;
-
 app.set('port', process.env.SERVICES_API_PORT);
-
-mongoose.connect(`mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`, {
-  useUnifiedTopology: true,
-  useNewUrlParser: true,
-})
-  // eslint-disable-next-line no-console
-  .then(() => console.log('[OK] DB is connected'))
-  // eslint-disable-next-line no-console
-  .catch((err) => console.error(err));
 
 app.use(cors());
 app.use(express.json());
