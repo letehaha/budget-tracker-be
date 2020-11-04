@@ -40,13 +40,13 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Accounts.getAccounts = async () => {
-    const accounts = await Accounts.findAll();
+    const accounts = await Accounts.findAll({ include: { all: true, nested: true } });
 
     return accounts;
   };
 
   Accounts.getAccountById = async ({ id }) => {
-    const account = await Accounts.findOne({ where: { id } });
+    const account = await Accounts.findOne({ where: { id }, include: { all: true, nested: true } });
 
     return account;
   };
@@ -58,13 +58,15 @@ module.exports = (sequelize, DataTypes) => {
     currentBalance,
     creditLimit,
   }) => {
-    const account = await Accounts.create({
+    const response = await Accounts.create({
       accountTypeId,
       currencyId,
       name,
       currentBalance,
       creditLimit,
     });
+
+    const account = await Accounts.getAccountById({ id: response.get('id') });
 
     return account;
   };
@@ -89,7 +91,7 @@ module.exports = (sequelize, DataTypes) => {
       { where },
     );
 
-    const account = await Accounts.findOne({ where });
+    const account = await Accounts.getAccountById(where);
 
     return account;
   };
