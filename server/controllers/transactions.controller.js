@@ -1,8 +1,25 @@
 const { Transactions } = require('@models');
 
 exports.getTransactions = async (req, res, next) => {
+  const {
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  } = req.query;
   try {
-    const data = await Transactions.getTransactions();
+    const data = await Transactions.getTransactions({
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
     return res.status(200).json({ response: data });
   } catch (err) {
@@ -12,9 +29,27 @@ exports.getTransactions = async (req, res, next) => {
 
 exports.getTransactionById = async (req, res, next) => {
   const { id } = req.params;
+  const {
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  } = req.query;
 
   try {
-    const data = await Transactions.getTransactionById({ id });
+    const data = await Transactions.getTransactionById({
+      id,
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
     return res.status(200).json({ response: data });
   } catch (err) {

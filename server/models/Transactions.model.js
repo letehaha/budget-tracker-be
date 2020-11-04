@@ -1,4 +1,36 @@
 const { Model } = require('sequelize');
+const { isExist } = require('@js/helpers');
+
+const prepareTXInclude = (
+  sequelize,
+  {
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  },
+) => {
+  let include = null;
+
+  if (isExist(includeAll)) {
+    include = { all: true, nested: isExist(nestedInclude) };
+  } else {
+    include = [];
+
+    if (isExist(includeUser)) include.push({ model: sequelize.models.Users });
+    if (isExist(includeTransactionType)) {
+      include.push({ model: sequelize.models.TransactionTypes });
+    }
+    if (isExist(includePaymentType)) include.push({ model: sequelize.models.PaymentTypes });
+    if (isExist(includeAccount)) include.push({ model: sequelize.models.Accounts });
+    if (isExist(includeCategory)) include.push({ model: sequelize.models.Categories });
+  }
+
+  return include;
+};
 
 module.exports = (sequelize, DataTypes) => {
   class Transactions extends Model {
@@ -46,15 +78,51 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     timestamps: false,
   });
+  Transactions.getTransactions = async ({
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }) => {
+    const include = prepareTXInclude(sequelize, {
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
-  Transactions.getTransactions = async () => {
-    const transactions = await Transactions.findAll();
+    const transactions = await Transactions.findAll({ include });
 
     return transactions;
   };
 
-  Transactions.getTransactionById = async ({ id }) => {
-    const transactions = await Transactions.findOne({ where: { id } });
+  Transactions.getTransactionById = async ({
+    id,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }) => {
+    const include = prepareTXInclude(sequelize, {
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    const transactions = await Transactions.findOne({ where: { id }, include });
 
     return transactions;
   };
@@ -69,7 +137,7 @@ module.exports = (sequelize, DataTypes) => {
     accountId,
     categoryId,
   }) => {
-    const transactions = await Transactions.create({
+    const response = await Transactions.create({
       amount,
       note,
       time,
@@ -80,7 +148,9 @@ module.exports = (sequelize, DataTypes) => {
       categoryId,
     });
 
-    return transactions;
+    const transaction = await Transactions.getTransactionById({ id: response.get('id') });
+
+    return transaction;
   };
 
   Transactions.updateTransactionById = async ({
@@ -109,7 +179,7 @@ module.exports = (sequelize, DataTypes) => {
       { where },
     );
 
-    const transaction = await Transactions.findOne({ where });
+    const transaction = await Transactions.getTransactionById({ id });
 
     return transaction;
   };
