@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "NODE_ENV=development nodemon ./server/index",
     "migrate": "npx sequelize-cli db:migrate",
-    "drop-db": "npx sequelize-cli db:migrate:undo",
+    "migrate-undo": "npx sequelize-cli db:migrate:undo",
     "seed": "npx sequelize-cli db:seed:all",
+    "seed-undo": "npx sequelize-cli db:seed:undo:all",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint"
   },
@@ -35,6 +36,7 @@
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
+    "axios": "^0.21.0",
     "config": "^3.3.2",
     "cors": "^2.8.5",
     "currency-codes": "^2.1.0",

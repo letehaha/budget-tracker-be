@@ -14,4 +14,10 @@ module.exports = {
     dialect: process.env.SERVICES_API_DB_DIALECT,
     logging: false,
   },
+  bankIntegrations: {
+    monobank: {
+      apiToken: process.env.MONOBANK_API_TOKEN,
+      apiEndpoint: process.env.MONOBANK_API_ENDPOINT,
+    },
+  },
 };
