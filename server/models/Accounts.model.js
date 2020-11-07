@@ -9,6 +9,9 @@ module.exports = (sequelize, DataTypes) => {
       Accounts.belongsTo(models.Currencies, {
         foreignKey: 'currencyId',
       });
+      Accounts.belongsTo(models.Users, {
+        foreignKey: 'userId',
+      });
     }
   }
 

@@ -55,6 +55,20 @@ module.exports = {
         },
         { transaction },
       );
+      await queryInterface.addColumn(
+        'Accounts',
+        'userId',
+        {
+          type: Sequelize.INTEGER,
+          references: {
+            model: 'Users',
+            key: 'id',
+          },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL',
+        },
+        { transaction },
+      );
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();

@@ -5,6 +5,7 @@ module.exports = {
         name: 'Test',
         currencyId: 1,
         accountTypeId: 1,
+        userId: 1,
       },
     ], {});
   },

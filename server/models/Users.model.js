@@ -1,7 +1,18 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Users extends Model {}
+  class Users extends Model {
+    static associate(models) {
+      Users.hasMany(models.Accounts, {
+        onDelete: 'cascade',
+      });
+      Users.belongsToMany(models.Currencies, {
+        through: 'UsersCurrencies',
+        as: 'currencies',
+        foreignKey: 'userId',
+      });
+    }
+  }
 
   Users.init({
     id: {
@@ -58,6 +69,16 @@ module.exports = (sequelize, DataTypes) => {
 
   Users.getUserById = async ({ id }) => {
     const user = await Users.findOne({ where: { id } });
+
+    return user;
+  };
+
+  Users.getUserByCredentials = async ({ password, username, email }) => {
+    const where = {};
+    if (password) where.password = password;
+    if (username) where.username = username;
+    if (email) where.email = email;
+    const user = await Users.findOne({ where });
 
     return user;
   };

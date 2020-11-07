@@ -8,17 +8,29 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true,
       },
+      clientId: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
       name: {
         type: Sequelize.STRING,
         allowNull: false,
       },
       webHookUrl: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING(1000),
         allowNull: true,
       },
       apiToken: {
         type: Sequelize.STRING,
         allowNull: false,
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.fn('now'),
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.fn('now'),
       },
     });
 

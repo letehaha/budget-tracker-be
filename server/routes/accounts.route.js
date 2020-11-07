@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const passport = require('passport');
 const {
   getAccounts,
   getAccountById,
@@ -6,16 +7,35 @@ const {
   updateAccount,
   deleteAccount,
 } = require('@controllers/accounts.controller');
-const validation = require('@middlewares/validations');
 
 module.exports = () => {
   const router = Router({});
 
-  router.get('/', [], validation, getAccounts);
-  router.get('/:id', [], validation, getAccountById);
-  router.post('/', [], validation, createAccount);
-  router.put('/:id', [], validation, updateAccount);
-  router.delete('/:id', [], validation, deleteAccount);
+  router.get(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    getAccounts,
+  );
+  router.get(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    getAccountById,
+  );
+  router.post(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    createAccount,
+  );
+  router.put(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    updateAccount,
+  );
+  router.delete(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    deleteAccount,
+  );
 
   return router;
 };

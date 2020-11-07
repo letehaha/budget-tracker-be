@@ -1,7 +1,15 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Currencies extends Model {}
+  class Currencies extends Model {
+    static associate(models) {
+      Currencies.belongsToMany(models.Users, {
+        through: 'UsersCurrencies',
+        as: 'users',
+        foreignKey: 'currencyId',
+      });
+    }
+  }
 
   Currencies.init({
     id: {
@@ -33,6 +41,12 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Currencies.getCurrencies = async () => {
+    const currencies = await Currencies.findAll();
+
+    return currencies;
+  };
+
+  Currencies.create = async ({ code }) => {
     const currencies = await Currencies.findAll();
 
     return currencies;

@@ -17,12 +17,16 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true,
       primaryKey: true,
     },
+    clientId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
     webHookUrl: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING(1000),
       allowNull: true,
     },
     apiToken: {
@@ -33,6 +37,39 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     timestamps: true,
   });
+
+  MonobankUsers.getUserByToken = async ({ token, userId }) => {
+    const user = await MonobankUsers.findOne({
+      where: { apiToken: token, systemUserId: userId },
+    });
+
+    return user;
+  };
+
+  MonobankUsers.getUsers = async ({ systemUserId }) => {
+    const users = await MonobankUsers.findAll({ where: { systemUserId } });
+
+    return users;
+  };
+
+  MonobankUsers.createUser = async ({
+    userId,
+    token,
+    name,
+    clientId,
+    webHookUrl,
+  }) => {
+    await MonobankUsers.create({
+      apiToken: token,
+      clientId,
+      name,
+      webHookUrl,
+      systemUserId: userId,
+    });
+    const user = await MonobankUsers.getUserByToken({ token, userId });
+
+    return user;
+  };
 
   return MonobankUsers;
 };

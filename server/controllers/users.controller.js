@@ -22,36 +22,6 @@ exports.getUser = async (req, res, next) => {
   }
 };
 
-exports.createUser = async (req, res, next) => {
-  const {
-    username,
-    email,
-    firstName,
-    lastName,
-    middleName,
-    password,
-    avatar,
-    totalBalance,
-  } = req.body;
-
-  try {
-    const user = await Users.createUser({
-      username,
-      email,
-      firstName,
-      lastName,
-      middleName,
-      password,
-      avatar,
-      totalBalance,
-    });
-
-    return res.status(200).json({ response: user });
-  } catch (err) {
-    return next(new Error(err));
-  }
-};
-
 exports.updateUser = async (req, res, next) => {
   const { id } = req.params;
   const {

@@ -53,10 +53,40 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    isEnabled: {
+      type: DataTypes.BOOLEAN,
+      default: false,
+      allowNull: false,
+    },
   }, {
     sequelize,
     timestamps: true,
   });
+
+  MonobankAccounts.createAccount = async ({
+    monoUserId,
+    currencyId,
+    accountTypeId,
+    accountId,
+    balance,
+    creditLimit,
+    cashbackType,
+    maskedPan,
+    type,
+    iban,
+    isEnabled,
+  }) => {
+    await MonobankAccounts.create({
+      apiToken: token,
+      clientId,
+      name,
+      webHookUrl,
+      systemUserId,
+    });
+    // const user = await MonobankUsers.getUserByToken({ token, userId });
+
+    return {};
+  };
 
   return MonobankAccounts;
 };

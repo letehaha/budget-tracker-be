@@ -1,9 +1,13 @@
+const bcrypt = require('bcryptjs');
+
 module.exports = {
   up: async (queryInterface) => {
+    const salt = bcrypt.genSaltSync(10);
+
     await queryInterface.bulkInsert('Users', [
       {
         username: 'letehaha',
-        password: 'password',
+        password: bcrypt.hashSync('password', salt),
       },
     ], {});
   },

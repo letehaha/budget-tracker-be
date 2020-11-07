@@ -6,7 +6,7 @@ exports.getAccounts = async (req, res, next) => {
 
     return res.status(200).json({ response: accounts });
   } catch (err) {
-    return next(new Error(err));
+    return next(err);
   }
 };
 
@@ -18,7 +18,7 @@ exports.getAccountById = async (req, res, next) => {
 
     return res.status(200).json({ response: accounts });
   } catch (err) {
-    return next(new Error(err));
+    return next(err);
   }
 };
 
@@ -42,7 +42,7 @@ exports.createAccount = async (req, res, next) => {
 
     return res.status(200).json({ response: data });
   } catch (err) {
-    return next(new Error(err));
+    return next(err);
   }
 };
 
@@ -68,7 +68,7 @@ exports.updateAccount = async (req, res, next) => {
 
     return res.status(200).json({ response: data });
   } catch (err) {
-    return next(new Error(err));
+    return next(err);
   }
 };
 
@@ -80,6 +80,6 @@ exports.deleteAccount = async (req, res, next) => {
 
     return res.status(200).json({ response: {} });
   } catch (err) {
-    return next(new Error(err));
+    return next(err);
   }
 };
