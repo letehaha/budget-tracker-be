@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     maskedPan: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(1000),
       allowNull: true,
     },
     type: {
@@ -76,16 +76,21 @@ module.exports = (sequelize, DataTypes) => {
     iban,
     isEnabled,
   }) => {
-    await MonobankAccounts.create({
-      apiToken: token,
-      clientId,
-      name,
-      webHookUrl,
-      systemUserId,
+    const account = await MonobankAccounts.create({
+      accountId,
+      balance,
+      creditLimit,
+      currencyId,
+      cashbackType,
+      maskedPan,
+      type,
+      iban,
+      monoUserId,
+      accountTypeId,
+      isEnabled,
     });
-    // const user = await MonobankUsers.getUserByToken({ token, userId });
 
-    return {};
+    return account;
   };
 
   return MonobankAccounts;

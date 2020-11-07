@@ -27,7 +27,7 @@ module.exports = {
         allowNull: true,
       },
       maskedPan: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(1000),
         allowNull: true,
       },
       type: {
@@ -36,6 +36,11 @@ module.exports = {
       },
       iban: {
         type: Sequelize.STRING,
+        allowNull: false,
+      },
+      isEnabled: {
+        type: Sequelize.BOOLEAN,
+        default: false,
         allowNull: false,
       },
       createdAt: {

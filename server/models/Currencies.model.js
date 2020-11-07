@@ -1,3 +1,4 @@
+const cc = require('currency-codes');
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
@@ -46,10 +47,21 @@ module.exports = (sequelize, DataTypes) => {
     return currencies;
   };
 
-  Currencies.create = async ({ code }) => {
-    const currencies = await Currencies.findAll();
+  Currencies.createCurrency = async ({ code }) => {
+    const currency = cc.number(code);
 
-    return currencies;
+    const currencyData = {
+      code: currency.code,
+      number: Number(currency.number),
+      digits: currency.digits,
+      currency: currency.currency,
+    };
+    const [result] = await Currencies.findOrCreate({
+      where: { number: code },
+      defaults: currencyData,
+    });
+
+    return result;
   };
 
   return Currencies;

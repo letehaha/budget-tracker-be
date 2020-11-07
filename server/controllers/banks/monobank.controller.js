@@ -1,7 +1,7 @@
 const axios = require('axios').default;
 const config = require('config');
 
-const { MonobankUsers, MonobankAccounts } = require('@models');
+const { MonobankUsers, MonobankAccounts, Currencies } = require('@models');
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 const userToken = config.get('bankIntegrations.monobank.apiToken');
@@ -40,21 +40,33 @@ exports.pairAccount = async (req, res, next) => {
         webHookUrl: response.webHookUrl,
       });
 
-      // response.accounts.forEach((account) => {
-      //   MonobankAccounts.createAccount({
-      //     monoUserId: response.get('id'),
-      //     currencyId,
-      //     accountTypeId,
-      //     accountId,
-      //     balance,
-      //     creditLimit,
-      //     cashbackType,
-      //     maskedPan,
-      //     type,
-      //     iban,
-      //     isEnabled,
-      //   });
-      // });
+      // TODO: wrap createCurrency and createAccount into single transactions
+      const currencyCodes = [...new Set(response.accounts.map((i) => i.currencyCode))];
+
+      const currencies = await Promise.all(
+        currencyCodes.map((code) => Currencies.createCurrency({ code })),
+      );
+
+      const accountCurrencyCodes = {};
+      currencies.forEach((item) => {
+        accountCurrencyCodes[item.number] = item.id;
+      });
+
+      await Promise.all(
+        response.accounts.map((account) => MonobankAccounts.createAccount({
+          monoUserId: response.id,
+          currencyId: accountCurrencyCodes[account.currencyCode],
+          accountTypeId: 4,
+          accountId: account.id,
+          balance: account.balance,
+          creditLimit: account.creditLimit,
+          cashbackType: account.cashbackType,
+          maskedPan: JSON.stringify(account.maskedPan),
+          type: account.type,
+          iban: account.iban,
+          isEnabled: false,
+        })),
+      );
 
       user.setDataValue('accounts', response.accounts);
 
@@ -86,7 +98,6 @@ exports.getAccounts = async (req, res, next) => {
     let response = await req.redisClient.get(userToken);
 
     if (!response) {
-      console.log('CACHE IS EMPTY');
       response = (await axios({
         method: 'GET',
         url: `${hostname}/personal/client-info`,
@@ -101,7 +112,6 @@ exports.getAccounts = async (req, res, next) => {
     } else {
       response = JSON.parse(response);
     }
-    console.log('CACHE IS USED');
 
     return res.status(200).json({ response });
   } catch (err) {
