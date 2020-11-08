@@ -17,6 +17,18 @@ exports.pairAccount = async (req, res, next) => {
       let response = await req.redisClient.get(token);
 
       if (!response) {
+        await axios({
+          method: 'POST',
+          url: `${hostname}/personal/webhook`,
+          responseType: 'json',
+          headers: {
+            'X-Token': userToken,
+          },
+          data: {
+            webHookUrl: 'http://f4ffc93a55c1.ngrok.io/api/v1/banks/monobank/webhook',
+          },
+        });
+
         response = (await axios({
           method: 'GET',
           url: `${hostname}/personal/client-info`,
@@ -54,7 +66,7 @@ exports.pairAccount = async (req, res, next) => {
 
       await Promise.all(
         response.accounts.map((account) => MonobankAccounts.createAccount({
-          monoUserId: response.id,
+          monoUserId: user.get('id'),
           currencyId: accountCurrencyCodes[account.currencyCode],
           accountTypeId: 4,
           accountId: account.id,
@@ -151,6 +163,22 @@ exports.createAccounts = async (req, res, next) => {
         accountId: id,
       });
     });
+
+    return res.status(200).json({ response: [] });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
+exports.monobankWebhook = async (req, res, next) => {
+  const {
+    type,
+    data,
+  } = req.body;
+  try {
+    // http://f4ffc93a55c1.ngrok.io/api/v1/banks/monobank/webhook
+    console.log('type', type);
+    console.log('data', data);
 
     return res.status(200).json({ response: [] });
   } catch (err) {

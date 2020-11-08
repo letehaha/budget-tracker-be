@@ -5,6 +5,7 @@ const {
   getUsers,
   getAccounts,
   createAccounts,
+  monobankWebhook,
 } = require('@controllers/banks/monobank.controller');
 
 module.exports = () => {
@@ -29,6 +30,10 @@ module.exports = () => {
     '/select-accounts',
     passport.authenticate('jwt', { session: false }),
     createAccounts,
+  );
+  router.post(
+    '/webhook',
+    monobankWebhook,
   );
 
   return router;
