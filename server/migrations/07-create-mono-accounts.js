@@ -23,7 +23,7 @@ module.exports = {
         default: 0,
       },
       cashbackType: {
-        type: Sequelize.ENUM('UAH', 'Miles'),
+        type: Sequelize.STRING,
         allowNull: true,
       },
       maskedPan: {
@@ -90,7 +90,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Users',
+            model: 'MonobankUsers',
             key: 'id',
           },
           onUpdate: 'CASCADE',

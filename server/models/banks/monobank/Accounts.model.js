@@ -38,7 +38,7 @@ module.exports = (sequelize, DataTypes) => {
       default: 0,
     },
     cashbackType: {
-      type: DataTypes.ENUM('UAH', 'Miles'),
+      type: DataTypes.STRING,
       allowNull: true,
     },
     maskedPan: {
