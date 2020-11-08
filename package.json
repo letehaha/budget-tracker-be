@@ -33,7 +33,8 @@
     "@controllers": "./server/controllers",
     "@middlewares": "./server/middlewares",
     "@routes": "./server/routes",
-    "@js": "./server/js"
+    "@js": "./server/js",
+    "@resources": "./server/resources"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {

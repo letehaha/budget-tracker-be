@@ -17,6 +17,8 @@ const sequelize = new Sequelize(
 const modelsPaths = [
   '@models/banks/monobank/Accounts.model',
   '@models/banks/monobank/Users.model',
+  '@models/banks/MerchantCategoryCodes.model',
+  '@models/banks/UserMerchantCategoryCodes.model',
 ];
 
 fs

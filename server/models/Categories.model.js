@@ -9,6 +9,11 @@ module.exports = (sequelize, DataTypes) => {
       Categories.belongsTo(models.Users, {
         foreignKey: 'userId',
       });
+      Categories.belongsToMany(models.MerchantCategoryCodes, {
+        through: 'UserMerchantCategoryCodes',
+        as: 'merchantCodes',
+        foreignKey: 'currencyId',
+      });
     }
   }
 
