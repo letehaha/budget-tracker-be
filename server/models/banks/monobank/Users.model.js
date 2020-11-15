@@ -71,5 +71,18 @@ module.exports = (sequelize, DataTypes) => {
     return user;
   };
 
+  MonobankUsers.updateWebhook = async ({
+    webHookUrl,
+    clientId,
+    systemUserId,
+  }) => {
+    const result = await MonobankUsers.update(
+      { webHookUrl },
+      { where: { clientId, systemUserId } },
+    );
+
+    return result;
+  };
+
   return MonobankUsers;
 };

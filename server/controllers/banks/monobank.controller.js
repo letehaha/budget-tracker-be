@@ -185,3 +185,20 @@ exports.monobankWebhook = async (req, res, next) => {
     return next(new Error(err));
   }
 };
+
+exports.updateWebhook = async (req, res, next) => {
+  try {
+    const { clientId } = req.body;
+    const { id } = req.user;
+
+    await MonobankUsers.updateWebhook({
+      systemUserId: id,
+      clientId,
+      webHookUrl: 'http://638df495cb65.ngrok.io/api/v1/banks/monobank/webhook',
+    });
+
+    return res.status(200).json({ response: [] });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
