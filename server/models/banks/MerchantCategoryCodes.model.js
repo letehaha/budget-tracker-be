@@ -36,5 +36,15 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
   });
 
+  MerchantCategoryCodes.getByCode = async ({
+    code,
+  }) => {
+    const mcc = await MerchantCategoryCodes.findOne({
+      where: { code },
+    });
+
+    return mcc;
+  };
+
   return MerchantCategoryCodes;
 };

@@ -26,6 +26,15 @@ module.exports = {
           as: 'mccId',
         },
       },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id',
+          as: 'userId',
+        },
+      },
     });
   },
   down: async (queryInterface) => {

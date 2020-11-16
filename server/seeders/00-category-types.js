@@ -7,6 +7,14 @@ module.exports = {
         type: CATEGORY_TYPES.food,
         color: '#ff0000',
       },
+      {
+        type: CATEGORY_TYPES.life,
+        color: 'blue',
+      },
+      {
+        type: CATEGORY_TYPES.other,
+        color: '#ccc',
+      },
     ], {});
   },
   down: async (queryInterface) => {

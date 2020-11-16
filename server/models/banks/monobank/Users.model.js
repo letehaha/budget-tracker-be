@@ -52,6 +52,12 @@ module.exports = (sequelize, DataTypes) => {
     return users;
   };
 
+  MonobankUsers.getById = async ({ id }) => {
+    const users = await MonobankUsers.findOne({ where: { id } });
+
+    return users;
+  };
+
   MonobankUsers.createUser = async ({
     userId,
     token,

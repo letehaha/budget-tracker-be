@@ -6,6 +6,16 @@ module.exports = {
         categoryTypeId: 1,
         userId: 1,
       },
+      {
+        name: 'Life',
+        categoryTypeId: 2,
+        userId: 1,
+      },
+      {
+        name: 'Other',
+        categoryTypeId: 3,
+        userId: 1,
+      },
     ], {});
   },
   down: async (queryInterface) => {

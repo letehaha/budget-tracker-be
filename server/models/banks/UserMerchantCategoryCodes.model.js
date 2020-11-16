@@ -19,10 +19,44 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   }, {
     sequelize,
     timestamps: false,
   });
+
+  UserMerchantCategoryCodes.getByPassedParams = async ({
+    mccId,
+    userId,
+    categoryId,
+  }) => {
+    const where = {};
+
+    if (mccId) where.mccId = mccId;
+    if (userId) where.userId = userId;
+    if (categoryId) where.categoryId = categoryId;
+
+    const mcc = await UserMerchantCategoryCodes.findAll({ where });
+
+    return mcc;
+  };
+
+  UserMerchantCategoryCodes.createEntry = async ({
+    mccId,
+    userId,
+    categoryId,
+  }) => {
+    const userMcc = await UserMerchantCategoryCodes.create({
+      mccId,
+      userId,
+      categoryId,
+    });
+
+    return userMcc;
+  };
 
   return UserMerchantCategoryCodes;
 };

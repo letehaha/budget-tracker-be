@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       Categories.belongsToMany(models.MerchantCategoryCodes, {
         through: 'UserMerchantCategoryCodes',
         as: 'merchantCodes',
-        foreignKey: 'currencyId',
+        foreignKey: 'categoryId',
       });
     }
   }

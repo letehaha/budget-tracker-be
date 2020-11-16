@@ -1,7 +1,14 @@
 const axios = require('axios').default;
 const config = require('config');
 
-const { MonobankUsers, MonobankAccounts, Currencies } = require('@models');
+const {
+  MonobankUsers,
+  MonobankAccounts,
+  MonobankTransactions,
+  Currencies,
+  MerchantCategoryCodes,
+  UserMerchantCategoryCodes,
+} = require('@models');
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 const userToken = config.get('bankIntegrations.monobank.apiToken');
@@ -171,16 +178,59 @@ exports.createAccounts = async (req, res, next) => {
 };
 
 exports.monobankWebhook = async (req, res, next) => {
-  const {
-    type,
-    data,
-  } = req.body;
-  try {
-    // http://f4ffc93a55c1.ngrok.io/api/v1/banks/monobank/webhook
-    console.log('type', type);
-    console.log('data', data);
+  const { data } = req.body;
 
-    return res.status(200).json({ response: [] });
+  try {
+    const monobankAccount = await MonobankAccounts.getByAccountId({
+      accountId: data.account,
+    });
+    if (!monobankAccount) {
+      return res.status(404).json({ message: 'Monobank account does not exist!' });
+    }
+    const userData = await MonobankUsers.getById({
+      id: monobankAccount.get('monoUserId'),
+    });
+
+    const mccId = await MerchantCategoryCodes.getByCode({
+      code: data.statementItem.mcc,
+    });
+
+    const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
+      mccId: mccId.get('id'),
+      userId: userData.get('systemUserId'),
+    });
+
+    let categoryId;
+
+    if (userMcc.length) {
+      categoryId = userMcc[0].get('categoryId');
+    } else {
+      categoryId = 3;
+      await UserMerchantCategoryCodes.createEntry({
+        mccId: mccId.get('id'),
+        userId: userData.get('systemUserId'),
+        categoryId,
+      });
+    }
+
+    await MonobankTransactions.createTransaction({
+      id: data.statementItem.id,
+      description: data.statementItem.description,
+      amount: data.statementItem.amount,
+      time: new Date(data.statementItem.time * 1000),
+      operationAmount: data.statementItem.operationAmount,
+      commissionRate: data.statementItem.commissionRate,
+      cashbackAmount: data.statementItem.cashbackAmount,
+      balance: data.statementItem.balance,
+      hold: data.statementItem.hold,
+      monoAccountId: monobankAccount.get('id'),
+      userId: userData.get('systemUserId'),
+      transactionTypeId: data.statementItem.amount > 0 ? 1 : 2,
+      paymentTypeId: 6,
+      categoryId,
+    });
+
+    return res.status(200).json({ message: 'success' });
   } catch (err) {
     return next(new Error(err));
   }
