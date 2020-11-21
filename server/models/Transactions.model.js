@@ -78,7 +78,9 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     timestamps: false,
   });
+
   Transactions.getTransactions = async ({
+    userId,
     includeUser,
     includeTransactionType,
     includePaymentType,
@@ -97,13 +99,17 @@ module.exports = (sequelize, DataTypes) => {
       nestedInclude,
     });
 
-    const transactions = await Transactions.findAll({ include });
+    const transactions = await Transactions.findAll({
+      include,
+      where: { userId },
+    });
 
     return transactions;
   };
 
   Transactions.getTransactionById = async ({
     id,
+    userId,
     includeUser,
     includeTransactionType,
     includePaymentType,
@@ -122,7 +128,10 @@ module.exports = (sequelize, DataTypes) => {
       nestedInclude,
     });
 
-    const transactions = await Transactions.findOne({ where: { id }, include });
+    const transactions = await Transactions.findOne({
+      where: { id, userId },
+      include,
+    });
 
     return transactions;
   };
@@ -148,7 +157,10 @@ module.exports = (sequelize, DataTypes) => {
       categoryId,
     });
 
-    const transaction = await Transactions.getTransactionById({ id: response.get('id') });
+    const transaction = await Transactions.getTransactionById({
+      id: response.get('id'),
+      userId,
+    });
 
     return transaction;
   };
@@ -179,13 +191,13 @@ module.exports = (sequelize, DataTypes) => {
       { where },
     );
 
-    const transaction = await Transactions.getTransactionById({ id });
+    const transaction = await Transactions.getTransactionById({ id, userId });
 
     return transaction;
   };
 
-  Transactions.deleteTransactionById = async ({ id }) => {
-    await Transactions.destroy({ where: { id } });
+  Transactions.deleteTransactionById = async ({ id, userId }) => {
+    await Transactions.destroy({ where: { id, userId } });
   };
 
   return Transactions;

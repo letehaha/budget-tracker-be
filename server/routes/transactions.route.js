@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const passport = require('passport');
 const {
   getTransactions,
   getTransactionById,
@@ -6,16 +7,35 @@ const {
   updateTransaction,
   deleteTransaction,
 } = require('@controllers/transactions.controller');
-const validation = require('@middlewares/validations');
 
 module.exports = () => {
   const router = Router({});
 
-  router.get('/', [], validation, getTransactions);
-  router.get('/:id', [], validation, getTransactionById);
-  router.post('/', [], validation, createTransaction);
-  router.put('/:id', [], validation, updateTransaction);
-  router.delete('/:id', [], validation, deleteTransaction);
+  router.get(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    getTransactions,
+  );
+  router.get(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    getTransactionById,
+  );
+  router.post(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    createTransaction,
+  );
+  router.put(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    updateTransaction,
+  );
+  router.delete(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    deleteTransaction,
+  );
 
   return router;
 };

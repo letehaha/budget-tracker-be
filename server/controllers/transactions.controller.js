@@ -10,8 +10,11 @@ exports.getTransactions = async (req, res, next) => {
     includeAll,
     nestedInclude,
   } = req.query;
+  const { id: userId } = req.user;
+
   try {
     const data = await Transactions.getTransactions({
+      userId,
       includeUser,
       includeTransactionType,
       includePaymentType,
@@ -29,6 +32,7 @@ exports.getTransactions = async (req, res, next) => {
 
 exports.getTransactionById = async (req, res, next) => {
   const { id } = req.params;
+  const { id: userId } = req.user;
   const {
     includeUser,
     includeTransactionType,
@@ -42,6 +46,7 @@ exports.getTransactionById = async (req, res, next) => {
   try {
     const data = await Transactions.getTransactionById({
       id,
+      userId,
       includeUser,
       includeTransactionType,
       includePaymentType,
@@ -62,12 +67,13 @@ exports.createTransaction = async (req, res, next) => {
     amount,
     note,
     time,
-    userId,
     transactionTypeId,
     paymentTypeId,
     accountId,
     categoryId,
   } = req.body;
+
+  const { id: userId } = req.user;
 
   try {
     const data = await Transactions.createTransaction({
@@ -93,12 +99,14 @@ exports.updateTransaction = async (req, res, next) => {
     amount,
     note,
     time,
-    userId,
     transactionTypeId,
     paymentTypeId,
     accountId,
     categoryId,
   } = req.body;
+
+  const { id: userId } = req.user;
+
   try {
     const data = await Transactions.updateTransactionById({
       id,
@@ -120,8 +128,10 @@ exports.updateTransaction = async (req, res, next) => {
 
 exports.deleteTransaction = async (req, res, next) => {
   const { id } = req.params;
+  const { id: userId } = req.user;
+
   try {
-    await Transactions.deleteTransactionById({ id });
+    await Transactions.deleteTransactionById({ id, userId });
 
     return res.status(200).json({ response: {} });
   } catch (err) {
