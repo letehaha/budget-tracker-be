@@ -53,8 +53,13 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     totalBalance: {
-      type: DataTypes.STRING(2000),
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      default: 0,
+    },
+    defaultCategoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   }, {
     sequelize,
@@ -69,6 +74,15 @@ module.exports = (sequelize, DataTypes) => {
 
   Users.getUserById = async ({ id }) => {
     const user = await Users.findOne({ where: { id } });
+
+    return user;
+  };
+
+  Users.getUserDefaultCategory = async ({ id }) => {
+    const user = await Users.findOne({
+      where: { id },
+      attributes: ['defaultCategoryId'],
+    });
 
     return user;
   };

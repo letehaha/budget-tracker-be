@@ -8,6 +8,8 @@ module.exports = {
       {
         username: 'letehaha',
         password: bcrypt.hashSync('password', salt),
+        defaultCategoryId: 11,
+        totalBalance: 0,
       },
     ], {});
   },

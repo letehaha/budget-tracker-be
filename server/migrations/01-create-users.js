@@ -39,8 +39,13 @@ module.exports = {
         allowNull: true,
       },
       totalBalance: {
-        type: Sequelize.STRING(2000),
-        allowNull: true,
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        default: 0,
+      },
+      defaultCategoryId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
     });
   },

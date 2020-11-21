@@ -8,6 +8,7 @@ const {
   Currencies,
   MerchantCategoryCodes,
   UserMerchantCategoryCodes,
+  Users,
 } = require('@models');
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
@@ -205,7 +206,12 @@ exports.monobankWebhook = async (req, res, next) => {
     if (userMcc.length) {
       categoryId = userMcc[0].get('categoryId');
     } else {
-      categoryId = 3;
+      categoryId = (
+        await Users.getUserDefaultCategory({
+          id: userData.get('systemUserId'),
+        })
+      ).get('defaultCategoryId');
+
       await UserMerchantCategoryCodes.createEntry({
         mccId: mccId.get('id'),
         userId: userData.get('systemUserId'),
