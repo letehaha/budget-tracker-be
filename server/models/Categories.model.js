@@ -49,8 +49,8 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
   });
 
-  Categories.getCategories = async () => {
-    const categories = await Categories.findAll();
+  Categories.getCategories = async ({ id }) => {
+    const categories = await Categories.findAll({ where: { userId: id } });
 
     return categories;
   };

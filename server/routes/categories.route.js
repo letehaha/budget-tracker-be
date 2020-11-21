@@ -1,11 +1,15 @@
 const { Router } = require('express');
+const passport = require('passport');
 const CategoriesController = require('@controllers/categories.controller');
-const validation = require('@middlewares/validations');
 
 module.exports = () => {
   const router = Router({});
 
-  router.get('/', [], validation, CategoriesController.getCategories);
+  router.get(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    CategoriesController.getCategories,
+  );
 
   return router;
 };
