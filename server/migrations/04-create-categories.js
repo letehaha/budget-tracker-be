@@ -1,3 +1,7 @@
+require('module-alias/register');
+
+const { CATEGORY_TYPES } = require('@js/const');
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('Categories', {
@@ -12,6 +16,19 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      imageUrl: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      color: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      type: {
+        type: Sequelize.ENUM(Object.values(CATEGORY_TYPES)),
+        allowNull: false,
+        default: CATEGORY_TYPES.custom,
+      },
       parentId: {
         type: Sequelize.INTEGER,
         allowNull: true,
@@ -21,20 +38,6 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.addColumn(
-        'Categories',
-        'categoryTypeId',
-        {
-          type: Sequelize.INTEGER,
-          references: {
-            model: 'CategoryTypes', // name of Target model
-            key: 'id', // key in Target model that we're referencing
-          },
-          onUpdate: 'CASCADE',
-          onDelete: 'SET NULL',
-        },
-        { transaction },
-      );
       await queryInterface.addColumn(
         'Categories',
         'userId',
@@ -60,7 +63,6 @@ module.exports = {
 
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.removeColumn('Categories', 'categoryTypeId', { transaction });
       await queryInterface.removeColumn('Categories', 'userId', { transaction });
       await transaction.commit();
     } catch (err) {

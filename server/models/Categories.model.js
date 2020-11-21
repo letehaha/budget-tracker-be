@@ -1,11 +1,9 @@
 const { Model } = require('sequelize');
+const { CATEGORY_TYPES } = require('@js/const');
 
 module.exports = (sequelize, DataTypes) => {
   class Categories extends Model {
     static associate(models) {
-      Categories.belongsTo(models.CategoryTypes, {
-        foreignKey: 'categoryTypeId',
-      });
       Categories.belongsTo(models.Users, {
         foreignKey: 'userId',
       });
@@ -28,6 +26,19 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    color: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    type: {
+      type: DataTypes.ENUM(Object.values(CATEGORY_TYPES)),
+      allowNull: false,
+      default: CATEGORY_TYPES.custom,
     },
     parentId: {
       type: DataTypes.INTEGER,
