@@ -55,5 +55,36 @@ module.exports = (sequelize, DataTypes) => {
     return categories;
   };
 
+  Categories.createCategory = async ({
+    name,
+    imageUrl,
+    color,
+    type = CATEGORY_TYPES.custom,
+    parentId,
+    userId,
+  }) => {
+    if (parentId) {
+      const parent = await Categories.findOne({ where: { id: parentId, userId } });
+
+      if (!parent) {
+        throw new Error({
+          message: "Category with such parentId doesn't exist",
+          statusCode: 404,
+        });
+      }
+    }
+
+    const category = await Categories.create({
+      name,
+      imageUrl,
+      color,
+      type,
+      parentId,
+      userId,
+    });
+
+    return category;
+  };
+
   return Categories;
 };

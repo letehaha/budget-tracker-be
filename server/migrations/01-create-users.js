@@ -45,7 +45,7 @@ module.exports = {
       },
       defaultCategoryId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
     });
   },

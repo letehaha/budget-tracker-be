@@ -1,5 +1,7 @@
 const { Model } = require('sequelize');
 
+const DETAULT_TOTAL_BALANCE = 0;
+
 module.exports = (sequelize, DataTypes) => {
   class Users extends Model {
     static associate(models) {
@@ -55,11 +57,11 @@ module.exports = (sequelize, DataTypes) => {
     totalBalance: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      default: 0,
+      default: DETAULT_TOTAL_BALANCE,
     },
     defaultCategoryId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
   }, {
     sequelize,
@@ -129,7 +131,7 @@ module.exports = (sequelize, DataTypes) => {
     middleName,
     password,
     avatar,
-    totalBalance,
+    totalBalance = DETAULT_TOTAL_BALANCE,
   }) => {
     const user = await Users.create({
       username,
@@ -152,24 +154,23 @@ module.exports = (sequelize, DataTypes) => {
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
+    defaultCategoryId,
   }) => {
     const where = { id };
-    await Users.update(
-      {
-        username,
-        email,
-        firstName,
-        lastName,
-        middleName,
-        password,
-        avatar,
-        totalBalance,
-      },
-      { where },
-    );
+    const updateFields = {};
+
+    if (username) updateFields.username = username;
+    if (email) updateFields.email = email;
+    if (firstName) updateFields.firstName = firstName;
+    if (lastName) updateFields.lastName = lastName;
+    if (middleName) updateFields.middleName = middleName;
+    if (avatar) updateFields.avatar = avatar;
+    if (totalBalance) updateFields.totalBalance = totalBalance;
+    if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
+
+    await Users.update(updateFields, { where });
 
     const user = await Users.findOne({ where });
 

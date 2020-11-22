@@ -2,7 +2,8 @@ const config = require('config');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { Users } = require('@models');
+const { Users, Categories } = require('@models');
+const { DEFAULT_CATEGORIES } = require('@js/const');
 
 exports.login = async (req, res, next) => {
   const {
@@ -64,6 +65,22 @@ exports.register = async (req, res, next) => {
     user = await Users.createUser({
       username,
       password: bcrypt.hashSync(password, salt),
+    });
+
+    const categories = await Promise.all(
+      DEFAULT_CATEGORIES.main.map(
+        (item) => Categories.createCategory({
+          ...item,
+          userId: user.get('id'),
+        }),
+      ),
+    );
+
+    user = await Users.updateUserById({
+      defaultCategoryId: categories
+        .find((item) => item.get('name') === DEFAULT_CATEGORIES.names.other)
+        .get('id'),
+      id: user.get('id'),
     });
 
     return res
