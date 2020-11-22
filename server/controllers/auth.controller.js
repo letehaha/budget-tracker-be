@@ -1,6 +1,7 @@
 const config = require('config');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sequelize, Sequelize } = require('@models');
 
 const { Users, Categories } = require('@models');
 const { DEFAULT_CATEGORIES } = require('@js/const');
@@ -52,7 +53,13 @@ exports.register = async (req, res, next) => {
     password,
   } = req.body;
 
+  let registrationTransaction = null;
+
   try {
+    registrationTransaction = await sequelize.transaction({
+      isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
+    });
+
     let user = await Users.getUserByCredentials({ username });
     if (user) {
       return res
@@ -62,31 +69,88 @@ exports.register = async (req, res, next) => {
 
     const salt = bcrypt.genSaltSync(10);
 
-    user = await Users.createUser({
-      username,
-      password: bcrypt.hashSync(password, salt),
-    });
+    user = await Users.createUser(
+      {
+        username,
+        password: bcrypt.hashSync(password, salt),
+      },
+      {
+        transaction: registrationTransaction,
+      },
+    );
 
+    // set default categories
     const categories = await Promise.all(
       DEFAULT_CATEGORIES.main.map(
-        (item) => Categories.createCategory({
-          ...item,
-          userId: user.get('id'),
-        }),
+        (item) => Categories.createCategory(
+          {
+            ...item,
+            userId: user.get('id'),
+          },
+          {
+            transaction: registrationTransaction,
+          },
+        ),
       ),
     );
 
-    user = await Users.updateUserById({
-      defaultCategoryId: categories
-        .find((item) => item.get('name') === DEFAULT_CATEGORIES.names.other)
-        .get('id'),
-      id: user.get('id'),
-    });
+    // set default subcategories
+    await Promise.all(
+      categories.map((item) => {
+        const subcategories = DEFAULT_CATEGORIES.subcategories
+          .find((subcat) => subcat.parentName === item.get('name'));
+
+        if (subcategories) {
+          return Promise.all(
+            subcategories.values.map(
+              (subItem) => Categories.createCategory(
+                {
+                  ...subItem,
+                  parentId: item.get('id'),
+                  color: item.get('color'),
+                  userId: user.get('id'),
+                },
+                {
+                  transaction: registrationTransaction,
+                },
+              ),
+            ),
+          );
+        }
+
+        return undefined;
+      }),
+    );
+
+    // set defaultCategoryId so the undefined mcc codes will use it
+    const defaultCategoryId = categories
+      .find((item) => item.get('name') === DEFAULT_CATEGORIES.names.other)
+      .get('id');
+
+    if (!defaultCategoryId) {
+      throw new Error("Cannot find 'defaultCategoryId' in the previously create categories.");
+    } else {
+      user = await Users.updateUserById(
+        {
+          defaultCategoryId,
+          id: user.get('id'),
+        },
+        {
+          transaction: registrationTransaction,
+        },
+      );
+    }
+
+    await registrationTransaction.commit();
 
     return res
       .status(201)
       .json({ response: user });
   } catch (err) {
+    if (registrationTransaction) {
+      await registrationTransaction.rollback();
+    }
+
     return next(new Error(err));
   }
 };

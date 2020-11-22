@@ -123,17 +123,8 @@ module.exports = (sequelize, DataTypes) => {
     return user;
   };
 
-  Users.createUser = async ({
-    username,
-    email,
-    firstName,
-    lastName,
-    middleName,
-    password,
-    avatar,
-    totalBalance = DETAULT_TOTAL_BALANCE,
-  }) => {
-    const user = await Users.create({
+  Users.createUser = async (
+    {
       username,
       email,
       firstName,
@@ -141,23 +132,45 @@ module.exports = (sequelize, DataTypes) => {
       middleName,
       password,
       avatar,
-      totalBalance,
-    });
+      totalBalance = DETAULT_TOTAL_BALANCE,
+    },
+    {
+      transaction,
+    },
+  ) => {
+    const user = await Users.create(
+      {
+        username,
+        email,
+        firstName,
+        lastName,
+        middleName,
+        password,
+        avatar,
+        totalBalance,
+      },
+      {
+        transaction,
+      },
+    );
 
     return user;
   };
 
-  Users.updateUserById = async ({
-    id,
-    username,
-    email,
-    firstName,
-    lastName,
-    middleName,
-    avatar,
-    totalBalance,
-    defaultCategoryId,
-  }) => {
+  Users.updateUserById = async (
+    {
+      id,
+      username,
+      email,
+      firstName,
+      lastName,
+      middleName,
+      avatar,
+      totalBalance,
+      defaultCategoryId,
+    },
+    { transaction },
+  ) => {
     const where = { id };
     const updateFields = {};
 
@@ -170,9 +183,9 @@ module.exports = (sequelize, DataTypes) => {
     if (totalBalance) updateFields.totalBalance = totalBalance;
     if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
 
-    await Users.update(updateFields, { where });
+    await Users.update(updateFields, { where, transaction });
 
-    const user = await Users.findOne({ where });
+    const user = await Users.findOne({ where, transaction });
 
     return user;
   };
