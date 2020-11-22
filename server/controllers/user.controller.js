@@ -14,11 +14,13 @@ exports.getUser = async (req, res, next) => {
 
 exports.getUserCurrencies = async (req, res, next) => {
   const { id: userId } = req.user;
+  const { includeUser } = req.query;
 
   try {
     const user = await Users.getUserCurrencies({ userId });
+    const result = includeUser === undefined ? user.get('currencies') : user;
 
-    return res.status(200).json({ response: user });
+    return res.status(200).json({ response: result });
   } catch (err) {
     return next(new Error(err));
   }
