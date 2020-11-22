@@ -64,6 +64,14 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     timestamps: false,
+    defaultScope: {
+      attributes: { exclude: ['password'] },
+    },
+    scopes: {
+      withPassword: {
+        attributes: {},
+      },
+    },
   });
 
   Users.getUsers = async () => {
@@ -88,7 +96,7 @@ module.exports = (sequelize, DataTypes) => {
   };
 
   Users.getUserCurrencies = async ({ userId }) => {
-    const currencies = await Users.findAll({
+    const user = await Users.findOne({
       where: { id: userId },
       include: [
         {
@@ -100,7 +108,7 @@ module.exports = (sequelize, DataTypes) => {
       ],
     });
 
-    return currencies;
+    return user;
   };
 
   Users.getUserByCredentials = async ({ password, username, email }) => {
@@ -108,7 +116,7 @@ module.exports = (sequelize, DataTypes) => {
     if (password) where.password = password;
     if (username) where.username = username;
     if (email) where.email = email;
-    const user = await Users.findOne({ where });
+    const user = await Users.scope('withPassword').findOne({ where });
 
     return user;
   };
