@@ -87,6 +87,22 @@ module.exports = (sequelize, DataTypes) => {
     return user;
   };
 
+  Users.getUserCurrencies = async ({ userId }) => {
+    const currencies = await Users.findAll({
+      where: { id: userId },
+      include: [
+        {
+          model: sequelize.models.Currencies,
+          as: 'currencies',
+          // to remove the rows from the join table (i.e. 'UsersCurrencies' table) in the result set
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    return currencies;
+  };
+
   Users.getUserByCredentials = async ({ password, username, email }) => {
     const where = {};
     if (password) where.password = password;

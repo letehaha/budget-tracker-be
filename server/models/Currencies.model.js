@@ -41,7 +41,7 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
   });
 
-  Currencies.getCurrencies = async () => {
+  Currencies.getAllCurrencies = async () => {
     const currencies = await Currencies.findAll();
 
     return currencies;

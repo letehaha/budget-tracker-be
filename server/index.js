@@ -14,6 +14,7 @@ const { promisify } = require('util');
  * */
 const authRoutes = require('@routes/auth.route');
 const usersRoutes = require('@routes/users.route');
+const userRoutes = require('@routes/user.route');
 const accountsRoutes = require('@routes/accounts.route');
 const transactionsRoutes = require('@routes/transactions.route');
 const modelsAccountTypesRoutes = require('@routes/account-types.route');
@@ -58,6 +59,7 @@ app.use(locale(supportedLocales));
  *  Routes include
  * */
 app.use(`${apiPrefix}/auth`, authRoutes());
+app.use(`${apiPrefix}/user`, userRoutes());
 app.use(`${apiPrefix}/users`, usersRoutes());
 app.use(`${apiPrefix}/accounts`, accountsRoutes());
 app.use(`${apiPrefix}/transactions`, transactionsRoutes());

@@ -1,19 +1,15 @@
 const { Router } = require('express');
-const {
-  getUser,
-  getUsers,
-  updateUser,
-  deleteUser,
-} = require('@controllers/users.controller');
-const validation = require('@middlewares/validations');
+const passport = require('passport');
+const { getUsers } = require('@controllers/users.controller');
 
 module.exports = () => {
   const router = Router({});
 
-  router.get('/', [], validation, getUsers);
-  router.get('/:id', [], validation, getUser);
-  router.put('/:id', [], validation, updateUser);
-  router.delete('/:id', [], validation, deleteUser);
+  router.get(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    getUsers,
+  );
 
   return router;
 };
