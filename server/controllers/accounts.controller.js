@@ -1,8 +1,10 @@
 const { Accounts } = require('@models');
 
 exports.getAccounts = async (req, res, next) => {
+  const { id: userId } = req.user;
+
   try {
-    const accounts = await Accounts.getAccounts();
+    const accounts = await Accounts.getAccounts({ userId });
 
     return res.status(200).json({ response: accounts });
   } catch (err) {
@@ -12,9 +14,10 @@ exports.getAccounts = async (req, res, next) => {
 
 exports.getAccountById = async (req, res, next) => {
   const { id } = req.params;
+  const { id: userId } = req.user;
 
   try {
-    const accounts = await Accounts.getAccountById({ id });
+    const accounts = await Accounts.getAccountById({ userId, id });
 
     return res.status(200).json({ response: accounts });
   } catch (err) {

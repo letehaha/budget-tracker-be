@@ -5,9 +5,6 @@ const DETAULT_TOTAL_BALANCE = 0;
 module.exports = (sequelize, DataTypes) => {
   class Users extends Model {
     static associate(models) {
-      Users.hasMany(models.Accounts, {
-        onDelete: 'cascade',
-      });
       Users.belongsToMany(models.Currencies, {
         through: 'UsersCurrencies',
         as: 'currencies',

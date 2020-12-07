@@ -42,14 +42,14 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
   });
 
-  Accounts.getAccounts = async () => {
-    const accounts = await Accounts.findAll({ include: { all: true, nested: true } });
+  Accounts.getAccounts = async ({ userId }) => {
+    const accounts = await Accounts.findAll({ where: { userId } });
 
     return accounts;
   };
 
-  Accounts.getAccountById = async ({ id }) => {
-    const account = await Accounts.findOne({ where: { id }, include: { all: true, nested: true } });
+  Accounts.getAccountById = async ({ userId, id }) => {
+    const account = await Accounts.findOne({ where: { userId, id } });
 
     return account;
   };
