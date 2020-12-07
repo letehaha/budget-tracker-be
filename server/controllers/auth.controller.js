@@ -14,6 +14,7 @@ exports.login = async (req, res, next) => {
 
   try {
     const user = await Users.getUserByCredentials({ username });
+
     if (user) {
       const isPasswordValid = bcrypt.compareSync(password, user.get('password'));
 
