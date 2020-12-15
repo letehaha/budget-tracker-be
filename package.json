@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "NODE_ENV=development nodemon ./server/index",
+    "prod": "NODE_ENV=development nodemon ./server/index",
     "migrate": "npx sequelize-cli db:migrate",
     "migrate-undo": "npx sequelize-cli db:migrate:undo",
     "seed": "npx sequelize-cli db:seed:all",

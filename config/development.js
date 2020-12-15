@@ -15,6 +15,9 @@ module.exports = {
     dialect: process.env.SERVICES_API_DB_DIALECT,
     logging: false,
   },
+  redis: {
+    host: process.env.SERVICES_REDIS_HOST,
+  },
   bankIntegrations: {
     monobank: {
       apiToken: process.env.MONOBANK_API_TOKEN,

@@ -28,7 +28,9 @@ const { supportedLocales } = require('./translations');
 
 const app = express();
 const apiPrefix = config.get('apiPrefix');
-const redisClient = redis.createClient();
+const redisClient = redis.createClient({
+  host: config.get('redis.host'),
+});
 
 redisClient.on('error', (error) => {
   // eslint-disable-next-line no-console
