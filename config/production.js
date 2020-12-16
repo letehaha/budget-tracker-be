@@ -6,6 +6,7 @@ module.exports = {
   port: process.env.SERVICES_API_PORT,
   apiPrefix: process.env.SERVICES_API_PREFIX,
   jwtSecret: process.env.SERVICES_JWT_SECRET,
+  hostWebhooksCallback: process.env.SERVICES_WEBHOOK_CALLBACK,
   db: {
     host: process.env.SERVICES_API_DB_HOST,
     user: process.env.SERVICES_API_DB_USER,
@@ -14,6 +15,9 @@ module.exports = {
     port: process.env.SERVICES_API_DB_PORT,
     dialect: process.env.SERVICES_API_DB_DIALECT,
     logging: false,
+  },
+  redis: {
+    host: process.env.SERVICES_REDIS_HOST,
   },
   bankIntegrations: {
     monobank: {

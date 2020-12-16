@@ -11,8 +11,24 @@ const {
   Users,
 } = require('@models');
 
+const hostWebhooksCallback = config.get('hostWebhooksCallback');
+const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 const userToken = config.get('bankIntegrations.monobank.apiToken');
+
+async function updateWebhook() {
+  await axios({
+    method: 'POST',
+    url: `${hostname}/personal/webhook`,
+    responseType: 'json',
+    headers: {
+      'X-Token': userToken,
+    },
+    data: {
+      webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
+    },
+  });
+}
 
 exports.pairAccount = async (req, res, next) => {
   const { token } = req.body;
@@ -25,17 +41,7 @@ exports.pairAccount = async (req, res, next) => {
       let response = await req.redisClient.get(token);
 
       if (!response) {
-        await axios({
-          method: 'POST',
-          url: `${hostname}/personal/webhook`,
-          responseType: 'json',
-          headers: {
-            'X-Token': userToken,
-          },
-          data: {
-            webHookUrl: 'http://f4ffc93a55c1.ngrok.io/api/v1/banks/monobank/webhook',
-          },
-        });
+        await updateWebhook();
 
         response = (await axios({
           method: 'GET',
@@ -236,6 +242,9 @@ exports.monobankWebhook = async (req, res, next) => {
       categoryId,
     });
 
+    // eslint-disable-next-line no-console
+    console.log(`New MONOBANK transaction! Amount is ${data.statementItem.amount}`);
+
     return res.status(200).json({ message: 'success' });
   } catch (err) {
     return next(new Error(err));
@@ -250,8 +259,10 @@ exports.updateWebhook = async (req, res, next) => {
     await MonobankUsers.updateWebhook({
       systemUserId: id,
       clientId,
-      webHookUrl: 'http://638df495cb65.ngrok.io/api/v1/banks/monobank/webhook',
+      webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
     });
+
+    await updateWebhook();
 
     return res.status(200).json({ response: [] });
   } catch (err) {
