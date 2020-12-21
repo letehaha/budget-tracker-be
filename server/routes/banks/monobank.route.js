@@ -3,6 +3,7 @@ const passport = require('passport');
 const {
   pairAccount,
   getUsers,
+  getTransactions,
   getAccounts,
   createAccounts,
   monobankWebhook,
@@ -21,6 +22,11 @@ module.exports = () => {
     '/users',
     passport.authenticate('jwt', { session: false }),
     getUsers,
+  );
+  router.get(
+    '/transactions',
+    passport.authenticate('jwt', { session: false }),
+    getTransactions,
   );
   router.get(
     '/accounts',

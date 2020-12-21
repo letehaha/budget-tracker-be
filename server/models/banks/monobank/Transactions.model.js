@@ -99,6 +99,8 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   MonobankTransactions.getTransactions = async ({
+    systemUserId,
+    sortDirection,
     includeUser,
     includeTransactionType,
     includePaymentType,
@@ -117,7 +119,11 @@ module.exports = (sequelize, DataTypes) => {
       nestedInclude,
     });
 
-    const transactions = await MonobankTransactions.findAll({ include });
+    const transactions = await MonobankTransactions.findAll({
+      include,
+      where: { userId: systemUserId },
+      order: [['time', sortDirection.toUpperCase()]],
+    });
 
     return transactions;
   };
@@ -163,6 +169,12 @@ module.exports = (sequelize, DataTypes) => {
     monoAccountId,
     categoryId,
   }) => {
+    const tx = await MonobankTransactions.getTransactionById({ id });
+
+    if (tx) {
+      throw new Error('Transactions with such id already exist!');
+    }
+
     const response = await MonobankTransactions.create({
       id,
       description,

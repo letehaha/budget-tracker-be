@@ -11,6 +11,11 @@ const {
   Users,
 } = require('@models');
 
+const SORT_DIRECTIONS = {
+  asc: 'asc',
+  desc: 'desc',
+};
+
 const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
@@ -114,6 +119,42 @@ exports.getUsers = async (req, res, next) => {
     });
 
     return res.status(200).json({ response: users });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
+exports.getTransactions = async (req, res, next) => {
+  const { id } = req.user;
+  const {
+    sort = SORT_DIRECTIONS.desc,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  } = req.query;
+
+  if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
+    return next(new Error(`Sort direction is invalid! Should be one of [${Object.values(SORT_DIRECTIONS)}]`));
+  }
+
+  try {
+    const transactions = await MonobankTransactions.getTransactions({
+      systemUserId: id,
+      sortDirection: sort,
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    return res.status(200).json({ response: transactions });
   } catch (err) {
     return next(new Error(err));
   }
