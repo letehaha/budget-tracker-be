@@ -297,15 +297,28 @@ exports.updateWebhook = async (req, res, next) => {
     const { clientId } = req.body;
     const { id } = req.user;
 
-    await MonobankUsers.updateWebhook({
-      systemUserId: id,
-      clientId,
-      webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
+    const token = `${id}-update-webhook`;
+    const tempToken = await req.redisClient.get(token);
+
+    if (!tempToken) {
+      await MonobankUsers.updateWebhook({
+        systemUserId: id,
+        clientId,
+        webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
+      });
+
+      await updateWebhook();
+
+      await req.redisClient.set(token, true);
+      await req.redisClient.expire(token, 60);
+
+      return res.status(200).json({ status: 'ok' });
+    }
+
+    return res.status(429).json({
+      status: 'error',
+      message: 'Too many requests! Request cannot be called more that once a minute!',
     });
-
-    await updateWebhook();
-
-    return res.status(200).json({ response: [] });
   } catch (err) {
     return next(new Error(err));
   }
