@@ -110,15 +110,15 @@ exports.pairAccount = async (req, res, next) => {
   }
 };
 
-exports.getUsers = async (req, res, next) => {
+exports.getUser = async (req, res, next) => {
   const { id } = req.user;
 
   try {
-    const users = await MonobankUsers.getUsers({
+    const user = await MonobankUsers.getUser({
       systemUserId: id,
     });
 
-    return res.status(200).json({ response: users });
+    return res.status(200).json({ response: user });
   } catch (err) {
     return next(new Error(err));
   }

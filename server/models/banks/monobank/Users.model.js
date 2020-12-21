@@ -46,10 +46,13 @@ module.exports = (sequelize, DataTypes) => {
     return user;
   };
 
-  MonobankUsers.getUsers = async ({ systemUserId }) => {
-    const users = await MonobankUsers.findAll({ where: { systemUserId } });
+  MonobankUsers.getUser = async ({ systemUserId }) => {
+    const user = await MonobankUsers.findOne({
+      where: { systemUserId },
+      attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId'],
+    });
 
-    return users;
+    return user;
   };
 
   MonobankUsers.getById = async ({ id }) => {

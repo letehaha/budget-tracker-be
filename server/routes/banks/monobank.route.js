@@ -2,7 +2,7 @@ const { Router } = require('express');
 const passport = require('passport');
 const {
   pairAccount,
-  getUsers,
+  getUser,
   getTransactions,
   getAccounts,
   createAccounts,
@@ -19,9 +19,9 @@ module.exports = () => {
     pairAccount,
   );
   router.get(
-    '/users',
+    '/user',
     passport.authenticate('jwt', { session: false }),
-    getUsers,
+    getUser,
   );
   router.get(
     '/transactions',
