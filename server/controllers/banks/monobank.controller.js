@@ -274,6 +274,7 @@ exports.monobankWebhook = async (req, res, next) => {
       operationAmount: data.statementItem.operationAmount,
       commissionRate: data.statementItem.commissionRate,
       cashbackAmount: data.statementItem.cashbackAmount,
+      receiptId: data.statementItem.receiptId,
       balance: data.statementItem.balance,
       hold: data.statementItem.hold,
       monoAccountId: monobankAccount.get('id'),
@@ -297,7 +298,7 @@ exports.updateWebhook = async (req, res, next) => {
     const { clientId } = req.body;
     const { id } = req.user;
 
-    const token = `${id}-update-webhook`;
+    const token = `monobank-${id}`;
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
