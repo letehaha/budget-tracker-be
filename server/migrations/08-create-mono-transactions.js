@@ -40,6 +40,10 @@ module.exports = {
         type: Sequelize.BOOLEAN,
         allowNull: false,
       },
+      receiptId: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
     });
 
     const transaction = await queryInterface.sequelize.transaction();
@@ -115,6 +119,20 @@ module.exports = {
         },
         { transaction },
       );
+      await queryInterface.addColumn(
+        'MonobankTransactions',
+        'currencyId',
+        {
+          type: Sequelize.INTEGER,
+          references: {
+            model: 'Currencies',
+            key: 'id',
+          },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL',
+        },
+        { transaction },
+      );
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
@@ -131,6 +149,7 @@ module.exports = {
       await queryInterface.removeColumn('MonobankTransactions', 'paymentTypeId', { transaction });
       await queryInterface.removeColumn('MonobankTransactions', 'monoAccountId', { transaction });
       await queryInterface.removeColumn('MonobankTransactions', 'categoryId', { transaction });
+      await queryInterface.removeColumn('MonobankTransactions', 'currencyId', { transaction });
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();

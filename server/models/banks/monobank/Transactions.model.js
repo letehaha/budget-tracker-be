@@ -50,6 +50,9 @@ module.exports = (sequelize, DataTypes) => {
       MonobankTransactions.belongsTo(models.MonobankAccounts, {
         foreignKey: 'monoAccountId',
       });
+      MonobankTransactions.belongsTo(models.Currencies, {
+        foreignKey: 'currencyId',
+      });
     }
   }
 
@@ -92,6 +95,10 @@ module.exports = (sequelize, DataTypes) => {
     hold: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+    },
+    receiptId: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   }, {
     sequelize,
@@ -168,6 +175,7 @@ module.exports = (sequelize, DataTypes) => {
     paymentTypeId,
     monoAccountId,
     categoryId,
+    receiptId,
   }) => {
     const tx = await MonobankTransactions.getTransactionById({ id });
 
@@ -190,6 +198,7 @@ module.exports = (sequelize, DataTypes) => {
       paymentTypeId,
       monoAccountId,
       categoryId,
+      receiptId,
     });
 
     const transaction = await MonobankTransactions.getTransactionById({ id: response.get('id') });
@@ -212,6 +221,7 @@ module.exports = (sequelize, DataTypes) => {
     paymentTypeId,
     monoAccountId,
     categoryId,
+    receiptId,
   }) => {
     const where = { id };
     await MonobankTransactions.update(
@@ -229,6 +239,7 @@ module.exports = (sequelize, DataTypes) => {
         paymentTypeId,
         monoAccountId,
         categoryId,
+        receiptId,
       },
       { where },
     );

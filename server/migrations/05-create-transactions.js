@@ -96,6 +96,20 @@ module.exports = {
         },
         { transaction },
       );
+      await queryInterface.addColumn(
+        'Transactions',
+        'currencyId',
+        {
+          type: Sequelize.INTEGER,
+          references: {
+            model: 'Currencies',
+            key: 'id',
+          },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL',
+        },
+        { transaction },
+      );
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
@@ -112,6 +126,7 @@ module.exports = {
       await queryInterface.removeColumn('Transactions', 'paymentTypeId', { transaction });
       await queryInterface.removeColumn('Transactions', 'accountId', { transaction });
       await queryInterface.removeColumn('Transactions', 'categoryId', { transaction });
+      await queryInterface.removeColumn('Transactions', 'currencyId', { transaction });
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
