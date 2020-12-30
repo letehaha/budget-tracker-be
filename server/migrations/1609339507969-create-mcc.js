@@ -1,3 +1,5 @@
+const mccCodes = require('../resources/mcc-codes.json');
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('MerchantCategoryCodes', {
@@ -21,6 +23,16 @@ module.exports = {
         allowNull: true,
       },
     });
+
+    await queryInterface.bulkInsert(
+      'MerchantCategoryCodes',
+      mccCodes.map((code) => ({
+        code: code.mcc,
+        name: code.edited_description,
+        description: code.irs_description,
+      })),
+      {},
+    );
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable('MerchantCategoryCodes');
