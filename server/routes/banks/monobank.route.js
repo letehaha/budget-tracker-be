@@ -8,6 +8,7 @@ const {
   createAccounts,
   monobankWebhook,
   updateWebhook,
+  loadTransactions,
 } = require('@controllers/banks/monobank.controller');
 
 module.exports = () => {
@@ -46,6 +47,11 @@ module.exports = () => {
     '/update-webhook',
     passport.authenticate('jwt', { session: false }),
     updateWebhook,
+  );
+  router.get(
+    '/load-transactions',
+    passport.authenticate('jwt', { session: false }),
+    loadTransactions,
   );
 
   return router;

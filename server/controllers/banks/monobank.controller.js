@@ -1,5 +1,12 @@
 const axios = require('axios').default;
 const config = require('config');
+const { default: PQueue } = require('p-queue');
+const {
+  addMonths,
+  endOfMonth,
+  startOfMonth,
+  differenceInCalendarMonths,
+} = require('date-fns');
 
 const {
   MonobankUsers,
@@ -16,10 +23,33 @@ const SORT_DIRECTIONS = {
   desc: 'desc',
 };
 
+const usersQuery = new Map();
+
 const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 const userToken = config.get('bankIntegrations.monobank.apiToken');
+
+function dateRange({ from, to }) {
+  const difference = differenceInCalendarMonths(
+    new Date(Number(to)),
+    new Date(Number(from)),
+  );
+  const dates = [];
+
+  // eslint-disable-next-line no-plusplus
+  for (let i = 0; i <= difference; i++) {
+    const start = startOfMonth(addMonths(new Date(Number(from)), i));
+    const end = endOfMonth(addMonths(new Date(Number(from)), i));
+
+    dates.push({
+      start: Number((new Date(start).getTime() / 1000).toFixed(0)),
+      end: Number((new Date(end).getTime() / 1000).toFixed(0)),
+    });
+  }
+
+  return dates;
+}
 
 async function updateWebhook() {
   await axios({
@@ -33,6 +63,75 @@ async function updateWebhook() {
       webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
     },
   });
+}
+
+async function createMonoTransaction({ data, account }) {
+  const existTx = await MonobankTransactions.getTransactionById({
+    id: data.id,
+  });
+
+  // check if transactions exist
+  if (existTx) {
+    return;
+  }
+
+  const userData = await MonobankUsers.getById({
+    id: account.get('monoUserId'),
+  });
+
+  let mccId = await MerchantCategoryCodes.getByCode({
+    code: data.mcc,
+  });
+
+  // check if mcc code exist. If not, create a new with name 'Unknown'
+  if (!mccId) {
+    mccId = await MerchantCategoryCodes.addCode({ code: data.mcc });
+  }
+
+  const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
+    mccId: mccId.get('id'),
+    userId: userData.get('systemUserId'),
+  });
+
+  let categoryId;
+
+  if (userMcc.length) {
+    categoryId = userMcc[0].get('categoryId');
+  } else {
+    categoryId = (
+      await Users.getUserDefaultCategory({
+        id: userData.get('systemUserId'),
+      })
+    ).get('defaultCategoryId');
+
+    await UserMerchantCategoryCodes.createEntry({
+      mccId: mccId.get('id'),
+      userId: userData.get('systemUserId'),
+      categoryId,
+    });
+  }
+
+  await MonobankTransactions.createTransaction({
+    id: data.id,
+    description: data.description,
+    amount: data.amount,
+    time: new Date(data.time * 1000),
+    operationAmount: data.operationAmount,
+    commissionRate: data.commissionRate,
+    cashbackAmount: data.cashbackAmount,
+    receiptId: data.receiptId,
+    balance: data.balance,
+    hold: data.hold,
+    monoAccountId: account.get('id'),
+    userId: userData.get('systemUserId'),
+    transactionTypeId: data.amount > 0 ? 1 : 2,
+    paymentTypeId: 6,
+    categoryId,
+    currencyId: account.get('currencyId'),
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(`New MONOBANK transaction! Amount is ${data.amount}`);
 }
 
 exports.pairAccount = async (req, res, next) => {
@@ -235,57 +334,10 @@ exports.monobankWebhook = async (req, res, next) => {
     if (!monobankAccount) {
       return res.status(404).json({ message: 'Monobank account does not exist!' });
     }
-    const userData = await MonobankUsers.getById({
-      id: monobankAccount.get('monoUserId'),
+    await createMonoTransaction({
+      data: data.statementItem,
+      account: monobankAccount,
     });
-
-    const mccId = await MerchantCategoryCodes.getByCode({
-      code: data.statementItem.mcc,
-    });
-
-    const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
-      mccId: mccId.get('id'),
-      userId: userData.get('systemUserId'),
-    });
-
-    let categoryId;
-
-    if (userMcc.length) {
-      categoryId = userMcc[0].get('categoryId');
-    } else {
-      categoryId = (
-        await Users.getUserDefaultCategory({
-          id: userData.get('systemUserId'),
-        })
-      ).get('defaultCategoryId');
-
-      await UserMerchantCategoryCodes.createEntry({
-        mccId: mccId.get('id'),
-        userId: userData.get('systemUserId'),
-        categoryId,
-      });
-    }
-
-    await MonobankTransactions.createTransaction({
-      id: data.statementItem.id,
-      description: data.statementItem.description,
-      amount: data.statementItem.amount,
-      time: new Date(data.statementItem.time * 1000),
-      operationAmount: data.statementItem.operationAmount,
-      commissionRate: data.statementItem.commissionRate,
-      cashbackAmount: data.statementItem.cashbackAmount,
-      receiptId: data.statementItem.receiptId,
-      balance: data.statementItem.balance,
-      hold: data.statementItem.hold,
-      monoAccountId: monobankAccount.get('id'),
-      userId: userData.get('systemUserId'),
-      transactionTypeId: data.statementItem.amount > 0 ? 1 : 2,
-      paymentTypeId: 6,
-      categoryId,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log(`New MONOBANK transaction! Amount is ${data.statementItem.amount}`);
 
     return res.status(200).json({ message: 'success' });
   } catch (err) {
@@ -298,7 +350,7 @@ exports.updateWebhook = async (req, res, next) => {
     const { clientId } = req.body;
     const { id } = req.user;
 
-    const token = `monobank-${id}`;
+    const token = `monobank-${id}-update-webhook`;
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
@@ -320,6 +372,75 @@ exports.updateWebhook = async (req, res, next) => {
       status: 'error',
       message: 'Too many requests! Request cannot be called more that once a minute!',
     });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
+exports.loadTransactions = async (req, res, next) => {
+  try {
+    const { from, to, accountId } = req.query;
+    const { id: systemUserId } = req.user;
+
+    // Check mono account exist
+    const monobankAccount = await MonobankAccounts.getByAccountId({
+      accountId,
+    });
+
+    if (!monobankAccount) {
+      return res.status(404).json({ message: 'Monobank account does not exist.' });
+    }
+
+    // Check is there already created query for data retrieve
+    const existQuery = usersQuery.get(`query-${systemUserId}`);
+
+    if (existQuery) {
+      return res.status(403).json({
+        status: 'error',
+        message: `Query already exist and should be fulfilled first. Number of left requests is ${existQuery.size}. Try to request a bit later (approximately in ${existQuery.size} minutes, since each request will take about 60 seconds)`,
+      });
+    }
+
+    // Create queue on data retrieving, get months and add queue to global map
+    const queue = new PQueue({
+      concurrency: 1,
+      interval: 60000,
+      intervalCap: 1,
+    });
+    const months = dateRange({ from, to });
+
+    usersQuery.set(`query-${systemUserId}`, queue);
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const month of months) {
+      // eslint-disable-next-line no-await-in-loop, no-console
+      queue.add(async () => {
+        const { data } = await axios({
+          method: 'GET',
+          url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
+          responseType: 'json',
+          headers: {
+            'X-Token': userToken,
+          },
+        });
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const item of data) {
+          // eslint-disable-next-line no-await-in-loop
+          await createMonoTransaction({
+            data: item,
+            account: monobankAccount,
+          });
+        }
+      });
+    }
+
+    // When all requests are done – delete it from the map
+    queue.on('idle', () => {
+      usersQuery.delete(`query-${systemUserId}`);
+    });
+
+    return res.status(200).json({ status: 'ok' });
   } catch (err) {
     return next(new Error(err));
   }
