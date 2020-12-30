@@ -8827,5 +8827,59 @@
     "irs_description": "Intra-Company Purchases",
     "irs_reportable": "No1.6041-3(c)",
     "id": 980
+  },
+  {
+    "mcc": "6535",
+    "edited_description": "Value Purchase–Member Financial Institution",
+    "combined_description": "Value Purchase–Member Financial Institution",
+    "usda_description": "",
+    "irs_description": "Value Purchase–Member Financial Institution",
+    "irs_reportable": "Yes",
+    "id": 981
+  },
+  {
+    "mcc": "6536",
+    "edited_description": "MoneySend Intracountry",
+    "combined_description": "MoneySend Intracountry",
+    "usda_description": "",
+    "irs_description": "MoneySend Intracountry",
+    "irs_reportable": "Yes",
+    "id": 982
+  },
+  {
+    "mcc": "6537",
+    "edited_description": "MoneySend Intracountry",
+    "combined_description": "MoneySend Intracountry",
+    "usda_description": "",
+    "irs_description": "MoneySend Intracountry",
+    "irs_reportable": "Yes",
+    "id": 983
+  },
+  {
+    "mcc": "6538",
+    "edited_description": "MoneySend Funding",
+    "combined_description": "MoneySend Funding",
+    "usda_description": "",
+    "irs_description": "MoneySend Funding",
+    "irs_reportable": "Yes",
+    "id": 984
+  },
+  {
+    "mcc": "6539",
+    "edited_description": "Funding Transaction (Excluding MoneySend)",
+    "combined_description": "Funding Transaction (Excluding MoneySend)",
+    "usda_description": "",
+    "irs_description": "Funding Transaction (Excluding MoneySend)",
+    "irs_reportable": "Yes",
+    "id": 985
+  },
+  {
+    "mcc": "6540",
+    "edited_description": "POI (Point of Interaction) Funding Transactions (Excluding MoneySend)",
+    "combined_description": "POI (Point of Interaction) Funding Transactions (Excluding MoneySend)",
+    "usda_description": "",
+    "irs_description": "POI (Point of Interaction) Funding Transactions (Excluding MoneySend)",
+    "irs_reportable": "Yes",
+    "id": 986
   }
 ]
