@@ -46,5 +46,15 @@ module.exports = (sequelize, DataTypes) => {
     return mcc;
   };
 
+  MerchantCategoryCodes.addCode = async ({ code, name = 'Unknown', description }) => {
+    const mcc = await MerchantCategoryCodes.create({
+      code,
+      name,
+      description,
+    });
+
+    return mcc;
+  };
+
   return MerchantCategoryCodes;
 };
