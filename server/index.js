@@ -22,6 +22,7 @@ const сategoriesRoutes = require('@routes/categories.route');
 const modelsCurrenciesRoutes = require('@routes/currencies.route');
 const modelsPaymentTypesRoutes = require('@routes/payment-types.route');
 const modelsTransactionTypesRoutes = require('@routes/transaction-types.route');
+const modelsTransactionEntitiesRoutes = require('@routes/transaction-entities.route');
 const monobankRoutes = require('@routes/banks/monobank.route');
 
 const { supportedLocales } = require('./translations');
@@ -70,6 +71,7 @@ app.use(`${apiPrefix}/models/account-types`, modelsAccountTypesRoutes());
 app.use(`${apiPrefix}/models/currencies`, modelsCurrenciesRoutes());
 app.use(`${apiPrefix}/models/payment-types`, modelsPaymentTypesRoutes());
 app.use(`${apiPrefix}/models/transaction-types`, modelsTransactionTypesRoutes());
+app.use(`${apiPrefix}/models/transaction-entities`, modelsTransactionEntitiesRoutes());
 app.use(`${apiPrefix}/banks/monobank`, monobankRoutes());
 
 app.listen(app.get('port'), () => {

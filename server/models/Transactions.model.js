@@ -1,4 +1,4 @@
-const { Model } = require('sequelize');
+const { Model, Op } = require('sequelize');
 const { isExist } = require('@js/helpers');
 
 const prepareTXInclude = (
@@ -50,6 +50,9 @@ module.exports = (sequelize, DataTypes) => {
       Transactions.belongsTo(models.Categories, {
         foreignKey: 'categoryId',
       });
+      Transactions.belongsTo(models.TransactionEntities, {
+        foreignKey: 'transactionEntityId',
+      });
     }
   }
 
@@ -81,6 +84,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Transactions.getTransactions = async ({
     userId,
+    sortDirection,
     includeUser,
     includeTransactionType,
     includePaymentType,
@@ -88,6 +92,7 @@ module.exports = (sequelize, DataTypes) => {
     includeCategory,
     includeAll,
     nestedInclude,
+    isRaw = false,
   }) => {
     const include = prepareTXInclude(sequelize, {
       includeUser,
@@ -102,6 +107,8 @@ module.exports = (sequelize, DataTypes) => {
     const transactions = await Transactions.findAll({
       include,
       where: { userId },
+      order: [['time', sortDirection.toUpperCase()]],
+      raw: isRaw,
     });
 
     return transactions;
@@ -130,6 +137,41 @@ module.exports = (sequelize, DataTypes) => {
 
     const transactions = await Transactions.findOne({
       where: { id, userId },
+      include,
+    });
+
+    return transactions;
+  };
+
+  Transactions.getTransactionsByArrayOfField = async ({
+    fieldValues,
+    fieldName,
+    userId,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }) => {
+    const include = prepareTXInclude(sequelize, {
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    const transactions = await Transactions.findAll({
+      where: {
+        [fieldName]: {
+          [Op.in]: fieldValues,
+        },
+        userId,
+      },
       include,
     });
 

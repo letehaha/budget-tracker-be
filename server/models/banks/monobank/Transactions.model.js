@@ -1,4 +1,4 @@
-const { Model } = require('sequelize');
+const { Model, Op } = require('sequelize');
 const { isExist } = require('@js/helpers');
 
 const prepareTXInclude = (
@@ -52,6 +52,9 @@ module.exports = (sequelize, DataTypes) => {
       });
       MonobankTransactions.belongsTo(models.Currencies, {
         foreignKey: 'currencyId',
+      });
+      MonobankTransactions.belongsTo(models.TransactionEntities, {
+        foreignKey: 'transactionEntityId',
       });
     }
   }
@@ -115,6 +118,7 @@ module.exports = (sequelize, DataTypes) => {
     includeCategory,
     includeAll,
     nestedInclude,
+    isRaw = false,
   }) => {
     const include = prepareTXInclude(sequelize, {
       includeUser,
@@ -130,6 +134,44 @@ module.exports = (sequelize, DataTypes) => {
       include,
       where: { userId: systemUserId },
       order: [['time', sortDirection.toUpperCase()]],
+      raw: isRaw,
+    });
+
+    return transactions;
+  };
+
+  MonobankTransactions.getTransactionsByArrayOfField = async ({
+    fieldValues,
+    fieldName,
+    systemUserId,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+    isRaw = false,
+  }) => {
+    const include = prepareTXInclude(sequelize, {
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    const transactions = await MonobankTransactions.findAll({
+      where: {
+        [fieldName]: {
+          [Op.in]: fieldValues,
+        },
+        userId: systemUserId,
+      },
+      include,
+      raw: isRaw,
     });
 
     return transactions;

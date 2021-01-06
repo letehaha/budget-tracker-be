@@ -1,7 +1,18 @@
-const { Transactions } = require('@models');
+const { sequelize, Transactions, MonobankTransactions } = require('@models');
+const { QueryTypes } = require('sequelize');
+const {
+  compareDesc,
+} = require('date-fns');
+const { TRANSACTION_ENTITIES } = require('../js/const');
+
+const SORT_DIRECTIONS = {
+  asc: 'asc',
+  desc: 'desc',
+};
 
 exports.getTransactions = async (req, res, next) => {
   const {
+    sort = SORT_DIRECTIONS.desc,
     includeUser,
     includeTransactionType,
     includePaymentType,
@@ -9,12 +20,64 @@ exports.getTransactions = async (req, res, next) => {
     includeCategory,
     includeAll,
     nestedInclude,
+    limit,
+    page = 1,
   } = req.query;
   const { id: userId } = req.user;
 
   try {
-    const data = await Transactions.getTransactions({
+    if (limit) {
+      const txs = await sequelize
+        .query(
+          `SELECT * FROM(
+            SELECT cast("id" as varchar(256)), "time", "transactionEntityId" FROM "Transactions"
+            UNION
+            SELECT cast("id" as varchar(256)), "time", "transactionEntityId" FROM "MonobankTransactions"
+          ) AS R
+          ORDER BY R.time DESC
+          LIMIT ${limit}
+          OFFSET ${(page * limit) - limit}`,
+          { type: QueryTypes.SELECT },
+        );
+
+      const transactions = await Transactions.getTransactionsByArrayOfField({
+        fieldValues: txs
+          .filter((item) => item.transactionEntityId === TRANSACTION_ENTITIES.system)
+          .map((item) => Number(item.id)),
+        fieldName: 'id',
+        userId,
+        includeUser,
+        includeTransactionType,
+        includePaymentType,
+        includeAccount,
+        includeCategory,
+        includeAll,
+        nestedInclude,
+      });
+      const monoTransactions = await MonobankTransactions.getTransactionsByArrayOfField({
+        fieldValues: txs
+          .filter((item) => item.transactionEntityId === TRANSACTION_ENTITIES.monobank)
+          .map((item) => item.id),
+        fieldName: 'id',
+        systemUserId: userId,
+        includeUser,
+        includeTransactionType,
+        includePaymentType,
+        includeAccount,
+        includeCategory,
+        includeAll,
+        nestedInclude,
+        isRaw: true,
+      });
+
+      const sortedResult = [...transactions, ...monoTransactions]
+        .sort((a, b) => compareDesc(new Date(a.time), new Date(b.time)));
+
+      return res.status(200).json({ response: sortedResult });
+    }
+    const transactions = await Transactions.getTransactions({
       userId,
+      sortDirection: sort,
       includeUser,
       includeTransactionType,
       includePaymentType,
@@ -22,9 +85,23 @@ exports.getTransactions = async (req, res, next) => {
       includeCategory,
       includeAll,
       nestedInclude,
+      isRaw: true,
     });
 
-    return res.status(200).json({ response: data });
+    const monoTransactions = await MonobankTransactions.getTransactions({
+      systemUserId: userId,
+      sortDirection: sort,
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+      isRaw: true,
+    });
+
+    return res.status(200).json({ response: [...transactions, ...monoTransactions] });
   } catch (err) {
     return next(new Error(err));
   }
