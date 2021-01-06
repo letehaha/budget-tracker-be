@@ -5,10 +5,10 @@ const {
 } = require('date-fns');
 const { TRANSACTION_ENTITIES } = require('../js/const');
 
-const SORT_DIRECTIONS = {
-  asc: 'asc',
-  desc: 'desc',
-};
+const SORT_DIRECTIONS = Object.freeze({
+  asc: 'ASC',
+  desc: 'DESC',
+});
 
 exports.getTransactions = async (req, res, next) => {
   const {
@@ -34,7 +34,7 @@ exports.getTransactions = async (req, res, next) => {
             UNION
             SELECT cast("id" as varchar(256)), "time", "transactionEntityId" FROM "MonobankTransactions"
           ) AS R
-          ORDER BY R.time DESC
+          ORDER BY R.time ${sort}
           LIMIT ${limit}
           OFFSET ${(page * limit) - limit}`,
           { type: QueryTypes.SELECT },
