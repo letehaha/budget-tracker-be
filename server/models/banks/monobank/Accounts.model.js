@@ -93,6 +93,16 @@ module.exports = (sequelize, DataTypes) => {
     return account;
   };
 
+  MonobankAccounts.getAccountsByUserId = async ({
+    monoUserId,
+  }) => {
+    const accounts = await MonobankAccounts.findAll({
+      where: { monoUserId },
+    });
+
+    return accounts;
+  };
+
   MonobankAccounts.getByAccountId = async ({
     accountId,
   }) => {

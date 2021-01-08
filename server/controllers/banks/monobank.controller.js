@@ -260,26 +260,19 @@ exports.getTransactions = async (req, res, next) => {
 };
 
 exports.getAccounts = async (req, res, next) => {
+  const { id } = req.user;
+
   try {
-    let response = await req.redisClient.get(userToken);
+    const monoUser = await MonobankUsers.getUser({ systemUserId: id });
 
-    if (!response) {
-      response = (await axios({
-        method: 'GET',
-        url: `${hostname}/personal/client-info`,
-        responseType: 'json',
-        headers: {
-          'X-Token': userToken,
-        },
-      })).data;
-
-      await req.redisClient.set(userToken, JSON.stringify(response));
-      await req.redisClient.expire(userToken, 60);
-    } else {
-      response = JSON.parse(response);
+    if (!monoUser) {
+      return res.status(404).json({ status: 'error', message: 'Current user does not have any paired monobank user.' });
     }
 
-    return res.status(200).json({ response });
+    const accounts = await MonobankAccounts.getAccountsByUserId({
+      monoUserId: monoUser.get('id'),
+    });
+    return res.status(200).json({ response: accounts });
   } catch (err) {
     return next(new Error(err));
   }
