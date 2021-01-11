@@ -51,6 +51,11 @@ module.exports = {
         type: Sequelize.DATE,
         defaultValue: Sequelize.fn('now'),
       },
+      name: {
+        type: Sequelize.STRING,
+        default: false,
+        allowNull: true,
+      },
     });
 
     const transaction = await queryInterface.sequelize.transaction();
