@@ -157,7 +157,7 @@ exports.pairAccount = async (req, res, next) => {
         })).data;
 
         await req.redisClient.set(userToken, JSON.stringify(response));
-        await req.redisClient.expire(userToken, 60000);
+        await req.redisClient.expire(userToken, 60);
       } else {
         response = JSON.parse(response);
       }
@@ -287,12 +287,12 @@ exports.updateAccount = async (req, res, next) => {
 
   try {
     // TODO: check user is correct. Check account is exist
-    const accounts = await MonobankAccounts.updateById({
+    const account = await MonobankAccounts.updateById({
       accountId,
       name,
       isEnabled,
     });
-    return res.status(200).json({ response: accounts });
+    return res.status(200).json({ response: account });
   } catch (err) {
     return next(new Error(err));
   }
@@ -454,6 +454,61 @@ exports.loadTransactions = async (req, res, next) => {
     });
 
     return res.status(200).json({ status: 'ok' });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
+exports.refreshAccounts = async (req, res, next) => {
+  const { id: systemUserId } = req.user;
+
+  try {
+    const monoUser = await MonobankUsers.getUser({ systemUserId });
+
+    if (!monoUser) {
+      return res.status(404).json({ status: 'error', message: 'Current user does not have any paired monobank user.' });
+    }
+
+    const token = `monobank-${systemUserId}-client-info`;
+    const tempToken = await req.redisClient.get(token);
+
+    if (!tempToken) {
+      const response = (await axios({
+        method: 'GET',
+        url: `${hostname}/personal/client-info`,
+        responseType: 'json',
+        headers: {
+          'X-Token': userToken,
+        },
+      })).data;
+
+      await req.redisClient.set(token, true);
+      await req.redisClient.expire(token, 60);
+
+      await Promise.all(
+        response.accounts.map((item) => MonobankAccounts.updateById({
+          accountId: item.id,
+          currencyCode: item.currencyCode,
+          cashbackType: item.cashbackType,
+          balance: item.balance,
+          creditLimit: item.creditLimit,
+          maskedPan: JSON.stringify(item.maskedPan),
+          type: item.type,
+          iban: item.iban,
+        })),
+      );
+
+      const accounts = await MonobankAccounts.getAccountsByUserId({
+        monoUserId: monoUser.get('id'),
+      });
+
+      return res.status(200).json({ response: accounts });
+    }
+
+    return res.status(429).json({
+      status: 'error',
+      message: 'Too many requests! Request cannot be called more that once a minute!',
+    });
   } catch (err) {
     return next(new Error(err));
   }

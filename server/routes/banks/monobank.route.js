@@ -10,6 +10,7 @@ const {
   updateWebhook,
   loadTransactions,
   updateAccount,
+  refreshAccounts,
 } = require('@controllers/banks/monobank.controller');
 
 module.exports = () => {
@@ -58,6 +59,11 @@ module.exports = () => {
     '/load-transactions',
     passport.authenticate('jwt', { session: false }),
     loadTransactions,
+  );
+  router.get(
+    '/refresh-accounts',
+    passport.authenticate('jwt', { session: false }),
+    refreshAccounts,
   );
 
   return router;

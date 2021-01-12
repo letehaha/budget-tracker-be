@@ -122,6 +122,13 @@ module.exports = (sequelize, DataTypes) => {
     accountId,
     name,
     isEnabled,
+    currencyCode,
+    cashbackType,
+    balance,
+    creditLimit,
+    maskedPan,
+    type,
+    iban,
   }) => {
     const where = { accountId };
 
@@ -129,6 +136,13 @@ module.exports = (sequelize, DataTypes) => {
       {
         isEnabled,
         name,
+        currencyCode,
+        cashbackType,
+        balance,
+        creditLimit,
+        maskedPan,
+        type,
+        iban,
       },
       { where },
     );
