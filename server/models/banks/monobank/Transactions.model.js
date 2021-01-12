@@ -118,6 +118,8 @@ module.exports = (sequelize, DataTypes) => {
     includeCategory,
     includeAll,
     nestedInclude,
+    from,
+    limit,
     isRaw = false,
   }) => {
     const include = prepareTXInclude(sequelize, {
@@ -133,6 +135,8 @@ module.exports = (sequelize, DataTypes) => {
     const transactions = await MonobankTransactions.findAll({
       include,
       where: { userId: systemUserId },
+      limit,
+      offset: from,
       order: [['time', sortDirection.toUpperCase()]],
       raw: isRaw,
     });

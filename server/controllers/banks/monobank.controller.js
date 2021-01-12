@@ -234,6 +234,8 @@ exports.getTransactions = async (req, res, next) => {
     includeCategory,
     includeAll,
     nestedInclude,
+    from,
+    limit,
   } = req.query;
 
   if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
@@ -251,6 +253,8 @@ exports.getTransactions = async (req, res, next) => {
       includeCategory,
       includeAll,
       nestedInclude,
+      from,
+      limit,
     });
 
     return res.status(200).json({ response: transactions });
@@ -453,7 +457,10 @@ exports.loadTransactions = async (req, res, next) => {
       usersQuery.delete(`query-${systemUserId}`);
     });
 
-    return res.status(200).json({ status: 'ok' });
+    return res.status(200).json({
+      status: 'ok',
+      minutesToFinish: months.length,
+    });
   } catch (err) {
     return next(new Error(err));
   }
