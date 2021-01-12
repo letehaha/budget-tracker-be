@@ -278,6 +278,26 @@ exports.getAccounts = async (req, res, next) => {
   }
 };
 
+exports.updateAccount = async (req, res, next) => {
+  const {
+    accountId,
+    name,
+    isEnabled,
+  } = req.body;
+
+  try {
+    // TODO: check user is correct. Check account is exist
+    const accounts = await MonobankAccounts.updateById({
+      accountId,
+      name,
+      isEnabled,
+    });
+    return res.status(200).json({ response: accounts });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
 exports.createAccounts = async (req, res, next) => {
   const {
     userId,

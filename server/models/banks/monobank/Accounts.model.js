@@ -118,5 +118,25 @@ module.exports = (sequelize, DataTypes) => {
     return account;
   };
 
+  MonobankAccounts.updateById = async ({
+    accountId,
+    name,
+    isEnabled,
+  }) => {
+    const where = { accountId };
+
+    await MonobankAccounts.update(
+      {
+        isEnabled,
+        name,
+      },
+      { where },
+    );
+
+    const account = await MonobankAccounts.getByAccountId(where);
+
+    return account;
+  };
+
   return MonobankAccounts;
 };
