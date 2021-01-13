@@ -44,6 +44,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      note: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
     });
 
     const transaction = await queryInterface.sequelize.transaction();

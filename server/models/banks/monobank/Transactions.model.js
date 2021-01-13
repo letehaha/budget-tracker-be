@@ -103,6 +103,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    note: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   }, {
     sequelize,
     timestamps: false,
@@ -223,6 +227,7 @@ module.exports = (sequelize, DataTypes) => {
     categoryId,
     receiptId,
     currencyId,
+    transactionEntityId,
   }) => {
     const tx = await MonobankTransactions.getTransactionById({ id });
 
@@ -247,6 +252,7 @@ module.exports = (sequelize, DataTypes) => {
       categoryId,
       receiptId,
       currencyId,
+      transactionEntityId,
     });
 
     const transaction = await MonobankTransactions.getTransactionById({ id: response.get('id') });
@@ -271,6 +277,7 @@ module.exports = (sequelize, DataTypes) => {
     categoryId,
     receiptId,
     currencyId,
+    note,
   }) => {
     const where = { id };
     await MonobankTransactions.update(
@@ -290,6 +297,7 @@ module.exports = (sequelize, DataTypes) => {
         categoryId,
         receiptId,
         currencyId,
+        note,
       },
       { where },
     );
