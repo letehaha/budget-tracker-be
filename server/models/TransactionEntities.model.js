@@ -30,5 +30,11 @@ module.exports = (sequelize, DataTypes) => {
     return result;
   };
 
+  TransactionEntities.getTransactionEntityByType = async ({ type }) => {
+    const result = await TransactionEntities.findOne({ where: { type } });
+
+    return result;
+  };
+
   return TransactionEntities;
 };

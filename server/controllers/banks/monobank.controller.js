@@ -16,7 +16,10 @@ const {
   MerchantCategoryCodes,
   UserMerchantCategoryCodes,
   Users,
+  TransactionEntities,
 } = require('@models');
+
+const { TRANSACTION_ENTITIES } = require('../../js/const');
 
 const SORT_DIRECTIONS = {
   asc: 'asc',
@@ -111,6 +114,10 @@ async function createMonoTransaction({ data, account }) {
     });
   }
 
+  const entity = await TransactionEntities.getTransactionEntityByType({
+    type: TRANSACTION_ENTITIES.monobank,
+  });
+
   await MonobankTransactions.createTransaction({
     id: data.id,
     description: data.description,
@@ -128,6 +135,7 @@ async function createMonoTransaction({ data, account }) {
     paymentTypeId: 6,
     categoryId,
     currencyId: account.get('currencyId'),
+    transactionEntityId: entity.get('id'),
   });
 
   // eslint-disable-next-line no-console
