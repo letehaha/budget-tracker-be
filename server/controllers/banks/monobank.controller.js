@@ -271,6 +271,28 @@ exports.getTransactions = async (req, res, next) => {
   }
 };
 
+exports.updateTransaction = async (req, res, next) => {
+  const { id: userId } = req.user;
+  const {
+    id,
+    categoryId,
+    note,
+  } = req.body;
+
+  try {
+    const transaction = await MonobankTransactions.updateTransactionById({
+      id,
+      userId,
+      categoryId,
+      note,
+    });
+
+    return res.status(200).json({ response: transaction });
+  } catch (err) {
+    return next(new Error(err));
+  }
+};
+
 exports.getAccounts = async (req, res, next) => {
   const { id } = req.user;
 

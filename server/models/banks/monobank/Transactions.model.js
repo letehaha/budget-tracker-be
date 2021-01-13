@@ -279,7 +279,7 @@ module.exports = (sequelize, DataTypes) => {
     currencyId,
     note,
   }) => {
-    const where = { id };
+    const where = { id, userId };
     await MonobankTransactions.update(
       {
         description,

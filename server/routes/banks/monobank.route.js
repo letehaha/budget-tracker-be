@@ -11,6 +11,7 @@ const {
   loadTransactions,
   updateAccount,
   refreshAccounts,
+  updateTransaction,
 } = require('@controllers/banks/monobank.controller');
 
 module.exports = () => {
@@ -30,6 +31,11 @@ module.exports = () => {
     '/transactions',
     passport.authenticate('jwt', { session: false }),
     getTransactions,
+  );
+  router.post(
+    '/transaction',
+    passport.authenticate('jwt', { session: false }),
+    updateTransaction,
   );
   router.get(
     '/accounts',
