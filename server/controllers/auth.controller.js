@@ -80,47 +80,46 @@ exports.register = async (req, res, next) => {
       },
     );
 
-    // set default categories
-    const categories = await Promise.all(
-      DEFAULT_CATEGORIES.main.map(
-        (item) => Categories.createCategory(
-          {
-            ...item,
-            userId: user.get('id'),
-          },
-          {
-            transaction: registrationTransaction,
-          },
-        ),
-      ),
+    // default categories
+    let categories = DEFAULT_CATEGORIES.main.map((item) => ({
+      ...item,
+      userId: user.get('id'),
+    }));
+
+    categories = await Categories.bulkCreate(
+      categories,
+      {
+        transaction: registrationTransaction,
+        validate: true,
+        returning: true,
+      },
     );
 
-    // set default subcategories
-    await Promise.all(
-      categories.map((item) => {
-        const subcategories = DEFAULT_CATEGORIES.subcategories
-          .find((subcat) => subcat.parentName === item.get('name'));
+    let subcats = [];
 
-        if (subcategories) {
-          return Promise.all(
-            subcategories.values.map(
-              (subItem) => Categories.createCategory(
-                {
-                  ...subItem,
-                  parentId: item.get('id'),
-                  color: item.get('color'),
-                  userId: user.get('id'),
-                },
-                {
-                  transaction: registrationTransaction,
-                },
-              ),
-            ),
-          );
-        }
+    categories.forEach((item) => {
+      const subcategories = DEFAULT_CATEGORIES.subcategories
+        .find((subcat) => subcat.parentName === item.get('name'));
 
-        return undefined;
-      }),
+      if (subcategories) {
+        subcats = [
+          ...subcats,
+          ...subcategories.values.map((subItem) => ({
+            ...subItem,
+            parentId: item.get('id'),
+            color: item.get('color'),
+            userId: user.get('id'),
+          })),
+        ];
+      }
+    });
+
+    await Categories.bulkCreate(
+      subcats,
+      {
+        transaction: registrationTransaction,
+        validate: true,
+      },
     );
 
     // set defaultCategoryId so the undefined mcc codes will use it
