@@ -145,7 +145,7 @@ exports.register = async (req, res, next) => {
 
     return res
       .status(201)
-      .json({ response: user });
+      .json({ response: { user } });
   } catch (err) {
     if (registrationTransaction) {
       await registrationTransaction.rollback();

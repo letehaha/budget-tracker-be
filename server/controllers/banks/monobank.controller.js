@@ -19,7 +19,7 @@ const {
   TransactionEntities,
 } = require('@models');
 
-const { TRANSACTION_ENTITIES } = require('../../js/const');
+const { TRANSACTION_ENTITIES, ERROR_CODES } = require('../../js/const');
 
 const SORT_DIRECTIONS = {
   asc: 'asc',
@@ -211,7 +211,11 @@ exports.pairAccount = async (req, res, next) => {
       return res.status(200).json({ response: user });
     }
 
-    return res.status(404).json({ message: 'Account already connected', response: [] });
+    return res.status(404).json({
+      status: 'error',
+      message: 'Account already connected',
+      code: ERROR_CODES.monobankUserAlreadyConnected,
+    });
   } catch (err) {
     return next(new Error(err));
   }
@@ -224,6 +228,14 @@ exports.getUser = async (req, res, next) => {
     const user = await MonobankUsers.getUser({
       systemUserId: id,
     });
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        code: ERROR_CODES.monobankUserNotExist,
+        message: 'User does not exist!',
+      });
+    }
 
     return res.status(200).json({ response: user });
   } catch (err) {
@@ -300,7 +312,11 @@ exports.getAccounts = async (req, res, next) => {
     const monoUser = await MonobankUsers.getUser({ systemUserId: id });
 
     if (!monoUser) {
-      return res.status(404).json({ status: 'error', message: 'Current user does not have any paired monobank user.' });
+      return res.status(404).json({
+        status: 'error',
+        message: 'Current user does not have any paired monobank user.',
+        code: ERROR_CODES.monobankUserNotPaired,
+      });
     }
 
     const accounts = await MonobankAccounts.getAccountsByUserId({
@@ -503,7 +519,11 @@ exports.refreshAccounts = async (req, res, next) => {
     const monoUser = await MonobankUsers.getUser({ systemUserId });
 
     if (!monoUser) {
-      return res.status(404).json({ status: 'error', message: 'Current user does not have any paired monobank user.' });
+      return res.status(404).json({
+        status: 'error',
+        message: 'Current user does not have any paired monobank user.',
+        code: ERROR_CODES.monobankUserNotPaired,
+      });
     }
 
     const token = `monobank-${systemUserId}-client-info`;
@@ -544,6 +564,7 @@ exports.refreshAccounts = async (req, res, next) => {
 
     return res.status(429).json({
       status: 'error',
+      code: ERROR_CODES.tooManyRequests,
       message: 'Too many requests! Request cannot be called more that once a minute!',
     });
   } catch (err) {
