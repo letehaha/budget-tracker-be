@@ -232,8 +232,8 @@ exports.getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         status: 'error',
-        code: ERROR_CODES.monobankUserNotExist,
-        message: 'User does not exist!',
+        message: 'Current user does not have any paired monobank user.',
+        code: ERROR_CODES.monobankUserNotPaired,
       });
     }
 
