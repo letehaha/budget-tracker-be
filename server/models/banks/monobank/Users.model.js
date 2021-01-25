@@ -55,6 +55,22 @@ module.exports = (sequelize, DataTypes) => {
     return user;
   };
 
+  MonobankUsers.updateUser = async ({ systemUserId, apiToken, name }) => {
+    const where = { systemUserId };
+
+    await MonobankUsers.update(
+      {
+        apiToken,
+        name,
+      },
+      { where },
+    );
+
+    const user = await MonobankUsers.getUser(where);
+
+    return user;
+  };
+
   MonobankUsers.getById = async ({ id }) => {
     const users = await MonobankUsers.findOne({ where: { id } });
 

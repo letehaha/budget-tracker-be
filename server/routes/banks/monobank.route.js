@@ -3,6 +3,7 @@ const passport = require('passport');
 const {
   pairAccount,
   getUser,
+  updateUser,
   getTransactions,
   getAccounts,
   createAccounts,
@@ -26,6 +27,11 @@ module.exports = () => {
     '/user',
     passport.authenticate('jwt', { session: false }),
     getUser,
+  );
+  router.post(
+    '/user',
+    passport.authenticate('jwt', { session: false }),
+    updateUser,
   );
   router.get(
     '/transactions',
