@@ -65,7 +65,7 @@ exports.register = async (req, res, next) => {
     if (user) {
       return res
         .status(409)
-        .json({ message: 'User already exist!' });
+        .json({ message: 'User already exists!' });
     }
 
     const salt = bcrypt.genSaltSync(10);
