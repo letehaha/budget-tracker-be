@@ -567,6 +567,11 @@ exports.refreshAccounts = async (req, res, next) => {
       } catch (e) {
         if (e.response) {
           if (e.response.data.errorDescription === "Unknown 'X-Token'") {
+            // Set user token to empty, since it is already invalid. In that way
+            // we can let BE/FE know that last token was invalid and now it
+            // needs to be updated
+            await MonobankUsers.updateUser({ systemUserId, apiToken: '' });
+
             return res.status(403).json({
               status: 'error',
               code: ERROR_CODES.monobankTokenInvalid,
