@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
   MonobankUsers.getUser = async ({ systemUserId }) => {
     const user = await MonobankUsers.findOne({
       where: { systemUserId },
-      attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId'],
+      attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId', 'apiToken'],
     });
 
     return user;

@@ -31,7 +31,6 @@ const usersQuery = new Map();
 const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
-const userToken = config.get('bankIntegrations.monobank.apiToken');
 
 function dateRange({ from, to }) {
   const difference = differenceInCalendarMonths(
@@ -54,7 +53,7 @@ function dateRange({ from, to }) {
   return dates;
 }
 
-async function updateWebhook() {
+async function updateWebhook({ userToken }) {
   await axios({
     method: 'POST',
     url: `${hostname}/personal/webhook`,
@@ -153,19 +152,19 @@ exports.pairAccount = async (req, res, next) => {
       let response = await req.redisClient.get(token);
 
       if (!response) {
-        await updateWebhook();
+        await updateWebhook({ userToken: token });
 
         response = (await axios({
           method: 'GET',
           url: `${hostname}/personal/client-info`,
           responseType: 'json',
           headers: {
-            'X-Token': userToken,
+            'X-Token': token,
           },
         })).data;
 
-        await req.redisClient.set(userToken, JSON.stringify(response));
-        await req.redisClient.expire(userToken, 60);
+        await req.redisClient.set(token, JSON.stringify(response));
+        await req.redisClient.expire(token, 60);
       } else {
         response = JSON.parse(response);
       }
@@ -364,12 +363,12 @@ exports.createAccounts = async (req, res, next) => {
         url: `${hostname}/personal/client-info`,
         responseType: 'json',
         headers: {
-          'X-Token': userToken,
+          'X-Token': token,
         },
       })).data;
 
-      await req.redisClient.set(userToken, JSON.stringify(response));
-      await req.redisClient.expire(userToken, 60000);
+      await req.redisClient.set(token, JSON.stringify(response));
+      await req.redisClient.expire(token, 60000);
     } else {
       response = JSON.parse(response);
     }
@@ -454,6 +453,14 @@ exports.loadTransactions = async (req, res, next) => {
       return res.status(404).json({ message: 'Monobank account does not exist.' });
     }
 
+    const monobankUser = await MonobankUsers.getUser({
+      systemUserId,
+    });
+
+    if (!monobankUser) {
+      return res.status(404).json({ message: 'Monobank user does not exist.' });
+    }
+
     // Check is there already created query for data retrieve
     const existQuery = usersQuery.get(`query-${systemUserId}`);
 
@@ -483,7 +490,7 @@ exports.loadTransactions = async (req, res, next) => {
           url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
           responseType: 'json',
           headers: {
-            'X-Token': userToken,
+            'X-Token': monobankUser.get('apiToken'),
           },
         });
 
@@ -535,7 +542,7 @@ exports.refreshAccounts = async (req, res, next) => {
         url: `${hostname}/personal/client-info`,
         responseType: 'json',
         headers: {
-          'X-Token': userToken,
+          'X-Token': monoUser.get('apiToken'),
         },
       })).data;
 

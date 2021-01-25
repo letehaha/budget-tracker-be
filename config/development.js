@@ -21,7 +21,6 @@ module.exports = {
   },
   bankIntegrations: {
     monobank: {
-      apiToken: process.env.MONOBANK_API_TOKEN,
       apiEndpoint: process.env.MONOBANK_API_ENDPOINT,
     },
   },
