@@ -537,20 +537,37 @@ exports.refreshAccounts = async (req, res, next) => {
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
-      const response = (await axios({
-        method: 'GET',
-        url: `${hostname}/personal/client-info`,
-        responseType: 'json',
-        headers: {
-          'X-Token': monoUser.get('apiToken'),
-        },
-      })).data;
+      let clientInfo;
+      try {
+        clientInfo = (await axios({
+          method: 'GET',
+          url: `${hostname}/personal/client-info`,
+          responseType: 'json',
+          headers: {
+            'X-Token': monoUser.get('apiToken'),
+          },
+        })).data;
+      } catch (e) {
+        if (e.response) {
+          if (e.response.data.errorDescription === "Unknown 'X-Token'") {
+            return res.status(403).json({
+              status: 'error',
+              code: ERROR_CODES.monobankTokenInvalid,
+              message: "User's token is invalid!",
+            });
+          }
+        }
+        return res.status(400).json({
+          status: 'error',
+          message: 'Something bad happened while trying to contact Monobank!',
+        });
+      }
 
       await req.redisClient.set(token, true);
       await req.redisClient.expire(token, 60);
 
       await Promise.all(
-        response.accounts.map((item) => MonobankAccounts.updateById({
+        clientInfo.accounts.map((item) => MonobankAccounts.updateById({
           accountId: item.id,
           currencyCode: item.currencyCode,
           cashbackType: item.cashbackType,
