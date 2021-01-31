@@ -61,10 +61,15 @@ module.exports = (sequelize, DataTypes) => {
 
   MonobankTransactions.init({
     id: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       unique: true,
       allowNull: false,
+      autoIncrement: true,
       primaryKey: true,
+    },
+    originalId: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     description: {
       type: DataTypes.STRING(2000),
@@ -210,8 +215,39 @@ module.exports = (sequelize, DataTypes) => {
     return transactions;
   };
 
+  MonobankTransactions.getTransactionByOriginalId = async ({
+    originalId,
+    userId,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }) => {
+    const where = { originalId };
+    if (userId) { where.userId = userId; }
+    const include = prepareTXInclude(sequelize, {
+      includeUser,
+      includeTransactionType,
+      includePaymentType,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    const transactions = await MonobankTransactions.findOne({
+      where,
+      include,
+    });
+
+    return transactions;
+  };
+
   MonobankTransactions.createTransaction = async ({
-    id,
+    originalId,
     description,
     amount,
     time,
@@ -229,14 +265,14 @@ module.exports = (sequelize, DataTypes) => {
     currencyId,
     transactionEntityId,
   }) => {
-    const tx = await MonobankTransactions.getTransactionById({ id });
+    const tx = await MonobankTransactions.getTransactionByOriginalId({ originalId, userId });
 
     if (tx) {
       throw new Error('Transactions with such id already exist!');
     }
 
     const response = await MonobankTransactions.create({
-      id,
+      originalId,
       description,
       amount,
       time,

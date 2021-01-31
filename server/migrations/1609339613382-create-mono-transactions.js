@@ -2,10 +2,15 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('MonobankTransactions', {
       id: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
         unique: true,
         allowNull: false,
         primaryKey: true,
+      },
+      originalId: {
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       description: {
         type: Sequelize.STRING(2000),
