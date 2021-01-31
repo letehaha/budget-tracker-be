@@ -67,12 +67,13 @@ async function updateWebhook({ userToken }) {
   });
 }
 
-async function createMonoTransaction({ data, account }) {
-  const existTx = await MonobankTransactions.getTransactionById({
-    id: data.id,
+async function createMonoTransaction({ data, account, userId }) {
+  const existTx = await MonobankTransactions.getTransactionByOriginalId({
+    originalId: data.id,
+    userId,
   });
 
-  // check if transactions exist
+  // check if transaction exists
   if (existTx) {
     return;
   }
@@ -118,7 +119,7 @@ async function createMonoTransaction({ data, account }) {
   });
 
   await MonobankTransactions.createTransaction({
-    id: data.id,
+    originalId: data.id,
     description: data.description,
     amount: data.amount,
     time: new Date(data.time * 1000),
@@ -407,16 +408,23 @@ exports.monobankWebhook = async (req, res, next) => {
   const { data } = req.body;
 
   try {
-    const monobankAccount = await MonobankAccounts.getByAccountId({
+    const monobankAccounts = await MonobankAccounts.getAccountsById({
       accountId: data.account,
     });
-    if (!monobankAccount) {
+    if (!monobankAccounts.length) {
       return res.status(404).json({ message: 'Monobank account does not exist!' });
     }
-    await createMonoTransaction({
-      data: data.statementItem,
-      account: monobankAccount,
-    });
+    // eslint-disable-next-line no-restricted-syntax
+    for (const account of monobankAccounts) {
+      // eslint-disable-next-line no-await-in-loop
+      const user = await MonobankUsers.getById({ id: account.get('monoUserId') });
+      // eslint-disable-next-line no-await-in-loop
+      await createMonoTransaction({
+        data: data.statementItem,
+        account,
+        userId: user.get('systemUserId'),
+      });
+    }
 
     return res.status(200).json({ message: 'success' });
   } catch (err) {
@@ -461,21 +469,22 @@ exports.loadTransactions = async (req, res, next) => {
     const { from, to, accountId } = req.query;
     const { id: systemUserId } = req.user;
 
-    // Check mono account exist
-    const monobankAccount = await MonobankAccounts.getByAccountId({
-      accountId,
-    });
-
-    if (!monobankAccount) {
-      return res.status(404).json({ message: 'Monobank account does not exist.' });
-    }
-
     const monobankUser = await MonobankUsers.getUser({
       systemUserId,
     });
 
     if (!monobankUser) {
       return res.status(404).json({ message: 'Monobank user does not exist.' });
+    }
+
+    // Check mono account exist
+    const monobankAccount = await MonobankAccounts.getByAccountId({
+      accountId,
+      monoUserId: monobankUser.get('id'),
+    });
+
+    if (!monobankAccount) {
+      return res.status(404).json({ message: 'Monobank account does not exist.' });
     }
 
     // Check is there already created query for data retrieve
@@ -517,6 +526,7 @@ exports.loadTransactions = async (req, res, next) => {
           await createMonoTransaction({
             data: item,
             account: monobankAccount,
+            userId: systemUserId,
           });
         }
       });

@@ -30,9 +30,9 @@ exports.getTransactions = async (req, res, next) => {
       const txs = await sequelize
         .query(
           `SELECT * FROM(
-            SELECT cast("id" as varchar(256)), "time", "transactionEntityId" FROM "Transactions"
+            SELECT "id", "time", "transactionEntityId" FROM "Transactions" WHERE "userId"=${userId}
             UNION
-            SELECT cast("id" as varchar(256)), "time", "transactionEntityId" FROM "MonobankTransactions"
+            SELECT "id", "time", "transactionEntityId" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
           ORDER BY R.time ${sort}
           LIMIT ${limit}
