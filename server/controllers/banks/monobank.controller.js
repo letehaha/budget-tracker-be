@@ -478,7 +478,7 @@ exports.loadTransactions = async (req, res, next) => {
     }
 
     // Check mono account exist
-    const monobankAccount = await MonobankAccounts.getByAccountId({
+    const monobankAccount = await MonobankAccounts.getByAccountAndMonoId({
       accountId,
       monoUserId: monobankUser.get('id'),
     });
@@ -608,6 +608,7 @@ exports.refreshAccounts = async (req, res, next) => {
           maskedPan: JSON.stringify(item.maskedPan),
           type: item.type,
           iban: item.iban,
+          monoUserId: monoUser.get('id'),
         })),
       );
 

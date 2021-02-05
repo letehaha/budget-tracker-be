@@ -140,8 +140,13 @@ module.exports = (sequelize, DataTypes) => {
     maskedPan,
     type,
     iban,
+    monoUserId,
   }) => {
     const where = { accountId };
+
+    if (monoUserId) {
+      where.monoUserId = monoUserId;
+    }
 
     await MonobankAccounts.update(
       {
@@ -158,7 +163,7 @@ module.exports = (sequelize, DataTypes) => {
       { where },
     );
 
-    const account = await MonobankAccounts.getByAccountId(where);
+    const account = await MonobankAccounts.findOne({ where });
 
     return account;
   };
