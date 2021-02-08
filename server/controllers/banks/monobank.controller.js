@@ -478,7 +478,7 @@ exports.loadTransactions = async (req, res, next) => {
     }
 
     // Check mono account exist
-    const monobankAccount = await MonobankAccounts.getByAccountAndMonoId({
+    const monobankAccount = await MonobankAccounts.getByAccountId({
       accountId,
       monoUserId: monobankUser.get('id'),
     });
