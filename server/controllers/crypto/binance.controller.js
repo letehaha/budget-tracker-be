@@ -3,17 +3,14 @@ const axios = require('axios').default;
 // const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
 
-const APIKEY = 'yim1bN6qIJVmJmRDSoyqYho3MKUCZJyA6ooHqTb7pZ2r1wdaxu7uAH8JEz5ShCd0';
-const SECRET = 'W9BabeaggURiloV60r7Er3vIuy0bLLnA9crkJwqqQYd0ouPLERckDEvI7sUsJY1G';
-
-const createSignedGETRequestURL = ({ url, params }) => {
+const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   const localUrl = new URL(url);
   const localParams = params;
 
   localUrl.search = new URLSearchParams(localParams).toString();
 
   localParams.signature = crypto
-    .createHmac('sha256', SECRET)
+    .createHmac('sha256', secretKey)
     .update(localUrl.search.substr(1))
     .digest('hex');
 
@@ -48,20 +45,42 @@ exports.setSettings = async (req, res, next) => {
 };
 
 exports.getAccountData = async (req, res, next) => {
+  const { id } = req.user;
   const {
     timestamp = new Date().getTime(),
   } = req.query;
 
   try {
+    const userSettings = await BinanceUserSettings.getByUserId({
+      userId: id,
+    });
+
+    if (!userSettings || (!userSettings.apiKey && !userSettings.secretKey)) {
+      return res
+        .status(401)
+        .json({ message: 'Secret and public keys are not exist!' });
+    }
+    if (!userSettings.apiKey) {
+      return res
+        .status(401)
+        .json({ message: 'Api key does not exists!' });
+    }
+    if (!userSettings.secretKey) {
+      return res
+        .status(401)
+        .json({ message: 'Secret key does not exists!' });
+    }
+
     const url = createSignedGETRequestURL({
       url: 'https://api.binance.com/api/v3/account',
       params: { timestamp },
+      secretKey: userSettings.secretKey,
     });
 
     const response = await axios({
       url: url.href,
       headers: {
-        'X-MBX-APIKEY': APIKEY,
+        'X-MBX-APIKEY': userSettings.apiKey,
       },
       responseType: 'json',
       method: 'GET',
@@ -69,6 +88,9 @@ exports.getAccountData = async (req, res, next) => {
 
     return res.status(200).json({ response: response.data });
   } catch (err) {
+    if (err.response.data.code === -2014) {
+      return res.status(401).json({ message: err.response.data.msg });
+    }
     return next(new Error(err));
   }
 };
