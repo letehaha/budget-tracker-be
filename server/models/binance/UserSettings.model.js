@@ -71,8 +71,6 @@ module.exports = (sequelize, DataTypes) => {
       });
     }
 
-    console.log(userSettings);
-
     return userSettings;
   };
 
