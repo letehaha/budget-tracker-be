@@ -86,6 +86,36 @@ exports.getAccountData = async (req, res, next) => {
       method: 'GET',
     });
 
+    const notNullBalances = response.data.balances
+      .filter((item) => (Number(item.free) + Number(item.locked)) > 0);
+
+    const defaultAssetQuote = 'USDT';
+    const blackList = ['USDT', 'NFT'];
+    const zeroPrice = ['NFT'];
+
+    // TODO: replace it with allSettled
+    // TODO: add check "if rejected use BTC as default quote asset"
+    const dollars = (await Promise.all(
+      notNullBalances
+        .filter((balance) => !blackList.includes(balance.asset))
+        .map((balance) => axios({
+          url: `https://api.binance.com/api/v3/ticker/price?symbol=${balance.asset}${defaultAssetQuote}`,
+          method: 'GET',
+          responseType: 'json',
+        })),
+    )).map((item) => item.data);
+
+    dollars.forEach((dollar) => {
+      const index = response.data.balances.findIndex((item) => item.asset === dollar.symbol.replace(defaultAssetQuote, ''));
+      response.data.balances[index].usdPrice = dollar.price;
+    });
+
+    zeroPrice.forEach((value) => {
+      const index = response.data.balances.findIndex((item) => item.asset === value);
+
+      response.data.balances[index].usdPrice = 0;
+    });
+
     return res.status(200).json({ response: response.data });
   } catch (err) {
     if (err.response.data.code === -2014) {
