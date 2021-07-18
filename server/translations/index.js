@@ -6,6 +6,7 @@ const basename = path.basename(__filename);
 
 exports.supportedLocales = new locale.Locales(['en', 'en_US']);
 
+// eslint-disable-next-line no-underscore-dangle
 exports._t = translationKey => (req) => {
   if (!req.locale) throw new Error('You forgot to provide lang!');
   if (!translationKey) throw new Error('You forgot to provide translation key!');

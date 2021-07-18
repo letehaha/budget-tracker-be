@@ -4,12 +4,19 @@ module.exports = {
   env: {
     browser: false,
     commonjs: true,
+    node: true,
+    jest: true,
   },
   extends: [
-    'airbnb-base',
+    'eslint:recommended',
   ],
   parserOptions: {
     ecmaVersion: 12,
+  },
+  globals: {
+    Promise: true,
+    Map: true,
+    Set: true,
   },
   rules: {
     'no-underscore-dangle': ['warn', {
