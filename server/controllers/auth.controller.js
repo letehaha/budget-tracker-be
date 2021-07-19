@@ -61,7 +61,10 @@ exports.register = async (req, res, next) => {
       isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
     });
 
+    console.log('registrationTransaction', registrationTransaction);
+
     let user = await Users.getUserByCredentials({ username });
+    console.log('user', user);
     if (user) {
       return res
         .status(409)
@@ -69,6 +72,8 @@ exports.register = async (req, res, next) => {
     }
 
     const salt = bcrypt.genSaltSync(10);
+
+    console.log('salt', salt);
 
     user = await Users.createUser(
       {
@@ -80,11 +85,15 @@ exports.register = async (req, res, next) => {
       },
     );
 
+    console.log('user', user);
+
     // default categories
     let categories = DEFAULT_CATEGORIES.main.map((item) => ({
       ...item,
       userId: user.get('id'),
     }));
+
+    console.log('categories', categories);
 
     categories = await Categories.bulkCreate(
       categories,
@@ -94,6 +103,8 @@ exports.register = async (req, res, next) => {
         returning: true,
       },
     );
+
+    console.log('categories', categories);
 
     let subcats = [];
 
@@ -122,11 +133,14 @@ exports.register = async (req, res, next) => {
       },
     );
 
+    console.log(11);
+
     // set defaultCategoryId so the undefined mcc codes will use it
     const defaultCategoryId = categories
       .find((item) => item.get('name') === DEFAULT_CATEGORIES.names.other)
       .get('id');
 
+    console.log('defaultCategoryId', defaultCategoryId);
     if (!defaultCategoryId) {
       throw new Error("Cannot find 'defaultCategoryId' in the previously create categories.");
     } else {
@@ -139,6 +153,7 @@ exports.register = async (req, res, next) => {
           transaction: registrationTransaction,
         },
       );
+      console.log('user', user);
     }
 
     await registrationTransaction.commit();
@@ -150,6 +165,8 @@ exports.register = async (req, res, next) => {
     if (registrationTransaction) {
       await registrationTransaction.rollback();
     }
+
+    console.log('err', err);
 
     return next(new Error(err));
   }
