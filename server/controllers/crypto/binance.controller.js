@@ -130,7 +130,7 @@ exports.getAccountData = async (req, res) => {
     return res.status(200).json({ response: response.data });
   } catch (err) {
     if (err.response.data.code === -2014) {
-      return res.status(401).json({ message: err.response.data.msg });
+      return res.status(400).json({ message: err.response.data.msg });
     }
     return res.status(500).json({
       code: 1,
