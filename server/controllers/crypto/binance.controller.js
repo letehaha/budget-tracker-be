@@ -3,6 +3,8 @@ const axios = require('axios').default;
 // const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
 
+const { ERROR_CODES } = require('../../js/const');
+
 const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   const localUrl = new URL(url);
   const localParams = params;
@@ -44,7 +46,7 @@ exports.setSettings = async (req, res, next) => {
   }
 };
 
-exports.getAccountData = async (req, res, next) => {
+exports.getAccountData = async (req, res) => {
   const { id } = req.user;
   const {
     timestamp = new Date().getTime(),
@@ -57,18 +59,27 @@ exports.getAccountData = async (req, res, next) => {
 
     if (!userSettings || (!userSettings.apiKey && !userSettings.secretKey)) {
       return res
-        .status(401)
-        .json({ message: 'Secret and public keys are not exist!' });
+        .status(403)
+        .json({
+          message: 'Secret and public keys do not exist!',
+          code: ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
+        });
     }
     if (!userSettings.apiKey) {
       return res
-        .status(401)
-        .json({ message: 'Api key does not exists!' });
+        .status(403)
+        .json({
+          message: 'Api key does not exist!',
+          code: ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
+        });
     }
     if (!userSettings.secretKey) {
       return res
-        .status(401)
-        .json({ message: 'Secret key does not exists!' });
+        .status(403)
+        .json({
+          message: 'Secret key does not exist!',
+          code: ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
+        });
     }
 
     const url = createSignedGETRequestURL({
@@ -121,6 +132,9 @@ exports.getAccountData = async (req, res, next) => {
     if (err.response.data.code === -2014) {
       return res.status(401).json({ message: err.response.data.msg });
     }
-    return next(new Error(err));
+    return res.status(500).json({
+      code: 1,
+      message: 'Unexpected server error!',
+    });
   }
 };
