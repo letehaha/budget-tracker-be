@@ -19,6 +19,7 @@ const {
   TransactionEntities,
 } = require('@models');
 
+const { logger } = require('../../js/utils');
 const { TRANSACTION_ENTITIES, ERROR_CODES } = require('../../js/const');
 
 const SORT_DIRECTIONS = {
@@ -491,6 +492,8 @@ exports.loadTransactions = async (req, res, next) => {
     const existQuery = usersQuery.get(`query-${systemUserId}`);
 
     if (existQuery) {
+      logger.error('[Monobank controller]: Query already exists');
+
       return res.status(403).json({
         status: 'error',
         message: `Query already exist and should be fulfilled first. Number of left requests is ${existQuery.size}. Try to request a bit later (approximately in ${existQuery.size} minutes, since each request will take about 60 seconds)`,
@@ -534,7 +537,14 @@ exports.loadTransactions = async (req, res, next) => {
 
     // When all requests are done – delete it from the map
     queue.on('idle', () => {
+      logger.info(`[Monobank controller]: All load transactions tasks are done. Size: ${queue.size}  Pending: ${queue.pending}`);
       usersQuery.delete(`query-${systemUserId}`);
+    });
+    queue.on('add', () => {
+      logger.info(`[Monobank controller]: Task to load transactions is added. Size: ${queue.size}  Pending: ${queue.pending}`);
+    });
+    queue.on('next', () => {
+      logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
     });
 
     return res.status(200).json({

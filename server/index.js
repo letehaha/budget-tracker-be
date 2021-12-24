@@ -24,6 +24,7 @@ const modelsPaymentTypesRoutes = require('@routes/payment-types.route');
 const modelsTransactionTypesRoutes = require('@routes/transaction-types.route');
 const modelsTransactionEntitiesRoutes = require('@routes/transaction-entities.route');
 const monobankRoutes = require('@routes/banks/monobank.route');
+const binanceRoutes = require('@routes/crypto/binance.route');
 
 const { supportedLocales } = require('./translations');
 
@@ -73,6 +74,7 @@ app.use(`${apiPrefix}/models/payment-types`, modelsPaymentTypesRoutes());
 app.use(`${apiPrefix}/models/transaction-types`, modelsTransactionTypesRoutes());
 app.use(`${apiPrefix}/models/transaction-entities`, modelsTransactionEntitiesRoutes());
 app.use(`${apiPrefix}/banks/monobank`, monobankRoutes());
+app.use(`${apiPrefix}/crypto/binance`, binanceRoutes());
 
 app.listen(app.get('port'), () => {
   // eslint-disable-next-line no-console

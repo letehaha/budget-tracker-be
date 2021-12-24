@@ -20,6 +20,7 @@ const modelsPaths = [
   '@models/banks/monobank/Transactions.model',
   '@models/banks/MerchantCategoryCodes.model',
   '@models/banks/UserMerchantCategoryCodes.model',
+  '@models/binance/UserSettings.model',
 ];
 
 fs
