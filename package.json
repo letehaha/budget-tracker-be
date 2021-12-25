@@ -2,11 +2,9 @@
   "name": "budget-tracker-be",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "start": "npm run dev",
-    "dev": "NODE_ENV=development nodemon ./server/index",
-    "prod": "NODE_ENV=development nodemon ./server/index",
+    "dev": "NODE_ENV=development nodemon",
     "migrate": "npx sequelize-cli db:migrate",
     "migrate-undo": "npx sequelize-cli db:migrate:undo",
     "seed": "npx sequelize-cli db:seed:all",
@@ -31,12 +29,7 @@
     }
   },
   "_moduleAliases": {
-    "@models": "./server/models",
-    "@controllers": "./server/controllers",
-    "@middlewares": "./server/middlewares",
-    "@routes": "./server/routes",
-    "@js": "./server/js",
-    "@resources": "./server/resources"
+    "@/src/": "build/src/"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
@@ -49,11 +42,10 @@
     "currency-codes": "^2.1.0",
     "date-fns": "^2.16.1",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1",
+    "express": "^4.17.2",
     "express-validator": "^6.6.1",
     "jsonwebtoken": "^8.5.1",
     "locale": "^0.1.0",
-    "module-alias": "^2.2.2",
     "morgan": "^1.10.0",
     "p-queue": "^6.6.2",
     "passport": "^0.4.1",
@@ -61,15 +53,32 @@
     "pg": "^8.4.2",
     "pg-hstore": "^2.3.3",
     "redis": "^3.1.1",
-    "sequelize": "^6.3.5",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^6.12.2",
+    "sequelize-typescript": "^2.1.1",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4",
     "winston": "^3.3.3"
   },
   "devDependencies": {
+    "@types/config": "^0.0.40",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/locale": "^0.1.1",
+    "@types/morgan": "^1.9.3",
+    "@types/node": "^17.0.4",
+    "@types/passport": "^1.0.7",
+    "@types/redis": "^4.0.11",
+    "@types/validator": "^13.7.1",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
     "eslint": "^7.31.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.22.1",
     "husky": "^4.3.0",
-    "nodemon": "^2.0.6"
+    "module-alias": "^2.2.2",
+    "nodemon": "^2.0.6",
+    "tslint": "^6.1.3"
   }
 }
