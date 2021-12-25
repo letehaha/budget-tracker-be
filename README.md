@@ -29,3 +29,4 @@ npm run dev
 
 ### Current DB schema
 
+![budget-tracker-schema](https://user-images.githubusercontent.com/12257282/147393125-de1c8815-023e-49d4-b337-20cfaea06552.png)
