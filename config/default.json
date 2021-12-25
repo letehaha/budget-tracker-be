@@ -1,0 +1,8 @@
+{
+  "name": "budget-tracker-be",
+  "bankIntegrations": {
+    "monobank": {
+      "apiEndpoint": "https://api.monobank.ua"
+    }
+  }
+}
