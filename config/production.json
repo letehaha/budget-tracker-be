@@ -1,13 +1,13 @@
 {
-  "env": "development",
-  "envShort": "dev",
+  "env": "production",
+  "envShort": "prod",
   "host": "127.0.0.1",
   "port": "8081",
   "apiPrefix": "/api/v1",
-  "jwtSecret": "dev-jwt",
+  "jwtSecret": "prod-jwt",
   "hostWebhooksCallback": "http://d8d75e719def.ngrok.io",
   "db": {
-    "host": "127.0.0.1",
+    "host": "db",
     "username": "letehaha",
     "password": "password",
     "database": "budget-tracker",
@@ -16,6 +16,6 @@
     "logging": false
   },
   "redis": {
-    "host": "127.0.0.1"
+    "host": "redis"
   }
 }

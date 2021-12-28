@@ -40,7 +40,7 @@ const redisClient = createClient({
 
 redisClient.on('error', (error: unknown) => {
   // eslint-disable-next-line no-undef
-  console.error(error);
+  console.error('Redis Client Error', error);
 });
 
 ['get', 'set', 'del', 'expire'].forEach((item) => {
