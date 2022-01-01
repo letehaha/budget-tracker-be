@@ -1,4 +1,5 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { AccountModel } from 'shared-types';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
 import AccountTypes from './AccountTypes.model';
@@ -43,7 +44,9 @@ export default class Accounts extends Model {
   userId: number;
 }
 
-export const getAccounts = async ({ userId }) => {
+export const getAccounts = async (
+  { userId }: { userId: number },
+): Promise<AccountModel[]> => {
   const accounts = await Accounts.findAll({ where: { userId } });
 
   return accounts;
@@ -55,7 +58,7 @@ export const getAccountById = async ({
 }: {
   userId?: string;
   id: number;
-}) => {
+}): Promise<AccountModel> => {
   const account = await Accounts.findOne({ where: { userId, id } });
 
   return account;
@@ -67,7 +70,13 @@ export const createAccount = async ({
   name,
   currentBalance,
   creditLimit,
-}) => {
+}: {
+  accountTypeId: number;
+  currencyId: number;
+  name: string;
+  currentBalance: number;
+  creditLimit: number;
+}): Promise<AccountModel> => {
   const response = await Accounts.create({
     accountTypeId,
     currencyId,
@@ -88,7 +97,14 @@ export const updateAccountById = async ({
   name,
   currentBalance,
   creditLimit,
-}) => {
+}: {
+  id: number;
+  accountTypeId?: number;
+  currencyId?: number;
+  name?: string;
+  currentBalance?: number;
+  creditLimit?: number;
+}): Promise<AccountModel> => {
   const where = { id };
   await Accounts.update(
     {
@@ -106,6 +122,6 @@ export const updateAccountById = async ({
   return account;
 };
 
-export const deleteAccountById = ({ id }) => {
+export const deleteAccountById = ({ id }: { id: number }): void => {
   Accounts.destroy({ where: { id } });
 };

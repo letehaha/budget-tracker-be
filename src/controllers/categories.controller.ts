@@ -1,6 +1,7 @@
+import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 import * as Categories from '../models/Categories.model';
 
-export const getCategories = async (req, res, next) => {
+export const getCategories = async (req, res: CustomResponse, next) => {
   const { id } = req.user;
   const { rawCategories } = req.query;
 
@@ -8,7 +9,10 @@ export const getCategories = async (req, res, next) => {
     let data = await Categories.getCategories({ id });
 
     if (rawCategories !== undefined) {
-      return res.status(200).json({ response: data });
+      return res.status(200).json({
+        status: RESPONSE_STATUS.success,
+        response: data,
+      });
     }
 
     // TODO: fix this ASAP
@@ -36,13 +40,16 @@ export const getCategories = async (req, res, next) => {
       return roots;
     };
 
-    return res.status(200).json({ response: objectGraph(data) });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: objectGraph(data),
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const createCategory = async (req, res, next) => {
+export const createCategory = async (req, res: CustomResponse, next) => {
   const { id } = req.user;
   const {
     name,
@@ -62,7 +69,10 @@ export const createCategory = async (req, res, next) => {
       userId: id,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(new Error(err));
   }

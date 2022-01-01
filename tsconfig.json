@@ -10,6 +10,7 @@
       "@middlewares/*": ["middlewares/*"],
       "@models/*": ["models/*"],
       "@js/*": ["js/*"],
+      "shared-types": ["../shared-types"],
     },
     "esModuleInterop": true,
     "skipLibCheck": true,
