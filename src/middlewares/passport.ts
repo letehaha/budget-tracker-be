@@ -1,5 +1,7 @@
 import config from 'config';
+import passport from 'passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
+import { ERROR_CODES, RESPONSE_STATUS } from 'shared-types';
 import Users from '../models/Users.model';
 
 const options = {
@@ -27,4 +29,25 @@ export default (passport) => {
       }
     }),
   );
+}
+
+export const authenticateJwt = (req, res, next) => {
+  passport.authenticate(
+    'jwt',
+    { session: false },
+    (err, user) => {
+      if (err) return next(err);
+      if (!user) {
+        res.status(401).json({
+          status: RESPONSE_STATUS.error,
+          response: {
+            message: 'Unauthorized',
+            code: ERROR_CODES.unauthorized,
+          },
+        });
+      }
+      req.user = user;
+      next();
+    },
+  )(req, res, next);
 }

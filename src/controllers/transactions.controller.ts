@@ -1,3 +1,5 @@
+import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+
 import { connection } from '../models';
 import * as Transactions from '../models/Transactions.model';
 import * as MonobankTransactions from '../models/banks/monobank/Transactions.model';
@@ -12,7 +14,7 @@ const SORT_DIRECTIONS = Object.freeze({
   desc: 'DESC',
 });
 
-export const getTransactions = async (req, res, next) => {
+export const getTransactions = async (req, res: CustomResponse, next) => {
   const {
     sort = SORT_DIRECTIONS.desc,
     includeUser,
@@ -75,7 +77,10 @@ export const getTransactions = async (req, res, next) => {
       const sortedResult = [...transactions, ...monoTransactions]
         .sort((a, b) => compareDesc(new Date(a.time), new Date(b.time)));
 
-      return res.status(200).json({ response: sortedResult });
+      return res.status(200).json({
+        status: RESPONSE_STATUS.success,
+        response: sortedResult,
+      });
     }
     const transactions = await Transactions.getTransactions({
       userId,
@@ -103,13 +108,16 @@ export const getTransactions = async (req, res, next) => {
       isRaw: true,
     });
 
-    return res.status(200).json({ response: [...transactions, ...monoTransactions] });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: [...transactions, ...monoTransactions],
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const getTransactionById = async (req, res, next) => {
+export const getTransactionById = async (req, res: CustomResponse, next) => {
   const { id } = req.params;
   const { id: userId } = req.user;
   const {
@@ -135,13 +143,16 @@ export const getTransactionById = async (req, res, next) => {
       nestedInclude,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const createTransaction = async (req, res, next) => {
+export const createTransaction = async (req, res: CustomResponse, next) => {
   const {
     amount,
     note,
@@ -166,13 +177,16 @@ export const createTransaction = async (req, res, next) => {
       categoryId,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const updateTransaction = async (req, res, next) => {
+export const updateTransaction = async (req, res: CustomResponse, next) => {
   const { id } = req.params;
   const {
     amount,
@@ -199,20 +213,26 @@ export const updateTransaction = async (req, res, next) => {
       categoryId,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const deleteTransaction = async (req, res, next) => {
+export const deleteTransaction = async (req, res: CustomResponse, next) => {
   const { id } = req.params;
   const { id: userId } = req.user;
 
   try {
     await Transactions.deleteTransactionById({ id, userId });
 
-    return res.status(200).json({ response: {} });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: {},
+    });
   } catch (err) {
     return next(new Error(err));
   }

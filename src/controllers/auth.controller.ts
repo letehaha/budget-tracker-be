@@ -1,6 +1,8 @@
 import config from 'config';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+
 import { connection } from '../models';
 import {
   getUserByCredentials,
@@ -10,7 +12,7 @@ import {
 import Categories from '../models/Categories.model';
 import { DEFAULT_CATEGORIES } from '../js/const';
 
-export const login = async (req, res, next) => {
+export const login = async (req, res: CustomResponse, next) => {
   const { username, password } = req.body;
 
   try {
@@ -34,21 +36,30 @@ export const login = async (req, res, next) => {
           },
         );
 
-        return res.status(200).json({ response: { token: `Bearer ${token}` } });
+        return res.status(200).json({
+          status: RESPONSE_STATUS.success,
+          response: { token: `Bearer ${token}` },
+        });
       }
 
       return res
         .status(401)
-        .json({ message: 'User email and/or password are invalid!' });
+        .json({
+          status: RESPONSE_STATUS.error,
+          response: 'User email and/or password are invalid!',
+        });
     }
 
-    return res.status(404).json({ message: 'User not found!' });
+    return res.status(404).json({
+      status: RESPONSE_STATUS.error,
+      response: 'User not found!',
+    });
   } catch (err) {
     return next(new Error(err));
   }
 };
 
-export const register = async (req, res, next) => {
+export const register = async (req, res: CustomResponse, next) => {
   const { username, password } = req.body;
 
   let registrationTransaction = null;
@@ -61,7 +72,10 @@ export const register = async (req, res, next) => {
 
     let user = await getUserByCredentials({ username });
     if (user) {
-      return res.status(409).json({ message: 'User already exists!' });
+      return res.status(409).json({
+        status: RESPONSE_STATUS.error,
+        response: 'User already exists!',
+      });
     }
 
     const salt = bcrypt.genSaltSync(10);
@@ -138,7 +152,10 @@ export const register = async (req, res, next) => {
 
     await registrationTransaction.commit();
 
-    return res.status(201).json({ response: { user } });
+    return res.status(201).json({
+      status: RESPONSE_STATUS.success,
+      response: { user },
+    });
   } catch (err) {
     if (registrationTransaction) {
       await registrationTransaction.rollback();

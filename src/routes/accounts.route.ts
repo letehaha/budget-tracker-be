@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import passport from 'passport';
+import { authenticateJwt } from '../middlewares/passport';
 import {
   getAccounts,
   getAccountById,
@@ -10,30 +10,10 @@ import {
 
 const router = Router({});
 
-router.get(
-  '/',
-  passport.authenticate('jwt', { session: false }),
-  getAccounts,
-);
-router.get(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  getAccountById,
-);
-router.post(
-  '/',
-  passport.authenticate('jwt', { session: false }),
-  createAccount,
-);
-router.put(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  updateAccount,
-);
-router.delete(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  deleteAccount,
-);
+router.get('/', authenticateJwt, getAccounts);
+router.get('/:id', authenticateJwt, getAccountById);
+router.post('/', authenticateJwt, createAccount);
+router.put('/:id', authenticateJwt, updateAccount);
+router.delete('/:id', authenticateJwt, deleteAccount);
 
 export default router;

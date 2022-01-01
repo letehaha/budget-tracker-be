@@ -1,25 +1,33 @@
+import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+
 import * as Accounts from '../models/Accounts.model';
 
-export const getAccounts = async (req, res, next) => {
+export const getAccounts = async (req, res: CustomResponse, next) => {
   const { id: userId } = req.user;
 
   try {
     const accounts = await Accounts.getAccounts({ userId });
 
-    return res.status(200).json({ response: accounts });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: accounts,
+    });
   } catch (err) {
     return next(err);
   }
 };
 
-export const getAccountById = async (req, res, next) => {
+export const getAccountById = async (req, res: CustomResponse, next) => {
   const { id } = req.params;
   const { id: userId } = req.user;
 
   try {
     const accounts = await Accounts.getAccountById({ userId, id });
 
-    return res.status(200).json({ response: accounts });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: accounts,
+    });
   } catch (err) {
     return next(err);
   }
@@ -43,7 +51,10 @@ export const createAccount = async (req, res, next) => {
       creditLimit,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(err);
   }
@@ -69,7 +80,10 @@ export const updateAccount = async (req, res, next) => {
       creditLimit,
     });
 
-    return res.status(200).json({ response: data });
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
   } catch (err) {
     return next(err);
   }
@@ -81,7 +95,7 @@ export const deleteAccount = async (req, res, next) => {
   try {
     await Accounts.deleteAccountById({ id });
 
-    return res.status(200).json({ response: {} });
+    return res.status(200).json({ status: RESPONSE_STATUS.success });
   } catch (err) {
     return next(err);
   }

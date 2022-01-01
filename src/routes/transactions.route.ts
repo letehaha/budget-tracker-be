@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import passport from 'passport';
 import {
   getTransactions,
   getTransactionById,
@@ -7,33 +6,14 @@ import {
   updateTransaction,
   deleteTransaction,
 } from '../controllers/transactions.controller';
+import { authenticateJwt } from '../middlewares/passport';
 
 const router = Router({});
 
-router.get(
-  '/',
-  passport.authenticate('jwt', { session: false }),
-  getTransactions,
-);
-router.get(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  getTransactionById,
-);
-router.post(
-  '/',
-  passport.authenticate('jwt', { session: false }),
-  createTransaction,
-);
-router.put(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  updateTransaction,
-);
-router.delete(
-  '/:id',
-  passport.authenticate('jwt', { session: false }),
-  deleteTransaction,
-);
+router.get('/', authenticateJwt, getTransactions);
+router.get('/:id', authenticateJwt, getTransactionById);
+router.post('/', authenticateJwt, createTransaction);
+router.put('/:id', authenticateJwt, updateTransaction);
+router.delete('/:id', authenticateJwt, deleteTransaction);
 
 export default router;
