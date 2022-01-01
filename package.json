@@ -32,7 +32,8 @@
     }
   },
   "_moduleAliases": {
-    "@/src/": "build/src/"
+    "@/src/": "build/src/",
+    "shared-types": "shared-types"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
