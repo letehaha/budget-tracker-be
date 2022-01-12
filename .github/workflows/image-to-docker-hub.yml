@@ -45,6 +45,6 @@ jobs:
           script_stop: true
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
-            docker-compose down
             docker-compose pull
+            docker-compose down
             docker-compose up -d
