@@ -1,7 +1,7 @@
 import config from 'config';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
 import { connection } from '../models';
 import {
@@ -46,13 +46,19 @@ export const login = async (req, res: CustomResponse, next) => {
         .status(401)
         .json({
           status: RESPONSE_STATUS.error,
-          response: 'User email and/or password are invalid!',
+          response: {
+            message: 'User email and/or password are invalid!',
+            code: ERROR_CODES.invalidCredentials,
+          },
         });
     }
 
     return res.status(404).json({
       status: RESPONSE_STATUS.error,
-      response: 'User not found!',
+      response: {
+        message: 'User not found!',
+        code: ERROR_CODES.notFound,
+      },
     });
   } catch (err) {
     return next(new Error(err));
