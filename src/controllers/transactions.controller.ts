@@ -25,7 +25,7 @@ export const getTransactions = async (req, res: CustomResponse, next) => {
     includeAll,
     nestedInclude,
     limit,
-    page = 1,
+    from = 0,
   } = req.query;
   const { id: userId } = req.user;
 
@@ -40,7 +40,7 @@ export const getTransactions = async (req, res: CustomResponse, next) => {
           ) AS R
           ORDER BY R.time ${sort}
           LIMIT ${limit}
-          OFFSET ${(page * limit) - limit}`,
+          OFFSET ${from}`,
           { type: QueryTypes.SELECT },
         );
 
