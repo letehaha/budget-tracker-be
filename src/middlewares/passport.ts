@@ -38,7 +38,7 @@ export const authenticateJwt = (req, res, next) => {
     (err, user) => {
       if (err) return next(err);
       if (!user) {
-        res.status(401).json({
+        return res.status(401).json({
           status: RESPONSE_STATUS.error,
           response: {
             message: 'Unauthorized',
