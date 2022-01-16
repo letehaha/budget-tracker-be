@@ -1,7 +1,7 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 import * as PaymentTypes from '../models/PaymentTypes.model';
 
-export const getPaymentTypes = async (req, res: CustomResponse, next) => {
+export const getPaymentTypes = async (req, res: CustomResponse) => {
   try {
     const data = await PaymentTypes.getPaymentTypes();
 
@@ -10,6 +10,12 @@ export const getPaymentTypes = async (req, res: CustomResponse, next) => {
       response: data,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
