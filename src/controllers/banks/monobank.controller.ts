@@ -7,7 +7,7 @@ import {
   startOfMonth,
   differenceInCalendarMonths,
 } from 'date-fns';
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
 import * as MonobankUsers from '../../models/banks/monobank/Users.model';
 import * as MonobankAccounts from '../../models/banks/monobank/Accounts.model';
@@ -19,7 +19,7 @@ import * as Users from '../../models/Users.model';
 import * as TransactionEntities from '../../models/TransactionEntities.model';
 
 import { logger } from '../../js/utils';
-import { TRANSACTION_ENTITIES, ERROR_CODES } from '../../js/const';
+import { TRANSACTION_ENTITIES } from '../../js/const';
 
 const SORT_DIRECTIONS = {
   asc: 'asc',
@@ -142,7 +142,7 @@ async function createMonoTransaction({ data, account, userId }) {
   console.log(`New MONOBANK transaction! Amount is ${data.amount}`);
 }
 
-export const pairAccount = async (req, res: CustomResponse, next) => {
+export const pairAccount = async (req, res: CustomResponse) => {
   const { token } = req.body;
   const { id } = req.user;
 
@@ -222,11 +222,17 @@ export const pairAccount = async (req, res: CustomResponse, next) => {
       },
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const getUser = async (req, res: CustomResponse, next) => {
+export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
@@ -249,11 +255,17 @@ export const getUser = async (req, res: CustomResponse, next) => {
       response: user,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateUser = async (req, res: CustomResponse, next) => {
+export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
   const { apiToken, name } = req.body;
 
@@ -269,11 +281,17 @@ export const updateUser = async (req, res: CustomResponse, next) => {
       response: user,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const getTransactions = async (req, res: CustomResponse, next) => {
+export const getTransactions = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
     sort = SORT_DIRECTIONS.desc,
@@ -289,7 +307,13 @@ export const getTransactions = async (req, res: CustomResponse, next) => {
   } = req.query;
 
   if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
-    return next(new Error(`Sort direction is invalid! Should be one of [${Object.values(SORT_DIRECTIONS)}]`));
+    return res.status(400).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: `Validation error. Sort direction is invalid! Should be one of [${Object.values(SORT_DIRECTIONS)}]`,
+        code: ERROR_CODES.validationError,
+      },
+    });
   }
 
   try {
@@ -312,11 +336,17 @@ export const getTransactions = async (req, res: CustomResponse, next) => {
       response: transactions,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateTransaction = async (req, res: CustomResponse, next) => {
+export const updateTransaction = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const {
     id,
@@ -337,11 +367,17 @@ export const updateTransaction = async (req, res: CustomResponse, next) => {
       response: transaction,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const getAccounts = async (req, res, next) => {
+export const getAccounts = async (req, res) => {
   const { id } = req.user;
 
   try {
@@ -365,11 +401,17 @@ export const getAccounts = async (req, res, next) => {
       response: accounts,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateAccount = async (req, res: CustomResponse, next) => {
+export const updateAccount = async (req, res: CustomResponse) => {
   const {
     accountId,
     name,
@@ -388,11 +430,17 @@ export const updateAccount = async (req, res: CustomResponse, next) => {
       response: account,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const createAccounts = async (req, res: CustomResponse, next) => {
+export const createAccounts = async (req, res: CustomResponse) => {
   const {
     userId,
     accountsIds,
@@ -434,11 +482,17 @@ export const createAccounts = async (req, res: CustomResponse, next) => {
       response: [],
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const monobankWebhook = async (req, res: CustomResponse, next) => {
+export const monobankWebhook = async (req, res: CustomResponse) => {
   const { data } = req.body;
 
   try {
@@ -469,11 +523,17 @@ export const monobankWebhook = async (req, res: CustomResponse, next) => {
       status: RESPONSE_STATUS.success,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateWebhook = async (req, res: CustomResponse, next) => {
+export const updateWebhook = async (req, res: CustomResponse) => {
   try {
     const { clientId } = req.body;
     const { id } = req.user;
@@ -504,14 +564,33 @@ export const updateWebhook = async (req, res: CustomResponse, next) => {
       },
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const loadTransactions = async (req, res: CustomResponse, next) => {
+export const loadTransactions = async (req, res: CustomResponse) => {
   try {
     const { from, to, accountId } = req.query;
     const { id: systemUserId } = req.user;
+
+    const redisToken = `monobank-${systemUserId}-load-transactions`;
+    const tempRedisToken = await req.redisClient.get(redisToken);
+
+    if (tempRedisToken) {
+      return res.status(403).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: 'There were too many requests earlier. Please wait at least one minute from when you first saw this message.',
+          code: ERROR_CODES.forbidden,
+        },
+      });
+    }
 
     const monobankUser = await MonobankUsers.getUser({
       systemUserId,
@@ -522,6 +601,7 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
         status: RESPONSE_STATUS.error,
         response: {
           message: 'Monobank user does not exist.',
+          code: ERROR_CODES.notFound,
         },
       });
     }
@@ -537,6 +617,7 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
         status: RESPONSE_STATUS.error,
         response: {
           message: 'Monobank account does not exist.',
+          code: ERROR_CODES.notFound,
         },
       });
     }
@@ -547,7 +628,7 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
     if (existQuery) {
       logger.error('[Monobank controller]: Query already exists');
 
-      return res.status(403).json({
+      return res.status(429).json({
         status: RESPONSE_STATUS.error,
         response: {
           message: `
@@ -556,6 +637,7 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
             (approximately in ${existQuery.size} minutes, since each request
             will take about 60 seconds)
           `,
+          code: ERROR_CODES.tooManyRequests,
         },
       });
     }
@@ -574,23 +656,38 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
     for (const month of months) {
       // eslint-disable-next-line no-await-in-loop, no-console
       queue.add(async () => {
-        const { data } = await axios({
-          method: 'GET',
-          url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
-          responseType: 'json',
-          headers: {
-            'X-Token': monobankUser.get('apiToken'),
-          },
-        });
-
-        // eslint-disable-next-line no-restricted-syntax
-        for (const item of data) {
-          // eslint-disable-next-line no-await-in-loop
-          await createMonoTransaction({
-            data: item,
-            account: monobankAccount,
-            userId: systemUserId,
+        try {
+          const { data } = await axios({
+            method: 'GET',
+            url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
+            responseType: 'json',
+            headers: {
+              'X-Token': monobankUser.get('apiToken'),
+            },
           });
+
+          // eslint-disable-next-line no-restricted-syntax
+          for (const item of data) {
+            // eslint-disable-next-line no-await-in-loop
+            await createMonoTransaction({
+              data: item,
+              account: monobankAccount,
+              userId: systemUserId,
+            });
+          }
+        } catch (err) {
+          if (err.response.status === 429) {
+            await req.redisClient.set(redisToken, true);
+            await req.redisClient.expire(redisToken, 60);
+
+            return res.status(429).json({
+              status: RESPONSE_STATUS.error,
+              response: {
+                message: 'Monobank connection error. Too many requests!',
+                code: ERROR_CODES.tooManyRequests,
+              },
+            });
+          }
         }
       });
     }
@@ -610,15 +707,21 @@ export const loadTransactions = async (req, res: CustomResponse, next) => {
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
       response: {
-        minutesToFinish: months.length,
+        minutesToFinish: months.length - 1,
       },
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const refreshAccounts = async (req, res, next) => {
+export const refreshAccounts = async (req, res) => {
   const { id: systemUserId } = req.user;
 
   try {
@@ -665,7 +768,7 @@ export const refreshAccounts = async (req, res, next) => {
             });
           }
         }
-        return res.status(400).json({
+        return res.status(500).json({
           status: RESPONSE_STATUS.error,
           response: {
             message: 'Something bad happened while trying to contact Monobank!',
@@ -708,6 +811,12 @@ export const refreshAccounts = async (req, res, next) => {
       },
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };

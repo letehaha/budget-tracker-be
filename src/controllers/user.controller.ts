@@ -1,8 +1,8 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
 import * as Users from '../models/Users.model';
 
-export const getUser = async (req, res: CustomResponse, next) => {
+export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
@@ -13,11 +13,17 @@ export const getUser = async (req, res: CustomResponse, next) => {
       response: user,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const getUserCurrencies = async (req, res: CustomResponse, next) => {
+export const getUserCurrencies = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const { includeUser } = req.query;
 
@@ -30,11 +36,17 @@ export const getUserCurrencies = async (req, res: CustomResponse, next) => {
       response: result,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateUser = async (req, res: CustomResponse, next) => {
+export const updateUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
     username,
@@ -74,11 +86,17 @@ export const updateUser = async (req, res: CustomResponse, next) => {
       response: user,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const deleteUser = async (req, res: CustomResponse, next) => {
+export const deleteUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
@@ -89,6 +107,12 @@ export const deleteUser = async (req, res: CustomResponse, next) => {
       response: {},
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };

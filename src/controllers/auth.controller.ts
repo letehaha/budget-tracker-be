@@ -12,7 +12,7 @@ import {
 import Categories from '../models/Categories.model';
 import { DEFAULT_CATEGORIES } from '../js/const';
 
-export const login = async (req, res: CustomResponse, next) => {
+export const login = async (req, res: CustomResponse) => {
   const { username, password } = req.body;
 
   try {
@@ -61,11 +61,17 @@ export const login = async (req, res: CustomResponse, next) => {
       },
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const register = async (req, res: CustomResponse, next) => {
+export const register = async (req, res: CustomResponse) => {
   const { username, password } = req.body;
 
   let registrationTransaction = null;
@@ -167,6 +173,12 @@ export const register = async (req, res: CustomResponse, next) => {
       await registrationTransaction.rollback();
     }
 
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };

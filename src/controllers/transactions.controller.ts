@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
 import { connection } from '../models';
 import * as Transactions from '../models/Transactions.model';
@@ -14,7 +14,7 @@ const SORT_DIRECTIONS = Object.freeze({
   desc: 'DESC',
 });
 
-export const getTransactions = async (req, res: CustomResponse, next) => {
+export const getTransactions = async (req, res: CustomResponse) => {
   const {
     sort = SORT_DIRECTIONS.desc,
     includeUser,
@@ -113,11 +113,17 @@ export const getTransactions = async (req, res: CustomResponse, next) => {
       response: [...transactions, ...monoTransactions],
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const getTransactionById = async (req, res: CustomResponse, next) => {
+export const getTransactionById = async (req, res: CustomResponse) => {
   const { id } = req.params;
   const { id: userId } = req.user;
   const {
@@ -148,11 +154,17 @@ export const getTransactionById = async (req, res: CustomResponse, next) => {
       response: data,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const createTransaction = async (req, res: CustomResponse, next) => {
+export const createTransaction = async (req, res: CustomResponse) => {
   const {
     amount,
     note,
@@ -182,11 +194,17 @@ export const createTransaction = async (req, res: CustomResponse, next) => {
       response: data,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const updateTransaction = async (req, res: CustomResponse, next) => {
+export const updateTransaction = async (req, res: CustomResponse) => {
   const { id } = req.params;
   const {
     amount,
@@ -218,11 +236,17 @@ export const updateTransaction = async (req, res: CustomResponse, next) => {
       response: data,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const deleteTransaction = async (req, res: CustomResponse, next) => {
+export const deleteTransaction = async (req, res: CustomResponse) => {
   const { id } = req.params;
   const { id: userId } = req.user;
 
@@ -234,6 +258,12 @@ export const deleteTransaction = async (req, res: CustomResponse, next) => {
       response: {},
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };

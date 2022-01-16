@@ -331,7 +331,8 @@ export const createTransaction = async ({
   const tx = await getTransactionByOriginalId({ originalId, userId });
 
   if (tx) {
-    throw new Error('Transactions with such id already exist!');
+    console.error('Transaction with such id already exist!');
+    return undefined;
   }
 
   const response = await MonobankTransactions.create({

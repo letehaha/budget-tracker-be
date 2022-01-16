@@ -1,7 +1,7 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 import * as Categories from '../models/Categories.model';
 
-export const getCategories = async (req, res: CustomResponse, next) => {
+export const getCategories = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const { rawCategories } = req.query;
 
@@ -45,11 +45,17 @@ export const getCategories = async (req, res: CustomResponse, next) => {
       response: objectGraph(data),
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
-export const createCategory = async (req, res: CustomResponse, next) => {
+export const createCategory = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
     name,
@@ -74,6 +80,21 @@ export const createCategory = async (req, res: CustomResponse, next) => {
       response: data,
     });
   } catch (err) {
-    return next(new Error(err));
+    if (err.code === ERROR_CODES.validationError) {
+      return res.status(500).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: err.message,
+          code: ERROR_CODES.validationError,
+        },
+      });
+    }
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };

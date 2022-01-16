@@ -2,11 +2,9 @@ import axios from 'axios';
 // const CryptoJS = require('crypto-js');
 import crypto from 'crypto';
 
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
 import * as BinanceUserSettings from '../../models/binance/UserSettings.model';
-
-import { ERROR_CODES } from '../../js/const';
 
 const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   const localUrl = new URL(url);
@@ -24,7 +22,7 @@ const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   return localUrl;
 };
 
-export const setSettings = async (req, res: CustomResponse, next) => {
+export const setSettings = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
     apiKey,
@@ -48,7 +46,13 @@ export const setSettings = async (req, res: CustomResponse, next) => {
       response: settings,
     });
   } catch (err) {
-    return next(new Error(err));
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
   }
 };
 
