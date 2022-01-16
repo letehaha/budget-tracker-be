@@ -27,3 +27,8 @@ services:
 
   redis:
     image: redis:latest
+
+networks:
+  default:
+    external: true
+    name: budget-tracker
