@@ -41,6 +41,7 @@ export const createAccount = async (req, res, next) => {
     currentBalance,
     creditLimit,
   } = req.body;
+  const { id: userId } = req.user;
 
   try {
     const data = await Accounts.createAccount({
@@ -49,6 +50,7 @@ export const createAccount = async (req, res, next) => {
       name,
       currentBalance,
       creditLimit,
+      userId,
     });
 
     return res.status(200).json({
@@ -62,6 +64,7 @@ export const createAccount = async (req, res, next) => {
 
 export const updateAccount = async (req, res, next) => {
   const { id } = req.params;
+  const { id: userId } = req.user;
   const {
     accountTypeId,
     currencyId,
@@ -78,6 +81,7 @@ export const updateAccount = async (req, res, next) => {
       name,
       currentBalance,
       creditLimit,
+      userId,
     });
 
     return res.status(200).json({

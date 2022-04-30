@@ -56,7 +56,7 @@ export const getAccountById = async ({
   userId,
   id,
 }: {
-  userId?: string;
+  userId: number;
   id: number;
 }): Promise<AccountModel> => {
   const account = await Accounts.findOne({ where: { userId, id } });
@@ -70,12 +70,14 @@ export const createAccount = async ({
   name,
   currentBalance,
   creditLimit,
+  userId,
 }: {
   accountTypeId: number;
   currencyId: number;
   name: string;
   currentBalance: number;
   creditLimit: number;
+  userId: number;
 }): Promise<AccountModel> => {
   const response = await Accounts.create({
     accountTypeId,
@@ -83,9 +85,13 @@ export const createAccount = async ({
     name,
     currentBalance,
     creditLimit,
+    userId,
   });
 
-  const account = await getAccountById({ id: response.get('id') });
+  const account = await getAccountById({
+    id: response.get('id'),
+    userId,
+  });
 
   return account;
 };
@@ -97,6 +103,7 @@ export const updateAccountById = async ({
   name,
   currentBalance,
   creditLimit,
+  userId,
 }: {
   id: number;
   accountTypeId?: number;
@@ -104,8 +111,9 @@ export const updateAccountById = async ({
   name?: string;
   currentBalance?: number;
   creditLimit?: number;
+  userId: number;
 }): Promise<AccountModel> => {
-  const where = { id };
+  const where = { id, userId };
   await Accounts.update(
     {
       accountTypeId,
