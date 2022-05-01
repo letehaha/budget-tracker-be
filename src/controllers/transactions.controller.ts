@@ -173,6 +173,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
     paymentTypeId,
     accountId,
     categoryId,
+    transactionEntityId = TRANSACTION_ENTITIES.system,
   } = req.body;
 
   const { id: userId } = req.user;
@@ -187,6 +188,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       paymentTypeId,
       accountId,
       categoryId,
+      transactionEntityId,
     });
 
     return res.status(200).json({

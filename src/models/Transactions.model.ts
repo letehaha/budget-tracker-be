@@ -217,6 +217,7 @@ export const createTransaction = async ({
   paymentTypeId,
   accountId,
   categoryId,
+  transactionEntityId,
 }) => {
   const response = await Transactions.create({
     amount,
@@ -227,6 +228,7 @@ export const createTransaction = async ({
     paymentTypeId,
     accountId,
     categoryId,
+    transactionEntityId,
   });
 
   const transaction = await getTransactionById({
