@@ -51,6 +51,9 @@ export const createTransaction = async ({
   return data
 };
 
+/**
+ * Updates transaction and updates account balance.
+ */
 export const updateTransactionById = async ({
   id,
   amount,
