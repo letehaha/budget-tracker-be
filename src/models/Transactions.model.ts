@@ -165,12 +165,12 @@ export const getTransactionById = async ({
     nestedInclude,
   });
 
-  const transactions = await Transactions.findOne({
+  const transaction = await Transactions.findOne({
     where: { id, userId },
     include,
   });
 
-  return transactions;
+  return transaction;
 };
 
 export const getTransactionsByArrayOfField = async ({

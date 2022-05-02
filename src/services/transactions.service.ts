@@ -40,7 +40,58 @@ export const createTransaction = async ({
   const isIncome = transactionType.type === TRANSACTION_TYPES.income
   // Increase account's currentBalance on passed "amount" only if it is an "income".
   // if type is "expense" or "transfer", balance decreases in both ways.
-  const newBalance = isIncome ? amount + currentBalance : currentBalance - amount
+  const newBalance = isIncome ? currentBalance + amount : currentBalance - amount
+
+  await accountsService.updateAccount({
+    id: accountId,
+    userId,
+    currentBalance: newBalance,
+  })
+
+  return data
+};
+
+export const updateTransactionById = async ({
+  id,
+  amount,
+  note,
+  time,
+  transactionTypeId,
+  paymentTypeId,
+  accountId,
+  categoryId,
+  userId,
+}) => {
+  const { amount: oldAmount } = await Transactions.getTransactionById({ id, userId })
+
+  const data = await Transactions.updateTransactionById({
+    id,
+    amount,
+    note,
+    time,
+    userId,
+    transactionTypeId,
+    paymentTypeId,
+    accountId,
+    categoryId,
+  });
+
+  const { currentBalance } = await accountsService.getAccountById({
+    id: accountId,
+    userId,
+  })
+
+  // if amount SAME, do NOTHING
+  // if amount MORE, currentBalance + (newAmount - oldAmount)
+  // if amount LESS, currentBalance - (oldAmount - newAmount)
+
+  let newBalance = currentBalance
+
+  if (amount > oldAmount) {
+    newBalance = currentBalance + (amount - oldAmount)
+  } else if (amount < oldAmount) {
+    newBalance = currentBalance - (oldAmount - amount)
+  }
 
   await accountsService.updateAccount({
     id: accountId,
