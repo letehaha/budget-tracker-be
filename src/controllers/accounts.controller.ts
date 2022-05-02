@@ -1,5 +1,7 @@
 import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 
+import * as accountsService from '../services/accounts.service';
+
 import * as Accounts from '../models/Accounts.model';
 
 export const getAccounts = async (req, res: CustomResponse, next) => {
@@ -74,14 +76,15 @@ export const updateAccount = async (req, res, next) => {
   } = req.body;
 
   try {
-    const data = await Accounts.updateAccountById({
+    const data = await accountsService.updateAccount({
       id,
+      userId,
+
       accountTypeId,
       currencyId,
       name,
       currentBalance,
       creditLimit,
-      userId,
     });
 
     return res.status(200).json({

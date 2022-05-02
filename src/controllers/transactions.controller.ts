@@ -9,6 +9,8 @@ import {
 } from 'date-fns';
 import { TRANSACTION_ENTITIES } from '../js/const';
 
+import * as transactionsService from '../services/transactions.service';
+
 const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
   desc: 'DESC',
@@ -179,17 +181,17 @@ export const createTransaction = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
-    const data = await Transactions.createTransaction({
+    const data = await transactionsService.createTransaction({
       amount,
       note,
       time,
-      userId,
       transactionTypeId,
       paymentTypeId,
       accountId,
       categoryId,
       transactionEntityId,
-    });
+      userId,
+    })
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,

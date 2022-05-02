@@ -33,3 +33,9 @@ export const getTransactionTypes = async () => {
 
   return accountTypes;
 };
+
+export const getTransactionTypeById = async (id: number) => {
+  const accountTypes = await TransactionTypes.findOne({ where: { id } });
+
+  return accountTypes;
+};
