@@ -233,7 +233,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
-    const data = await transactionsService.updateTransactionById({
+    const data = await transactionsService.updateTransaction({
       id,
       amount,
       note,

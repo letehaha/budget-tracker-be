@@ -7,49 +7,67 @@ import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 import * as transactionTypesService from '@services/transaction-types.service'
 
+const transformAmountDependingOnTxType = async (
+  { amount, transactionTypeId}: { transactionTypeId: number; amount: number },
+  { transaction }: { transaction: Transaction },
+) => {
+  const txType = await transactionTypesService.getTransactionTypeById(
+    transactionTypeId, { transaction }
+  );
+  const isIncome = txType.type === TRANSACTION_TYPES.income
+  if (!isIncome) amount *= -1
+  return amount
+}
+
 /**
  * Updates the balance of the account associated with the transaction
  */
-export const updateAccountBalance = async (
+const updateAccountBalance = async (
   {
     transactionTypeId,
     accountId,
     userId,
     amount,
-    oldAmount,
+    // keep it 0 be default for the tx creation flow
+    previousAmount = 0,
+    previousTransactionTypeId,
   }: {
     transactionTypeId: number;
     accountId: number;
     userId: number;
     amount: number;
-    oldAmount?: number;
+    previousAmount?: number;
+    previousTransactionTypeId?: number;
   },
   { transaction }: { transaction: Transaction },
 ) => {
   try {
-    let newAmount = amount
-    const previousAmount = oldAmount ?? newAmount
-
-    // If transaction type is not TRANSACTION_TYPES.income, make amount negative
-    const transactionType = await transactionTypesService.getTransactionTypeById(
-      transactionTypeId,
-      { transaction },
-    );
-    const isIncome = transactionType.type === TRANSACTION_TYPES.income
-    if (!isIncome) newAmount *= -1
-
     const { currentBalance } = await accountsService.getAccountById(
       { id: accountId, userId },
       { transaction },
     );
 
+    if (previousTransactionTypeId) {
+      // Make the previous amount value positive or negative depending on the tx type
+      previousAmount = await transformAmountDependingOnTxType({
+          amount: previousAmount,
+          transactionTypeId: previousTransactionTypeId,
+        }, { transaction })
+    }
+
+    // Make the current amount value positive or negative depending on the tx type
+    amount = await transformAmountDependingOnTxType({
+      amount,
+      transactionTypeId,
+    }, { transaction })
+
     let newBalance = currentBalance
 
-    if (newAmount > previousAmount) {
-      newBalance = currentBalance + (newAmount - previousAmount)
-    } else if (newAmount < previousAmount) {
-      newBalance = currentBalance - (previousAmount - newAmount)
-    } else {
+    if (amount > previousAmount) {
+      newBalance = currentBalance + (amount - previousAmount)
+    } else if (amount < previousAmount) {
+      newBalance = currentBalance - (previousAmount - amount)
+    } else if (amount === previousAmount) {
       newBalance = currentBalance + amount
     }
 
@@ -62,6 +80,7 @@ export const updateAccountBalance = async (
       { transaction },
     )
   } catch (e) {
+    console.error(e);
     throw new UnexpectedError(
       ERROR_CODES.txServiceUpdateBalance,
       'Cannot update balance.'
@@ -115,14 +134,15 @@ export const createTransaction = async ({
     return data
   } catch (e) {
     await transaction.rollback();
-    throw e
+    console.error(e);
+    throw e;
   }
 };
 
 /**
  * Updates transaction and updates account balance.
  */
-export const updateTransactionById = async ({
+export const updateTransaction = async ({
   id,
   amount,
   note,
@@ -138,7 +158,10 @@ export const updateTransactionById = async ({
   try {
     transaction = await connection.sequelize.transaction();
 
-    const { amount: oldAmount } = await Transactions.getTransactionById(
+    const {
+      amount: previousAmount,
+      transactionTypeId: previousTransactionTypeId,
+    } = await Transactions.getTransactionById(
       { id, userId },
       { transaction },
     )
@@ -164,7 +187,8 @@ export const updateTransactionById = async ({
         accountId,
         userId,
         amount,
-        oldAmount,
+        previousAmount,
+        previousTransactionTypeId,
       },
       { transaction },
     )
@@ -173,8 +197,9 @@ export const updateTransactionById = async ({
 
     return data
   } catch (e) {
+    console.error(e);
     await transaction.rollback();
-    throw e
+    throw e;
   }
 };
 
@@ -191,21 +216,20 @@ export const deleteTransaction = async ({
     transaction = await connection.sequelize.transaction();
 
     const {
-      amount: oldAmount,
+      amount: previousAmount,
       transactionTypeId,
       accountId,
     } = await Transactions.getTransactionById({ id, userId }, { transaction })
-
-    console.log('oldAmount', oldAmount);
 
     await updateAccountBalance(
       {
         userId,
         accountId,
         transactionTypeId,
+        previousTransactionTypeId: transactionTypeId,
         // make new amount 0, so the balance won't depend on this tx anymore
         amount: 0,
-        oldAmount,
+        previousAmount,
       },
       { transaction },
     )
@@ -214,6 +238,7 @@ export const deleteTransaction = async ({
 
     await transaction.commit();
   } catch (e) {
+    console.error(e);
     await transaction.rollback();
     throw e
   }
