@@ -11,6 +11,7 @@
       "@models/*": ["models/*"],
       "@js/*": ["js/*"],
       "shared-types": ["../shared-types"],
+      "@services/*": ["services/*"],
     },
     "esModuleInterop": true,
     "skipLibCheck": true,

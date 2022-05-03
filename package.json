@@ -33,6 +33,11 @@
   },
   "_moduleAliases": {
     "@/src/": "build/src/",
+    "@js": "src/js",
+    "@routes": "src/routes",
+    "@middlewares": "src/middlewares",
+    "@models": "src/models",
+    "@services": "src/services",
     "shared-types": "shared-types"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
