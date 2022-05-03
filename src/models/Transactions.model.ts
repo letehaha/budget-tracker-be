@@ -1,4 +1,5 @@
 import { Op } from 'sequelize';
+import { Transaction } from 'sequelize/types';
 import {
   Table,
   Column,
@@ -134,27 +135,30 @@ export const getTransactions = async ({
   return transactions;
 };
 
-export const getTransactionById = async ({
-  id,
-  userId,
-  includeUser,
-  includeTransactionType,
-  includePaymentType,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}: {
-  id: number;
-  userId: number;
-  includeUser?: boolean;
-  includeTransactionType?: boolean;
-  includePaymentType?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
+export const getTransactionById = (
+  {
+    id,
+    userId,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }: {
+    id: number;
+    userId: number;
+    includeUser?: boolean;
+    includeTransactionType?: boolean;
+    includePaymentType?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
   const include = prepareTXInclude({
     includeUser,
     includeTransactionType,
@@ -165,26 +169,27 @@ export const getTransactionById = async ({
     nestedInclude,
   });
 
-  const transactions = await Transactions.findOne({
+  return Transactions.findOne({
     where: { id, userId },
     include,
+    transaction,
   });
-
-  return transactions;
 };
 
-export const getTransactionsByArrayOfField = async ({
-  fieldValues,
-  fieldName,
-  userId,
-  includeUser,
-  includeTransactionType,
-  includePaymentType,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}) => {
+export const getTransactionsByArrayOfField = async (
+  {
+    fieldValues,
+    fieldName,
+    userId,
+    includeUser,
+    includeTransactionType,
+    includePaymentType,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }, { transaction }: { transaction?: Transaction } = {}
+) => {
   const include = prepareTXInclude({
     includeUser,
     includeTransactionType,
@@ -203,22 +208,36 @@ export const getTransactionsByArrayOfField = async ({
       userId,
     },
     include,
+    transaction,
   });
 
   return transactions;
 };
 
-export const createTransaction = async ({
-  amount,
-  note,
-  time,
-  userId,
-  transactionTypeId,
-  paymentTypeId,
-  accountId,
-  categoryId,
-  transactionEntityId,
-}) => {
+export const createTransaction = async (
+  {
+    amount,
+    note,
+    time,
+    userId,
+    transactionTypeId,
+    paymentTypeId,
+    accountId,
+    categoryId,
+    transactionEntityId,
+  }: {
+    amount: number;
+    note?: string;
+    time: Date;
+    userId: number;
+    transactionTypeId: number;
+    paymentTypeId: number;
+    accountId: number;
+    categoryId: number;
+    transactionEntityId: number;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
   const response = await Transactions.create({
     amount,
     note,
@@ -229,27 +248,31 @@ export const createTransaction = async ({
     accountId,
     categoryId,
     transactionEntityId,
-  });
+  }, { transaction });
 
-  const transaction = await getTransactionById({
-    id: response.get('id'),
-    userId,
-  });
-
-  return transaction;
+  return getTransactionById(
+    {
+      id: response.get('id'),
+      userId,
+    },
+    { transaction }
+  );
 };
 
-export const updateTransactionById = async ({
-  id,
-  amount,
-  note,
-  time,
-  userId,
-  transactionTypeId,
-  paymentTypeId,
-  accountId,
-  categoryId,
-}) => {
+export const updateTransactionById = async (
+  {
+    id,
+    amount,
+    note,
+    time,
+    userId,
+    transactionTypeId,
+    paymentTypeId,
+    accountId,
+    categoryId,
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
   const where = { id };
   await Transactions.update(
     {
@@ -262,14 +285,21 @@ export const updateTransactionById = async ({
       accountId,
       categoryId,
     },
-    { where },
+    { where, transaction },
   );
 
-  const transaction = await getTransactionById({ id, userId });
-
-  return transaction;
+  return getTransactionById({ id, userId }, { transaction });
 };
 
-export const deleteTransactionById = ({ id, userId }) => {
-  Transactions.destroy({ where: { id, userId } });
-};
+export const deleteTransactionById = (
+  {
+    id,
+    userId,
+  }: {
+    id: number;
+    userId: number;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return Transactions.destroy({ where: { id, userId }, transaction });
+}

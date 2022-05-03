@@ -220,6 +220,9 @@ export const updateUserById = async (
   return user;
 };
 
-export const deleteUserById = ({ id }) => {
-  Users.destroy({ where: { id } });
+export const deleteUserById = (
+  { id },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  Users.destroy({ where: { id }, transaction });
 };

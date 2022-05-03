@@ -7,6 +7,7 @@ import {
   AutoIncrement,
   PrimaryKey,
 } from 'sequelize-typescript';
+import { Transaction } from 'sequelize/types';
 
 @Table({
   timestamps: false,
@@ -28,8 +29,19 @@ export default class TransactionTypes extends Model {
   type: number;
 }
 
-export const getTransactionTypes = async () => {
-  const accountTypes = await TransactionTypes.findAll();
+export const getTransactionTypes = async (
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  const accountTypes = await TransactionTypes.findAll({ transaction });
+
+  return accountTypes;
+};
+
+export const getTransactionTypeById = async (
+  id: number,
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  const accountTypes = await TransactionTypes.findOne({ where: { id }, transaction });
 
   return accountTypes;
 };
