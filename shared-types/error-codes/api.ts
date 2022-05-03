@@ -16,6 +16,9 @@ export enum ERROR_CODES {
   monobankUserNotExist = 'MONOBANK_USER_NOT_EXIST',
   monobankTokenInvalid = 'MONOBANK_USER_TOKEN_INVALID',
 
+  // transactions service
+  txServiceUpdateBalance = 'CANNOT_UPDATE_BALANCE',
+
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,
   cryptoBinancePublicAPIKeyNotDefined = 10102,

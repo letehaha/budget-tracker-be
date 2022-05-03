@@ -1,15 +1,15 @@
 import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
-
-import { connection } from '../models';
-import * as Transactions from '../models/Transactions.model';
-import * as MonobankTransactions from '../models/banks/monobank/Transactions.model';
 import { QueryTypes } from 'sequelize';
-import {
-  compareDesc,
-} from 'date-fns';
-import { TRANSACTION_ENTITIES } from '../js/const';
+import { compareDesc } from 'date-fns';
 
-import * as transactionsService from '../services/transactions.service';
+import { CustomError } from '@js/errors'
+
+import { connection } from '@models/index';
+import * as Transactions from '@models/Transactions.model';
+import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
+import { TRANSACTION_ENTITIES } from '@js/const';
+
+import * as transactionsService from '@services/transactions.service';
 
 const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
@@ -198,6 +198,16 @@ export const createTransaction = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
+    if (err instanceof CustomError) {
+      return res.status(err.httpCode).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: err.message,
+          code: err.code,
+        },
+      });
+    }
+
     return res.status(500).json({
       status: RESPONSE_STATUS.error,
       response: {
@@ -240,6 +250,16 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
+    if (err instanceof CustomError) {
+      return res.status(err.httpCode).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: err.message,
+          code: err.code,
+        },
+      });
+    }
+
     return res.status(500).json({
       status: RESPONSE_STATUS.error,
       response: {
@@ -255,13 +275,23 @@ export const deleteTransaction = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
-    await Transactions.deleteTransactionById({ id, userId });
+    await transactionsService.deleteTransaction({ id, userId })
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
       response: {},
     });
   } catch (err) {
+    if (err instanceof CustomError) {
+      return res.status(err.httpCode).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: err.message,
+          code: err.code,
+        },
+      });
+    }
+
     return res.status(500).json({
       status: RESPONSE_STATUS.error,
       response: {
