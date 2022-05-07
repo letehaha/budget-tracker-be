@@ -1,12 +1,12 @@
 import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
 
-import * as Users from '../models/Users.model';
+import * as userService from '@services/user.service';
 
 export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
-    const user = await Users.getUserById({ id });
+    const user = await userService.getUser(Number(id));
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
@@ -28,8 +28,10 @@ export const getUserCurrencies = async (req, res: CustomResponse) => {
   const { includeUser } = req.query;
 
   try {
-    const user = await Users.getUserCurrencies({ userId });
-    const result = includeUser === undefined ? user.get('currencies') : user;
+    const result = await userService.getUserCurrencies({
+      userId: Number(userId),
+      includeUser: Boolean(includeUser),
+    });
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
@@ -69,8 +71,8 @@ export const updateUser = async (req, res: CustomResponse) => {
   } = req.body;
 
   try {
-    const user = await Users.updateUserById({
-      id,
+    const user = await userService.updateUser({
+      id: Number(id),
       username,
       email,
       firstName,
@@ -100,7 +102,7 @@ export const deleteUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
-    await Users.deleteUserById({ id });
+    await userService.deleteUser(Number(id));
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
