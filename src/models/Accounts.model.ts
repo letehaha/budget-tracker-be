@@ -32,6 +32,12 @@ export default class Accounts extends Model {
   })
   creditLimit: number;
 
+  @Column({
+    allowNull: false,
+    defaultValue: false,
+  })
+  internal: boolean;
+
   @ForeignKey(() => AccountTypes)
   @Column
   accountTypeId: number;
