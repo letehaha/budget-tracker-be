@@ -4,12 +4,8 @@ import jwt from 'jsonwebtoken';
 import { RESPONSE_STATUS, ERROR_CODES } from 'shared-types';
 
 import { connection } from '@models/index';
-import {
-  getUserByCredentials,
-  updateUserById,
-  createUser,
-} from '@models/Users.model';
-import Categories from '@models/Categories.model';
+import * as userService from '@services/user.service';
+import * as categoriesService from '@services/categories.service';
 import { DEFAULT_CATEGORIES } from '@js/const';
 import { Unauthorized, NotFoundError, UnexpectedError, ConflictError } from '@js/errors';
 
@@ -23,7 +19,7 @@ export const login = async (
   }
 ): Promise<{ token: string }> => {
   try {
-    const user = await getUserByCredentials({ username });
+    const user = await userService.getUserByCredentials({ username });
 
     if (user) {
       const isPasswordValid = bcrypt.compareSync(
@@ -80,7 +76,7 @@ export const register = async (
         connection.Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
     });
 
-    let user = await getUserByCredentials({ username });
+    let user = await userService.getUserByCredentials({ username });
     if (user) {
       throw new ConflictError(
         RESPONSE_STATUS.error,
@@ -90,7 +86,7 @@ export const register = async (
 
     const salt = bcrypt.genSaltSync(10);
 
-    user = await createUser(
+    user = await userService.createUser(
       {
         username,
         password: bcrypt.hashSync(password, salt),
@@ -106,11 +102,10 @@ export const register = async (
       userId: user.get('id'),
     }));
 
-    categories = await Categories.bulkCreate(categories, {
-      transaction: registrationTransaction,
-      validate: true,
-      returning: true,
-    });
+    categories = await categoriesService.bulkCreate(
+      { data: categories },
+      { transaction: registrationTransaction, returning: true },
+    )
 
     let subcats = [];
 
@@ -133,10 +128,10 @@ export const register = async (
       }
     });
 
-    await Categories.bulkCreate(subcats, {
-      transaction: registrationTransaction,
-      validate: true,
-    });
+    await categoriesService.bulkCreate(
+      { data: subcats },
+      { transaction: registrationTransaction },
+    )
 
     // set defaultCategoryId so the undefined mcc codes will use it
     const defaultCategoryId = (
@@ -151,7 +146,7 @@ export const register = async (
         "Cannot find 'defaultCategoryId' in the previously create categories.",
       )
     } else {
-      user = await updateUserById(
+      user = await userService.updateUser(
         {
           defaultCategoryId,
           id: user.get('id'),

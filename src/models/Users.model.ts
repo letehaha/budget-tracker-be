@@ -116,16 +116,13 @@ export const getUserCurrencies = async ({ userId }) => {
 };
 
 export const getUserByCredentials = async ({
-  password,
   username,
   email,
 }: {
-  password?: string;
   username?: string;
   email?: string;
 }) => {
   const where: Record<string, unknown> = {};
-  if (password) where.password = password;
   if (username) where.username = username;
   if (email) where.email = email;
   const user = await Users.scope('withPassword').findOne({ where });

@@ -124,3 +124,24 @@ export const createCategory = async (
 
   return category;
 };
+
+export const bulkCreate = async (
+  { data },
+  {
+    transaction,
+    validate = true,
+    returning = false,
+  }: {
+    transaction: Transaction;
+    validate?: boolean;
+    returning?: boolean;
+  },
+) => {
+  const result = await Categories.bulkCreate(data, {
+    transaction,
+    validate,
+    returning,
+  });
+
+  return result;
+}
