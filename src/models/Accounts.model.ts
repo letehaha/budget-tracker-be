@@ -83,6 +83,7 @@ export const createAccount = async (
     currentBalance,
     creditLimit,
     userId,
+    internal,
   }: {
     accountTypeId: number;
     currencyId: number;
@@ -90,6 +91,7 @@ export const createAccount = async (
     currentBalance: number;
     creditLimit: number;
     userId: number;
+    internal?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {}
 ): Promise<AccountModel> => {
@@ -100,6 +102,7 @@ export const createAccount = async (
     currentBalance,
     creditLimit,
     userId,
+    internal: internal ?? false,
   }, { transaction });
 
   const account = await getAccountById({

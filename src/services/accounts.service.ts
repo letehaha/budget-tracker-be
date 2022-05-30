@@ -10,6 +10,39 @@ export const getAccountById = async (
   return accounts;
 };
 
+export const createAccount = async (
+  {
+    accountTypeId,
+    currencyId,
+    name,
+    currentBalance,
+    creditLimit,
+    userId,
+    internal,
+  }: {
+    accountTypeId: number;
+    currencyId: number;
+    name: string;
+    currentBalance: number;
+    creditLimit: number;
+    userId: number;
+    internal?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {}
+) => {
+  const account = await Accounts.createAccount({
+    accountTypeId,
+    currencyId,
+    name,
+    currentBalance,
+    creditLimit,
+    userId,
+    internal,
+  }, { transaction });
+
+  return account;
+}
+
 export const updateAccount = async (
   {
     id,
