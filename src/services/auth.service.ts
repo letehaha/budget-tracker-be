@@ -71,11 +71,13 @@ export const register = async (
   let registrationTransaction = null;
 
   try {
+    // Define registration transaction
     registrationTransaction = await connection.sequelize.transaction({
       isolationLevel:
         connection.Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
     });
 
+    // Check if user already exists
     let user = await userService.getUserByCredentials({ username });
     if (user) {
       throw new ConflictError(
@@ -86,6 +88,7 @@ export const register = async (
 
     const salt = bcrypt.genSaltSync(10);
 
+    // Create user with salted password
     user = await userService.createUser(
       {
         username,
@@ -102,6 +105,7 @@ export const register = async (
       userId: user.get('id'),
     }));
 
+    // Insert default categories
     categories = await categoriesService.bulkCreate(
       { data: categories },
       { transaction: registrationTransaction, returning: true },
@@ -109,6 +113,8 @@ export const register = async (
 
     let subcats = [];
 
+    // Loop through categories and make subcats as a raw array of categories
+    // since DB expects that
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     categories.forEach((item: any) => {
       const subcategories = DEFAULT_CATEGORIES.subcategories.find(
