@@ -1,7 +1,6 @@
 import CATEGORY_TYPES from './category-types.const';
 import TRANSACTION_TYPES from './transaction-types.const';
 import DEFAULT_CATEGORIES from './default-categories.const';
-import TRANSACTION_ENTITIES from './transaction-entities.const';
 import ERROR_CODES from './error-codes.const';
 
 export {
@@ -9,5 +8,4 @@ export {
   CATEGORY_TYPES,
   TRANSACTION_TYPES,
   DEFAULT_CATEGORIES,
-  TRANSACTION_ENTITIES,
 };

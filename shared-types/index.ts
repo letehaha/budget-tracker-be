@@ -5,12 +5,6 @@ export enum RESPONSE_STATUS {
   success = 'success',
 }
 
-export enum TRANSACTION_TYPES {
-  income = 1,
-  expense = 2,
-  transfer = 3,
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Send<ResBody = any, T = Response<ResBody>> = (body?: ResBody) => T;
 export interface CustomResponse extends Response {
@@ -18,6 +12,27 @@ export interface CustomResponse extends Response {
     status: RESPONSE_STATUS,
     response?: unknown,
   }, this>
+}
+
+export enum ACCOUNT_TYPES {
+  system = 'system',
+  monobank = 'monobank',
+}
+
+export enum PAYMENT_TYPES {
+  bankTransfer = 'bankTransfer',
+  voucher = 'voucher',
+  webPayment = 'webPayment',
+  cash = 'cash',
+  mobilePayment = 'mobilePayment',
+  creditCard = 'creditCard',
+  debitCard = 'debitCard',
+}
+
+export enum TRANSACTION_TYPES {
+  income = 'income',
+  expense = 'expense',
+  transfer = 'transfer',
 }
 
 export * from './error-codes';

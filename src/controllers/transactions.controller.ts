@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES, ACCOUNT_TYPES } from 'shared-types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 
@@ -7,7 +7,6 @@ import { CustomError } from '@js/errors'
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
-import { TRANSACTION_ENTITIES } from '@js/const';
 
 import * as transactionsService from '@services/transactions.service';
 
@@ -20,8 +19,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
   const {
     sort = SORT_DIRECTIONS.desc,
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -36,9 +33,9 @@ export const getTransactions = async (req, res: CustomResponse) => {
       const txs = await connection.sequelize
         .query(
           `SELECT * FROM(
-            SELECT "id", "time", "transactionEntityId" FROM "Transactions" WHERE "userId"=${userId}
+            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
             UNION
-            SELECT "id", "time", "transactionEntityId" FROM "MonobankTransactions" WHERE "userId"=${userId}
+            SELECT "id", "time", "accountType" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
           ORDER BY R.time ${sort}
           LIMIT ${limit}
@@ -48,13 +45,11 @@ export const getTransactions = async (req, res: CustomResponse) => {
 
       const transactions = await Transactions.getTransactionsByArrayOfField({
         fieldValues: txs
-          .filter((item) => item.transactionEntityId === TRANSACTION_ENTITIES.system)
+          .filter((item) => item.accountType === ACCOUNT_TYPES.system)
           .map((item) => Number(item.id)),
         fieldName: 'id',
         userId,
         includeUser,
-        includeTransactionType,
-        includePaymentType,
         includeAccount,
         includeCategory,
         includeAll,
@@ -62,13 +57,11 @@ export const getTransactions = async (req, res: CustomResponse) => {
       });
       const monoTransactions = await MonobankTransactions.getTransactionsByArrayOfField({
         fieldValues: txs
-          .filter((item) => item.transactionEntityId === TRANSACTION_ENTITIES.monobank)
+          .filter((item) => item.accountType === ACCOUNT_TYPES.monobank)
           .map((item) => item.id),
         fieldName: 'id',
         systemUserId: userId,
         includeUser,
-        includeTransactionType,
-        includePaymentType,
         includeAccount,
         includeCategory,
         includeAll,
@@ -88,8 +81,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
       userId,
       sortDirection: sort,
       includeUser,
-      includeTransactionType,
-      includePaymentType,
       includeAccount,
       includeCategory,
       includeAll,
@@ -101,8 +92,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
       systemUserId: userId,
       sortDirection: sort,
       includeUser,
-      includeTransactionType,
-      includePaymentType,
       includeAccount,
       includeCategory,
       includeAll,
@@ -130,8 +119,6 @@ export const getTransactionById = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const {
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -143,8 +130,6 @@ export const getTransactionById = async (req, res: CustomResponse) => {
       id,
       userId,
       includeUser,
-      includeTransactionType,
-      includePaymentType,
       includeAccount,
       includeCategory,
       includeAll,
@@ -171,11 +156,11 @@ export const createTransaction = async (req, res: CustomResponse) => {
     amount,
     note,
     time,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     accountId,
     categoryId,
-    transactionEntityId = TRANSACTION_ENTITIES.system,
+    accountType = ACCOUNT_TYPES.system,
   } = req.body;
 
   const { id: userId } = req.user;
@@ -185,11 +170,11 @@ export const createTransaction = async (req, res: CustomResponse) => {
       amount,
       note,
       time,
-      transactionTypeId,
-      paymentTypeId,
+      transactionType,
+      paymentType,
       accountId,
       categoryId,
-      transactionEntityId,
+      accountType,
       userId,
     })
 
@@ -224,8 +209,8 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     amount,
     note,
     time,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     accountId,
     categoryId,
   } = req.body;
@@ -239,8 +224,8 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       note,
       time,
       userId,
-      transactionTypeId,
-      paymentTypeId,
+      transactionType,
+      paymentType,
       accountId,
       categoryId,
     });

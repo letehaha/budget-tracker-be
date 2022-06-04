@@ -5,16 +5,11 @@ import { connection } from '@models/index';
 import { UnexpectedError } from '@js/errors'
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
-import * as transactionTypesService from '@services/transaction-types.service'
 
 const transformAmountDependingOnTxType = async (
-  { amount, transactionTypeId}: { transactionTypeId: number; amount: number },
-  { transaction }: { transaction: Transaction },
+  { amount, transactionType }: { transactionType: TRANSACTION_TYPES; amount: number },
 ) => {
-  const txType = await transactionTypesService.getTransactionTypeById(
-    transactionTypeId, { transaction }
-  );
-  const isIncome = txType.type === TRANSACTION_TYPES.income
+  const isIncome = transactionType === TRANSACTION_TYPES.income
   if (!isIncome) amount *= -1
   return amount
 }
@@ -24,20 +19,20 @@ const transformAmountDependingOnTxType = async (
  */
 const updateAccountBalance = async (
   {
-    transactionTypeId,
+    transactionType,
     accountId,
     userId,
     amount,
     // keep it 0 be default for the tx creation flow
     previousAmount = 0,
-    previousTransactionTypeId,
+    previousTransactionType,
   }: {
-    transactionTypeId: number;
+    transactionType: TRANSACTION_TYPES;
     accountId: number;
     userId: number;
     amount: number;
     previousAmount?: number;
-    previousTransactionTypeId?: number;
+    previousTransactionType?: TRANSACTION_TYPES;
   },
   { transaction }: { transaction: Transaction },
 ) => {
@@ -47,19 +42,19 @@ const updateAccountBalance = async (
       { transaction },
     );
 
-    if (previousTransactionTypeId) {
+    if (previousTransactionType) {
       // Make the previous amount value positive or negative depending on the tx type
       previousAmount = await transformAmountDependingOnTxType({
           amount: previousAmount,
-          transactionTypeId: previousTransactionTypeId,
-        }, { transaction })
+          transactionType: previousTransactionType,
+        })
     }
 
     // Make the current amount value positive or negative depending on the tx type
     amount = await transformAmountDependingOnTxType({
       amount,
-      transactionTypeId,
-    }, { transaction })
+      transactionType,
+    })
 
     let newBalance = currentBalance
 
@@ -95,11 +90,11 @@ export const createTransaction = async ({
   amount,
   note,
   time,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   accountId,
   categoryId,
-  transactionEntityId,
+  accountType,
   userId,
 }) => {
   let transaction: Transaction = null;
@@ -113,17 +108,17 @@ export const createTransaction = async ({
         note,
         time,
         userId,
-        transactionTypeId,
-        paymentTypeId,
+        transactionType,
+        paymentType,
         accountId,
         categoryId,
-        transactionEntityId,
+        accountType,
       },
       { transaction }
     );
 
     await updateAccountBalance({
-      transactionTypeId,
+      transactionType,
       accountId,
       userId,
       amount,
@@ -147,8 +142,8 @@ export const updateTransaction = async ({
   amount,
   note,
   time,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   accountId,
   categoryId,
   userId,
@@ -160,7 +155,7 @@ export const updateTransaction = async ({
 
     const {
       amount: previousAmount,
-      transactionTypeId: previousTransactionTypeId,
+      transactionType: previousTransactionType,
     } = await Transactions.getTransactionById(
       { id, userId },
       { transaction },
@@ -173,8 +168,8 @@ export const updateTransaction = async ({
         note,
         time,
         userId,
-        transactionTypeId,
-        paymentTypeId,
+        transactionType,
+        paymentType,
         accountId,
         categoryId,
       },
@@ -183,12 +178,12 @@ export const updateTransaction = async ({
 
     await updateAccountBalance(
       {
-        transactionTypeId,
+        transactionType,
         accountId,
         userId,
         amount,
         previousAmount,
-        previousTransactionTypeId,
+        previousTransactionType,
       },
       { transaction },
     )
@@ -217,7 +212,7 @@ export const deleteTransaction = async ({
 
     const {
       amount: previousAmount,
-      transactionTypeId,
+      transactionType,
       accountId,
     } = await Transactions.getTransactionById({ id, userId }, { transaction })
 
@@ -225,8 +220,8 @@ export const deleteTransaction = async ({
       {
         userId,
         accountId,
-        transactionTypeId,
-        previousTransactionTypeId: transactionTypeId,
+        transactionType,
+        previousTransactionType: transactionType,
         // make new amount 0, so the balance won't depend on this tx anymore
         amount: 0,
         previousAmount,
