@@ -160,6 +160,11 @@ export const createTransaction = async (req, res: CustomResponse) => {
     paymentType,
     accountId,
     categoryId,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    currencyId,
     accountType = ACCOUNT_TYPES.system,
   } = req.body;
 
@@ -176,7 +181,12 @@ export const createTransaction = async (req, res: CustomResponse) => {
       categoryId,
       accountType,
       userId,
-    })
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      currencyId,
+    });
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,

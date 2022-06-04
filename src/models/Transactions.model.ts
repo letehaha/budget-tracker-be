@@ -9,9 +9,10 @@ import {
   ForeignKey,
 } from 'sequelize-typescript';
 import { isExist } from '../js/helpers';
-import Users from './Users.model';
-import Accounts from './Accounts.model';
-import Categories from './Categories.model';
+import Users from '@models/Users.model';
+import Accounts from '@models/Accounts.model';
+import Categories from '@models/Categories.model';
+import Currencies from '@models/Currencies.model';
 
 const prepareTXInclude = (
   {
@@ -86,6 +87,10 @@ export default class Transactions extends Model {
   @Column
   categoryId: number;
 
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: false })
+  currencyId: number;
+
   @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system })
   accountType: ACCOUNT_TYPES;
 
@@ -95,7 +100,7 @@ export default class Transactions extends Model {
 
   // Describes from's account type
   @Column({ allowNull: true, defaultValue: null })
-  fromAccountType: string;
+  fromAccountType: ACCOUNT_TYPES;
 
   // Describes to which account tx was sent
   @Column({ allowNull: true, defaultValue: null })
@@ -103,7 +108,7 @@ export default class Transactions extends Model {
 
   // Describes to's account type
   @Column({ allowNull: true, defaultValue: null })
-  toAccountType: string;
+  toAccountType: ACCOUNT_TYPES;
 
   // Id to the opposite tx. Used for the Transfer feature
   @Column({ allowNull: true, defaultValue: null })
@@ -218,6 +223,12 @@ export const createTransaction = async (
     accountId,
     categoryId,
     accountType,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
   }: {
     amount: number;
     note?: string;
@@ -227,6 +238,12 @@ export const createTransaction = async (
     paymentType: PAYMENT_TYPES;
     accountId: number;
     categoryId: number;
+    fromAccountId?: number;
+    fromAccountType?: ACCOUNT_TYPES;
+    toAccountId?: number;
+    toAccountType?: ACCOUNT_TYPES;
+    oppositeId?: number;
+    currencyId: number;
     accountType: ACCOUNT_TYPES;
   },
   { transaction }: { transaction?: Transaction } = {},
@@ -241,6 +258,12 @@ export const createTransaction = async (
     accountId,
     categoryId,
     accountType,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
   }, { transaction });
 
   return getTransactionById(
@@ -263,20 +286,48 @@ export const updateTransactionById = async (
     paymentType,
     accountId,
     categoryId,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
+  }: {
+    id: number;
+    amount?: number;
+    note?: string;
+    time?: Date;
+    userId: number;
+    transactionType?: TRANSACTION_TYPES;
+    paymentType?: PAYMENT_TYPES;
+    accountId?: number;
+    categoryId?: number;
+    fromAccountId?: number;
+    fromAccountType?: ACCOUNT_TYPES;
+    toAccountId?: number;
+    toAccountType?: ACCOUNT_TYPES;
+    oppositeId?: number;
+    accountType?: ACCOUNT_TYPES;
+    currencyId?: number;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const where = { id };
+  const where = { id, userId };
   await Transactions.update(
     {
       amount,
       note,
       time,
-      userId,
       transactionType,
       paymentType,
       accountId,
       categoryId,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      oppositeId,
+      currencyId,
     },
     { where, transaction },
   );

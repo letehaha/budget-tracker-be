@@ -6,11 +6,15 @@ import { UnexpectedError } from '@js/errors'
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
-const transformAmountDependingOnTxType = async (
+const transformAmountDependingOnTxType = (
   { amount, transactionType }: { transactionType: TRANSACTION_TYPES; amount: number },
 ) => {
-  const isIncome = transactionType === TRANSACTION_TYPES.income
-  if (!isIncome) amount *= -1
+  if (transactionType === TRANSACTION_TYPES.transfer) return amount
+
+  const isExpense = transactionType === TRANSACTION_TYPES.expense
+
+  if (isExpense) amount *= -1
+
   return amount
 }
 
@@ -44,14 +48,14 @@ const updateAccountBalance = async (
 
     if (previousTransactionType) {
       // Make the previous amount value positive or negative depending on the tx type
-      previousAmount = await transformAmountDependingOnTxType({
-          amount: previousAmount,
-          transactionType: previousTransactionType,
-        })
+      previousAmount = transformAmountDependingOnTxType({
+        amount: previousAmount,
+        transactionType: previousTransactionType,
+      });
     }
 
     // Make the current amount value positive or negative depending on the tx type
-    amount = await transformAmountDependingOnTxType({
+    amount = transformAmountDependingOnTxType({
       amount,
       transactionType,
     })
@@ -96,37 +100,112 @@ export const createTransaction = async ({
   categoryId,
   accountType,
   userId,
+  fromAccountId,
+  fromAccountType,
+  toAccountId,
+  toAccountType,
+  currencyId,
 }) => {
   let transaction: Transaction = null;
 
   try {
     transaction = await connection.sequelize.transaction();
 
-    const data = await Transactions.createTransaction(
-      {
-        amount,
-        note,
-        time,
-        userId,
-        transactionType,
-        paymentType,
-        accountId,
-        categoryId,
-        accountType,
-      },
-      { transaction }
-    );
-
-    await updateAccountBalance({
-      transactionType,
-      accountId,
-      userId,
+    const txParams = {
       amount,
-    }, { transaction })
+      note,
+      time,
+      userId,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      accountType,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      currencyId,
+    };
 
-    await transaction.commit();
+    if (transactionType !== TRANSACTION_TYPES.transfer) {
+      const data = await Transactions.createTransaction(
+        txParams,
+        { transaction },
+      );
 
-    return data
+      await updateAccountBalance({
+        transactionType: txParams.transactionType,
+        accountId: txParams.accountId,
+        userId: txParams.userId,
+        amount: txParams.amount,
+      }, { transaction });
+
+      await transaction.commit();
+
+      return data;
+    } else {
+      let tx1 = await Transactions.createTransaction(
+        txParams,
+        { transaction },
+      );
+
+      await updateAccountBalance({
+        transactionType: txParams.transactionType,
+        accountId: txParams.accountId,
+        userId: txParams.userId,
+        amount: txParams.amount * -1,
+      }, { transaction });
+
+      if (transactionType !== TRANSACTION_TYPES.transfer) {
+        await transaction.commit();
+
+        return tx1;
+      }
+
+      const tx2Params = {
+        ...txParams,
+        amount: txParams.amount,
+        accountId: toAccountId,
+        accountType: toAccountType,
+      };
+
+      let tx2 = await Transactions.createTransaction(
+        tx2Params,
+        { transaction },
+      );
+
+      await updateAccountBalance({
+        transactionType: tx2Params.transactionType,
+        accountId: tx2Params.accountId,
+        userId: tx2Params.userId,
+        amount: tx2Params.amount,
+      }, { transaction });
+
+      // Set correct oppositeId to tx1
+      tx1 = await Transactions.updateTransactionById(
+        {
+          id: tx1.id,
+          userId: tx1.userId,
+          oppositeId: tx2.id,
+        },
+        { transaction },
+      );
+      // Set correct oppositeId to tx2
+      tx2 = await Transactions.updateTransactionById(
+        {
+          id: tx2.id,
+          userId: tx2.userId,
+          oppositeId: tx1.id,
+        },
+        { transaction },
+      );
+
+      await transaction.commit();
+
+      return [tx1, tx2];
+    }
+
   } catch (e) {
     await transaction.rollback();
     console.error(e);
@@ -153,6 +232,7 @@ export const updateTransaction = async ({
   try {
     transaction = await connection.sequelize.transaction();
 
+    // TODO: updateBalance when account is changed
     const {
       amount: previousAmount,
       transactionType: previousTransactionType,
