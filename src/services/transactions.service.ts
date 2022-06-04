@@ -67,7 +67,7 @@ const updateAccountBalance = async (
     } else if (amount < previousAmount) {
       newBalance = currentBalance - (previousAmount - amount)
     } else if (amount === previousAmount) {
-      newBalance = currentBalance + amount
+      newBalance = currentBalance
     }
 
     await accountsService.updateAccount(
@@ -232,45 +232,135 @@ export const updateTransaction = async ({
   try {
     transaction = await connection.sequelize.transaction();
 
-    // TODO: updateBalance when account is changed
-    const {
-      amount: previousAmount,
-      transactionType: previousTransactionType,
-    } = await Transactions.getTransactionById(
-      { id, userId },
-      { transaction },
-    )
+    if (transactionType !== TRANSACTION_TYPES.transfer) {
+      // TODO: updateBalance when account is changed
+      const {
+        amount: previousAmount,
+        transactionType: previousTransactionType,
+      } = await Transactions.getTransactionById(
+        { id, userId },
+        { transaction },
+      )
 
-    const data = await Transactions.updateTransactionById(
-      {
+      const data = await Transactions.updateTransactionById(
+        {
+          id,
+          amount,
+          note,
+          time,
+          userId,
+          transactionType,
+          paymentType,
+          accountId,
+          categoryId,
+        },
+        { transaction },
+      );
+
+      await updateAccountBalance(
+        {
+          transactionType,
+          accountId,
+          userId,
+          amount,
+          previousAmount,
+          previousTransactionType,
+        },
+        { transaction },
+      )
+
+      await transaction.commit();
+
+      return data
+    } else {
+      // TODO: updateBalance when account is changed
+      const updateAmount = async ({
         id,
+        userId,
         amount,
         note,
         time,
-        userId,
         transactionType,
         paymentType,
         accountId,
         categoryId,
-      },
-      { transaction },
-    );
+      }) => {
+        const {
+          amount: previousAmount,
+          transactionType: previousTransactionType,
+        } = await Transactions.getTransactionById(
+          { id, userId },
+          { transaction },
+        )
 
-    await updateAccountBalance(
-      {
-        transactionType,
-        accountId,
+        const data = await Transactions.updateTransactionById(
+          {
+            id,
+            amount,
+            note,
+            time,
+            userId,
+            transactionType,
+            paymentType,
+            accountId,
+            categoryId,
+          },
+          { transaction },
+        );
+
+        await updateAccountBalance(
+          {
+            transactionType,
+            accountId,
+            userId,
+            amount,
+            previousAmount,
+            previousTransactionType,
+          },
+          { transaction },
+        );
+
+        return data;
+      };
+
+      const tx1 = await updateAmount({
+        id,
         userId,
         amount,
-        previousAmount,
-        previousTransactionType,
-      },
-      { transaction },
-    )
+        note,
+        time,
+        transactionType,
+        paymentType,
+        accountId,
+        categoryId,
+      });
 
-    await transaction.commit();
+      const { oppositeId } = await Transactions.getTransactionById(
+        { id, userId },
+        { transaction },
+      );
 
-    return data
+      const { id: tx2Id, accountId: tx2AccountId } = await Transactions.getTransactionById(
+        { id: oppositeId, userId },
+        { transaction },
+      );
+
+      const tx2 = await updateAmount({
+        id: tx2Id,
+        userId,
+        amount: amount * -1,
+        note,
+        time,
+        transactionType,
+        paymentType,
+        accountId: tx2AccountId,
+        categoryId,
+      });
+
+      await transaction.commit();
+
+      return [tx1, tx2];
+    }
   } catch (e) {
     console.error(e);
     await transaction.rollback();
