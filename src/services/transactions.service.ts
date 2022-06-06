@@ -1,11 +1,15 @@
+import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES, ERROR_CODES } from 'shared-types'
+
 import { Transaction } from 'sequelize/types';
-import { TRANSACTION_TYPES, ERROR_CODES } from 'shared-types'
 
 import { connection } from '@models/index';
 import { UnexpectedError } from '@js/errors'
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
+/**
+ * Since we're always sending positive
+ */
 const transformAmountDependingOnTxType = (
   { amount, transactionType }: { transactionType: TRANSACTION_TYPES; amount: number },
 ) => {
@@ -18,10 +22,24 @@ const transformAmountDependingOnTxType = (
   return amount
 }
 
+export const calculateNewBalance = (
+  amount: number,
+  previousAmount: number,
+  currentBalance: number,
+) => {
+  if (amount > previousAmount) {
+    return currentBalance + (amount - previousAmount)
+  } else if (amount < previousAmount) {
+    return currentBalance - (previousAmount - amount)
+  }
+
+  return currentBalance
+}
+
 /**
  * Updates the balance of the account associated with the transaction
  */
-const updateAccountBalance = async (
+export const updateAccountBalance = async (
   {
     transactionType,
     accountId,
@@ -58,23 +76,13 @@ const updateAccountBalance = async (
     amount = transformAmountDependingOnTxType({
       amount,
       transactionType,
-    })
-
-    let newBalance = currentBalance
-
-    if (amount > previousAmount) {
-      newBalance = currentBalance + (amount - previousAmount)
-    } else if (amount < previousAmount) {
-      newBalance = currentBalance - (previousAmount - amount)
-    } else if (amount === previousAmount) {
-      newBalance = currentBalance
-    }
+    });
 
     await accountsService.updateAccount(
       {
         id: accountId,
         userId,
-        currentBalance: newBalance,
+        currentBalance: calculateNewBalance(amount, previousAmount, currentBalance),
       },
       { transaction },
     )
@@ -105,12 +113,28 @@ export const createTransaction = async ({
   toAccountId,
   toAccountType,
   currencyId,
-}) => {
+}: {
+  amount: number;
+  note?: string;
+  time: string;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  fromAccountId?: number;
+  fromAccountType?: ACCOUNT_TYPES;
+  toAccountId?: number;
+  toAccountType?: ACCOUNT_TYPES;
+  oppositeId?: number;
+  currencyId: number;
+  accountType: ACCOUNT_TYPES;
+},) => {
   let transaction: Transaction = null;
 
-  try {
-    transaction = await connection.sequelize.transaction();
+  transaction = await connection.sequelize.transaction();
 
+  try {
     const txParams = {
       amount,
       note,
@@ -157,12 +181,6 @@ export const createTransaction = async ({
         amount: txParams.amount * -1,
       }, { transaction });
 
-      if (transactionType !== TRANSACTION_TYPES.transfer) {
-        await transaction.commit();
-
-        return tx1;
-      }
-
       const tx2Params = {
         ...txParams,
         amount: txParams.amount,
@@ -208,7 +226,6 @@ export const createTransaction = async ({
 
   } catch (e) {
     await transaction.rollback();
-    console.error(e);
     throw e;
   }
 };
