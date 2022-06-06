@@ -7,21 +7,6 @@ import { UnexpectedError } from '@js/errors'
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
-/**
- * Since we're always sending positive
- */
-const transformAmountDependingOnTxType = (
-  { amount, transactionType }: { transactionType: TRANSACTION_TYPES; amount: number },
-) => {
-  if (transactionType === TRANSACTION_TYPES.transfer) return amount
-
-  const isExpense = transactionType === TRANSACTION_TYPES.expense
-
-  if (isExpense) amount *= -1
-
-  return amount
-}
-
 export const calculateNewBalance = (
   amount: number,
   previousAmount: number,
@@ -41,20 +26,16 @@ export const calculateNewBalance = (
  */
 export const updateAccountBalance = async (
   {
-    transactionType,
     accountId,
     userId,
     amount,
     // keep it 0 be default for the tx creation flow
     previousAmount = 0,
-    previousTransactionType,
   }: {
-    transactionType: TRANSACTION_TYPES;
     accountId: number;
     userId: number;
     amount: number;
     previousAmount?: number;
-    previousTransactionType?: TRANSACTION_TYPES;
   },
   { transaction }: { transaction: Transaction },
 ) => {
@@ -64,25 +45,11 @@ export const updateAccountBalance = async (
       { transaction },
     );
 
-    if (previousTransactionType) {
-      // Make the previous amount value positive or negative depending on the tx type
-      previousAmount = transformAmountDependingOnTxType({
-        amount: previousAmount,
-        transactionType: previousTransactionType,
-      });
-    }
-
-    // Make the current amount value positive or negative depending on the tx type
-    amount = transformAmountDependingOnTxType({
-      amount,
-      transactionType,
-    });
-
     await accountsService.updateAccount(
       {
         id: accountId,
         userId,
-        currentBalance: calculateNewBalance(amount, previousAmount, currentBalance),
+        currentBalance: calculateNewBalance(amount, previousAmount ?? 0, currentBalance),
       },
       { transaction },
     )
@@ -159,7 +126,6 @@ export const createTransaction = async ({
       );
 
       await updateAccountBalance({
-        transactionType: txParams.transactionType,
         accountId: txParams.accountId,
         userId: txParams.userId,
         amount: txParams.amount,
@@ -175,7 +141,6 @@ export const createTransaction = async ({
       );
 
       await updateAccountBalance({
-        transactionType: txParams.transactionType,
         accountId: txParams.accountId,
         userId: txParams.userId,
         amount: txParams.amount * -1,
@@ -194,7 +159,6 @@ export const createTransaction = async ({
       );
 
       await updateAccountBalance({
-        transactionType: tx2Params.transactionType,
         accountId: tx2Params.accountId,
         userId: tx2Params.userId,
         amount: tx2Params.amount,
@@ -251,10 +215,7 @@ export const updateTransaction = async ({
 
     if (transactionType !== TRANSACTION_TYPES.transfer) {
       // TODO: updateBalance when account is changed
-      const {
-        amount: previousAmount,
-        transactionType: previousTransactionType,
-      } = await Transactions.getTransactionById(
+      const { amount: previousAmount } = await Transactions.getTransactionById(
         { id, userId },
         { transaction },
       )
@@ -276,12 +237,10 @@ export const updateTransaction = async ({
 
       await updateAccountBalance(
         {
-          transactionType,
           accountId,
           userId,
           amount,
           previousAmount,
-          previousTransactionType,
         },
         { transaction },
       )
@@ -302,10 +261,7 @@ export const updateTransaction = async ({
         accountId,
         categoryId,
       }) => {
-        const {
-          amount: previousAmount,
-          transactionType: previousTransactionType,
-        } = await Transactions.getTransactionById(
+        const { amount: previousAmount } = await Transactions.getTransactionById(
           { id, userId },
           { transaction },
         )
@@ -327,12 +283,10 @@ export const updateTransaction = async ({
 
         await updateAccountBalance(
           {
-            transactionType,
             accountId,
             userId,
             amount,
             previousAmount,
-            previousTransactionType,
           },
           { transaction },
         );
@@ -399,7 +353,6 @@ export const deleteTransaction = async ({
 
     const {
       amount: previousAmount,
-      transactionType,
       accountId,
     } = await Transactions.getTransactionById({ id, userId }, { transaction })
 
@@ -407,8 +360,6 @@ export const deleteTransaction = async ({
       {
         userId,
         accountId,
-        transactionType,
-        previousTransactionType: transactionType,
         // make new amount 0, so the balance won't depend on this tx anymore
         amount: 0,
         previousAmount,

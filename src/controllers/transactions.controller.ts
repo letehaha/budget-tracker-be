@@ -1,8 +1,14 @@
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES, ACCOUNT_TYPES } from 'shared-types';
+import {
+  CustomResponse,
+  ERROR_CODES,
+  ACCOUNT_TYPES,
+  TRANSACTION_TYPES,
+  RESPONSE_STATUS,
+} from 'shared-types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 
-import { CustomError } from '@js/errors'
+import { CustomError, ValidationError } from '@js/errors'
 
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
@@ -14,6 +20,22 @@ const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
   desc: 'DESC',
 });
+
+const validateTransactionAmount = (amount): void => {
+  if (amount === 0) throw new ValidationError({ message: 'Amount cannot be 0.' });
+};
+
+const validateTransactionAmountByType = (
+  amount: number,
+  type: TRANSACTION_TYPES,
+) => {
+  if (type === TRANSACTION_TYPES.income && amount < 0) {
+    throw new ValidationError({ message: `Amount cannot be negative when transaction type is "${TRANSACTION_TYPES.income}".`})
+  }
+  if (type === TRANSACTION_TYPES.expense && amount > 0) {
+    throw new ValidationError({ message: `Amount cannot be positive when transaction type is "${TRANSACTION_TYPES.expense}".`})
+  }
+};
 
 export const getTransactions = async (req, res: CustomResponse) => {
   const {
@@ -168,9 +190,12 @@ export const createTransaction = async (req, res: CustomResponse) => {
     accountType = ACCOUNT_TYPES.system,
   } = req.body;
 
-  const { id: userId } = req.user;
-
   try {
+    const { id: userId } = req.user;
+
+    validateTransactionAmount(amount);
+    validateTransactionAmountByType(amount, transactionType);
+
     const data = await transactionsService.createTransaction({
       amount,
       note,
@@ -225,9 +250,12 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     categoryId,
   } = req.body;
 
-  const { id: userId } = req.user;
-
   try {
+    const { id: userId } = req.user;
+
+    validateTransactionAmount(amount);
+    validateTransactionAmountByType(amount, transactionType);
+
     const data = await transactionsService.updateTransaction({
       id,
       amount,
