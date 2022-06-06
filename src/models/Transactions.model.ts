@@ -232,7 +232,7 @@ export const createTransaction = async (
   }: {
     amount: number;
     note?: string;
-    time: Date;
+    time: string;
     userId: number;
     transactionType: TRANSACTION_TYPES;
     paymentType: PAYMENT_TYPES;
