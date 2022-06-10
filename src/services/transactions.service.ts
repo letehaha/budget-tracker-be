@@ -226,6 +226,10 @@ export const createTransaction = async ({
     }
 
   } catch (e) {
+    // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
     throw e;
   }
@@ -252,7 +256,7 @@ export const updateTransaction = async ({
 
     if (transactionType !== TRANSACTION_TYPES.transfer) {
       // TODO: updateBalance when account is changed
-      const { amount: previousAmount } = await Transactions.getTransactionById(
+      const { amount: previousAmount } = await getTransactionById(
         { id, userId },
         { transaction },
       )
@@ -298,7 +302,7 @@ export const updateTransaction = async ({
         accountId,
         categoryId,
       }) => {
-        const { amount: previousAmount } = await Transactions.getTransactionById(
+        const { amount: previousAmount } = await getTransactionById(
           { id, userId },
           { transaction },
         )
@@ -343,12 +347,12 @@ export const updateTransaction = async ({
         categoryId,
       });
 
-      const { oppositeId } = await Transactions.getTransactionById(
+      const { oppositeId } = await getTransactionById(
         { id, userId },
         { transaction },
       );
 
-      const { id: tx2Id, accountId: tx2AccountId } = await Transactions.getTransactionById(
+      const { id: tx2Id, accountId: tx2AccountId } = await getTransactionById(
         { id: oppositeId, userId },
         { transaction },
       );
@@ -370,7 +374,10 @@ export const updateTransaction = async ({
       return [tx1, tx2];
     }
   } catch (e) {
-    console.error(e);
+    // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
     throw e;
   }
@@ -436,6 +443,9 @@ export const deleteTransaction = async ({
     await transaction.commit();
   } catch (e) {
     // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
     throw e
   }

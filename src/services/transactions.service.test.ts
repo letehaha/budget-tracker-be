@@ -1,7 +1,12 @@
 import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types'
 import { connection } from '@models/index';
 import * as transactionsService from './transactions.service';
-import { createTransaction, calculateNewBalance, deleteTransaction } from './transactions.service';
+import {
+  createTransaction,
+  calculateNewBalance,
+  deleteTransaction,
+  updateTransaction,
+} from './transactions.service';
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
@@ -26,12 +31,12 @@ const BASE_TX_MOCK = {
   currencyId: 1,
   accountType: ACCOUNT_TYPES.system,
   userId: 1,
+  note: 'random',
 };
 
 const CREATED_TX_MOCK = {
   ...BASE_TX_MOCK,
   id: 1,
-  note: null,
   fromAccountId: null,
   fromAccountType: null,
   toAccountId: null,
@@ -51,6 +56,13 @@ describe('transactions.service', () => {
   const createTransactionSpy = jest.spyOn(Transactions, 'createTransaction')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockImplementation(() => Promise.resolve(CREATED_TX_MOCK as any))
+
+  const updateTransactionByIdSpy = jest.spyOn(Transactions, 'updateTransactionById')
+    .mockImplementation((passedParams) => Promise.resolve({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...CREATED_TX_MOCK as any,
+      ...passedParams,
+    }))
 
   const deleteTransactionSpy = jest.spyOn(Transactions, 'deleteTransactionById')
     .mockImplementation(() => Promise.resolve(1))
@@ -189,6 +201,78 @@ describe('transactions.service', () => {
           expect(e).toBeInstanceOf(Error);
         }
       });
+    });
+  });
+
+  describe('transaction edit', () => {
+    it.each([
+      { txType: TRANSACTION_TYPES.income, currentBalance: 0, oldAmount: 20, newAmount: 300, newBalance: 280 },
+      { txType: TRANSACTION_TYPES.income, currentBalance: 1000, oldAmount: 500, newAmount: 10, newBalance: 510 },
+      { txType: TRANSACTION_TYPES.income, currentBalance: -1000, oldAmount: 500, newAmount: 100, newBalance: -1400 },
+
+      { txType: TRANSACTION_TYPES.expense, currentBalance: 0, oldAmount: -20, newAmount: -300, newBalance: -280 },
+      { txType: TRANSACTION_TYPES.expense, currentBalance: 1000, oldAmount: -500, newAmount: -10, newBalance: 1490 },
+      { txType: TRANSACTION_TYPES.expense, currentBalance: -1000, oldAmount: -500, newAmount: -100, newBalance: -600 },
+    ])(
+      `"$txType": currentBalance: $currentBalance, oldAmount: $oldAmount, newAmount: $newAmount, newBalance: $newBalance`,
+      async ({ txType, currentBalance, newAmount, oldAmount, newBalance }) => {
+        const getAccountSpy = jest
+          .spyOn(accountsService, 'getAccountById')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .mockImplementation(() => Promise.resolve({ currentBalance } as any))
+
+        const getTxSpy = jest
+          .spyOn(transactionsService, 'getTransactionById')
+          .mockImplementation(() => {
+            return Promise.resolve({
+              ...BASE_TX_MOCK,
+              amount: oldAmount,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any)
+        })
+
+        const result = await updateTransaction({
+          ...BASE_TX_MOCK,
+          amount: newAmount,
+          transactionType: txType,
+        });
+
+        expect(commitMock).toBeCalled();
+        expect(updateTransactionByIdSpy).toBeCalledTimes(1);
+        expect(getAccountSpy).toBeCalled();
+        expect(getTxSpy).toBeCalledWith(
+          expect.objectContaining({
+            id: BASE_TX_MOCK.id,
+            userId: BASE_TX_MOCK.userId,
+          }),
+          expect.anything(),
+        );
+        expect(updateAccountSpy).toBeCalledWith(
+          expect.objectContaining({
+            id: BASE_TX_MOCK.accountId,
+            userId: BASE_TX_MOCK.userId,
+            currentBalance: newBalance,
+          }),
+          expect.anything(),
+        );
+        expect(result).toEqual({
+          ...CREATED_TX_MOCK,
+          amount: newAmount,
+          transactionType: txType,
+        });
+      },
+    );
+    it('handles error properly', async () => {
+      jest.spyOn(Transactions, 'updateTransactionById')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .mockImplementation(() => Promise.reject(new Error()))
+
+      try {
+        await updateTransaction(BASE_TX_MOCK);
+      } catch (e) {
+        expect(rollbackMock).toBeCalled();
+        expect(e).toBeInstanceOf(Error);
+      }
     });
   });
 
