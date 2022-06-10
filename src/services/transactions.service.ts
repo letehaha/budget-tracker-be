@@ -38,7 +38,7 @@ export const updateAccountBalance = async (
     previousAmount?: number;
   },
   { transaction }: { transaction: Transaction },
-) => {
+): Promise<void> => {
   try {
     const { currentBalance } = await accountsService.getAccountById(
       { id: accountId, userId },
@@ -62,23 +62,26 @@ export const updateAccountBalance = async (
   }
 };
 
-export const getTransactionById = async ({
-  id,
-  userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}: {
-  id: number;
-  userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
+export const getTransactionById = async (
+  {
+    id,
+    userId,
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }: {
+    id: number;
+    userId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
   try {
     const data = await Transactions.getTransactionById({
       id,
@@ -88,7 +91,7 @@ export const getTransactionById = async ({
       includeCategory,
       includeAll,
       nestedInclude,
-    });
+    }, { transaction });
 
     return data;
   } catch (err) {
@@ -379,7 +382,7 @@ export const deleteTransaction = async ({
 }: {
   id: number;
   userId: number;
-}) => {
+}): Promise<void> => {
   let transaction: Transaction = null;
 
   try {
@@ -388,7 +391,9 @@ export const deleteTransaction = async ({
     const {
       amount: previousAmount,
       accountId,
-    } = await Transactions.getTransactionById({ id, userId }, { transaction })
+      oppositeId,
+      transactionType,
+    } = await getTransactionById({ id, userId }, { transaction });
 
     await updateAccountBalance(
       {
@@ -396,16 +401,41 @@ export const deleteTransaction = async ({
         accountId,
         // make new amount 0, so the balance won't depend on this tx anymore
         amount: 0,
-        previousAmount,
+        previousAmount: transactionType === TRANSACTION_TYPES.transfer
+          ? previousAmount * -1
+          : previousAmount,
       },
       { transaction },
-    )
+    );
 
     await Transactions.deleteTransactionById({ id, userId }, { transaction });
 
+    if (transactionType === TRANSACTION_TYPES.transfer && oppositeId) {
+      const {
+        amount: previousAmount,
+        accountId,
+      } = await getTransactionById({ id: oppositeId, userId }, { transaction })
+
+      await updateAccountBalance(
+        {
+          userId,
+          accountId,
+          // make new amount 0, so the balance won't depend on this tx anymore
+          amount: 0,
+          previousAmount,
+        },
+        { transaction },
+      )
+
+      await Transactions.deleteTransactionById({ id: oppositeId, userId }, { transaction });
+    } else if (transactionType === TRANSACTION_TYPES.transfer && !oppositeId) {
+      // TODO: add error logger that Transfer function does not have oppositeId for some reason
+      console.log('NO OPPOSITE ID FOR TRANSFER TYPE')
+    }
+
     await transaction.commit();
   } catch (e) {
-    console.error(e);
+    // TODO: add logger
     await transaction.rollback();
     throw e
   }
