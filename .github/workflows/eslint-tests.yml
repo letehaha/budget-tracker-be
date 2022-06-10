@@ -1,6 +1,6 @@
 name: eslint-tests
 
-on: [push, pull_request]
+on: push
 
 jobs:
   eslint:
