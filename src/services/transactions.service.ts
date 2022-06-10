@@ -62,6 +62,40 @@ export const updateAccountBalance = async (
   }
 };
 
+export const getTransactionById = async ({
+  id,
+  userId,
+  includeUser,
+  includeAccount,
+  includeCategory,
+  includeAll,
+  nestedInclude,
+}: {
+  id: number;
+  userId: number;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
+}) => {
+  try {
+    const data = await Transactions.getTransactionById({
+      id,
+      userId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
+
+    return data;
+  } catch (err) {
+    throw new err;
+  }
+};
+
 /**
  * Creates transaction and updates account balance.
  */

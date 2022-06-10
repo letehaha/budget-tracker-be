@@ -37,20 +37,30 @@ const validateTransactionAmountByType = (
   }
 };
 
-export const getTransactions = async (req, res: CustomResponse) => {
-  const {
-    sort = SORT_DIRECTIONS.desc,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-    limit,
-    from = 0,
-  } = req.query;
-  const { id: userId } = req.user;
+const validateTransactionOppositeChange = (
+  id: number,
+  oppositeId: number,
+) => {
+  if (id === oppositeId) {
+    throw new ValidationError({ message: 'You cannot edit or delete opposite transaction.'})
+  }
+};
 
+export const getTransactions = async (req, res: CustomResponse) => {
   try {
+    const {
+      sort = SORT_DIRECTIONS.desc,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+      limit,
+      from = 0,
+    } = req.query;
+
+    const { id: userId } = req.user;
+
     if (limit) {
       const txs = await connection.sequelize
         .query(
@@ -137,18 +147,20 @@ export const getTransactions = async (req, res: CustomResponse) => {
 };
 
 export const getTransactionById = async (req, res: CustomResponse) => {
-  const { id } = req.params;
-  const { id: userId } = req.user;
-  const {
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  } = req.query;
-
   try {
-    const data = await Transactions.getTransactionById({
+    const { id } = req.params;
+    const { id: userId } = req.user;
+    const {
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    } = req.query;
+
+    if (id === undefined) throw new ValidationError({ message: 'id should exist.' });
+
+    const data = await transactionsService.getTransactionById({
       id,
       userId,
       includeUser,
@@ -174,23 +186,22 @@ export const getTransactionById = async (req, res: CustomResponse) => {
 };
 
 export const createTransaction = async (req, res: CustomResponse) => {
-  const {
-    amount,
-    note,
-    time,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    currencyId,
-    accountType = ACCOUNT_TYPES.system,
-  } = req.body;
-
   try {
+    const {
+      amount,
+      note,
+      time,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      currencyId,
+      accountType = ACCOUNT_TYPES.system,
+    } = req.body;
     const { id: userId } = req.user;
 
     validateTransactionAmount(amount);
@@ -239,22 +250,27 @@ export const createTransaction = async (req, res: CustomResponse) => {
 };
 
 export const updateTransaction = async (req, res: CustomResponse) => {
-  const { id } = req.params;
-  const {
-    amount,
-    note,
-    time,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-  } = req.body;
-
   try {
+    const { id } = req.params;
+    const {
+      amount,
+      note,
+      time,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+    } = req.body;
     const { id: userId } = req.user;
 
     validateTransactionAmount(amount);
     validateTransactionAmountByType(amount, transactionType);
+
+    const tx = await transactionsService.getTransactionById({ id, userId });
+
+    console.log('tx', tx);
+
+    validateTransactionOppositeChange(tx.id, tx.oppositeId);
 
     const data = await transactionsService.updateTransaction({
       id,
@@ -294,10 +310,14 @@ export const updateTransaction = async (req, res: CustomResponse) => {
 };
 
 export const deleteTransaction = async (req, res: CustomResponse) => {
-  const { id } = req.params;
-  const { id: userId } = req.user;
-
   try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    const tx = await transactionsService.getTransactionById({ id, userId });
+
+    validateTransactionOppositeChange(tx.id, tx.oppositeId);
+
     await transactionsService.deleteTransaction({ id, userId })
 
     return res.status(200).json({
