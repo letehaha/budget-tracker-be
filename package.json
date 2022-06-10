@@ -11,7 +11,7 @@
     "seed": "npx sequelize-cli db:seed:all",
     "seed-undo": "npx sequelize-cli db:seed:undo:all",
     "test": "npm run test:unit",
-    "test:unit": "jest",
+    "test:unit": "jest --passWithNoTests",
     "lint": "eslint .",
     "docker-build": "docker build . -t letehaha/budget-tracker-be",
     "docker-push": "docker push letehaha/budget-tracker-be",
