@@ -268,8 +268,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
 
     const tx = await transactionsService.getTransactionById({ id, userId });
 
-    console.log('tx', tx);
-
     validateTransactionOppositeChange(tx.id, tx.oppositeId);
 
     const data = await transactionsService.updateTransaction({

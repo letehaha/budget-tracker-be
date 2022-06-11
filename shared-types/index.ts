@@ -36,4 +36,3 @@ export enum TRANSACTION_TYPES {
 }
 
 export * from './error-codes';
-export * from './models';

@@ -1,6 +1,5 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Transaction } from 'sequelize/types';
-import { AccountModel } from 'shared-types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
@@ -54,7 +53,7 @@ export default class Accounts extends Model {
 export const getAccounts = async (
   { userId }: { userId: number },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel[]> => {
+) => {
   const accounts = await Accounts.findAll({ where: { userId }, transaction });
 
   return accounts;
@@ -69,7 +68,7 @@ export const getAccountById = async (
     id: number;
   },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel> => {
+) => {
   const account = await Accounts.findOne({ where: { userId, id }, transaction });
 
   return account;
@@ -94,7 +93,7 @@ export const createAccount = async (
     internal?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel> => {
+) => {
   const response = await Accounts.create({
     accountTypeId,
     currencyId,
@@ -132,7 +131,7 @@ export const updateAccountById = async (
     userId: number;
   },
   { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel> => {
+) => {
   const where = { id, userId };
   await Accounts.update(
     {
