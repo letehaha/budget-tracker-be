@@ -542,6 +542,14 @@ describe('transactions.service', () => {
       it.todo('when old tx type was transfer, delete opposite tx, update balance of opposite account, update current tx (set null all transfer-related attrs)');
     });
 
+    describe('transfer', () => {
+      it.todo('when amount is changed, amount should be updated for both transactions; balance of both accounts should be updated. Try different amounts');
+      it.todo('when accountFrom is changed, then update tx account to a new one, update balance for new account, update balance for old account');
+      it.todo('when accountTo is changed, then find opposite tx, update tx account to a new one, update balance for new account, update balance for old account');
+      it.todo('when old tx type was expense/income, and the new one is transfer, then run all the transfer creation flow');
+      it.todo('when old tx type was transfer, delete opposite tx, update balance of opposite account, update current tx (set null all transfer-related attrs)');
+    });
+
     it('handles error properly', async () => {
       jest
         .spyOn(Transactions, 'updateTransactionById')
