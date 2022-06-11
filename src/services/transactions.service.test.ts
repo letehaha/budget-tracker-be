@@ -162,9 +162,9 @@ describe('transactions.service', () => {
       // ])(
       //   `Account balance: $balance, tx amount: $amount, expected balance: $expected`,
       //   async ({ balance, amount, expected }) => {
-      //     const getAccountSpy = jest
-      //       .spyOn(accountsService, 'getAccountById')
-      //       .mockImplementation(() => Promise.resolve({ currentBalance: balance } as any))
+      //     getAccountSpy.mockImplementation(
+      //       () => Promise.resolve({ currentBalance: balance } as any)
+      //     );
 
       //     const result = await createTransaction({
       //       ...TRANSFER_TX_MOCK,
@@ -433,9 +433,9 @@ describe('transactions.service', () => {
         transactionType: txType,
       } as any));
 
-      jest
-        .spyOn(accountsService, 'getAccountById')
-        .mockImplementation(() => Promise.resolve({ currentBalance } as any))
+      getAccountSpy.mockImplementation(
+        () => Promise.resolve({ currentBalance } as any),
+      );
 
       const result = await deleteTransaction({
         userId: BASE_TX_MOCK.userId,
@@ -491,9 +491,9 @@ describe('transactions.service', () => {
         } as any)
       })
 
-      jest
-        .spyOn(accountsService, 'getAccountById')
-        .mockImplementation(() => Promise.resolve({ currentBalance: CURRENT_BALANCE } as any))
+      getAccountSpy.mockImplementation(
+        () => Promise.resolve({ currentBalance: CURRENT_BALANCE } as any),
+      );
 
       const result = await deleteTransaction({
         userId: BASE_TX_MOCK.userId,
