@@ -9,6 +9,7 @@ import {
   deleteTransaction,
   updateTransaction,
 } from './transactions.service';
+import TransactionsModel from '@models/Transactions.model';
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
@@ -52,12 +53,16 @@ const TRANSFER_TX_MOCK = {
   fromAccountType: ACCOUNT_TYPES.system,
   toAccountId: 2,
   toAccountType: ACCOUNT_TYPES.system,
+  transactionType: TRANSACTION_TYPES.transfer,
 };
 
+const CREATED_TRANSFER_TX_MOCK = {
+  ...TRANSFER_TX_MOCK,
+  oppositeId: TRANSFER_TX_MOCK.id,
+}
+
 describe('transactions.service', () => {
-  const createTransactionSpy = jest
-    .spyOn(Transactions, 'createTransaction')
-    .mockImplementation(() => Promise.resolve(CREATED_TX_MOCK as any))
+  const createTransactionSpy = jest.spyOn(Transactions, 'createTransaction')
 
   const updateTransactionByIdSpy = jest
     .spyOn(Transactions, 'updateTransactionById')
@@ -82,6 +87,9 @@ describe('transactions.service', () => {
 
     getAccountSpy = jest.spyOn(accountsService, 'getAccountById')
     getTxSpy = jest.spyOn(transactionsService, 'getTransactionById')
+
+    createTransactionSpy
+      .mockImplementation(() => Promise.resolve(CREATED_TX_MOCK as any));
   });
 
   describe('calculates new balance for the previous balance correctly', () => {
@@ -105,109 +113,135 @@ describe('transactions.service', () => {
   });
 
   describe('transactions creation', () => {
-    describe(`${TRANSACTION_TYPES.income} and ${TRANSACTION_TYPES.expense}`, () => {
-      it.each([
-        { balance: 0, amount: 0, expected: 0 },
-        { balance: 1000, amount: 0, expected: 1000 },
-        { balance: -1000, amount: 0, expected: -1000 },
-        { balance: 0, amount: 1000, expected: 1000 },
-        { balance: 0, amount: -1000, expected: -1000 },
-      ])(
-        `Account balance: $balance, tx amount: $amount, expected balance: $expected`,
-        async ({ balance, amount, expected }) => {
-          getAccountSpy.mockImplementation(
-            () => Promise.resolve({ currentBalance: balance } as any),
-          )
+    it.each([
+      { txType: TRANSACTION_TYPES.income, balance: 0, amount: 0, expected: 0 },
+      { txType: TRANSACTION_TYPES.income, balance: 1000, amount: 0, expected: 1000 },
+      { txType: TRANSACTION_TYPES.income, balance: -1000, amount: 0, expected: -1000 },
+      { txType: TRANSACTION_TYPES.income, balance: 0, amount: 1000, expected: 1000 },
 
-          const result = await createTransaction({
-            ...BASE_TX_MOCK,
-            amount,
-          });
+      { txType: TRANSACTION_TYPES.expense, balance: 0, amount: 0, expected: 0 },
+      { txType: TRANSACTION_TYPES.expense, balance: 1000, amount: 0, expected: 1000 },
+      { txType: TRANSACTION_TYPES.expense, balance: -1000, amount: 0, expected: -1000 },
+      { txType: TRANSACTION_TYPES.expense, balance: 0, amount: -1000, expected: -1000 },
+    ])(
+      `$txType creation. Account balance: $balance, tx amount: $amount, expected balance: $expected`,
+      async ({ balance, amount, expected }) => {
+        getAccountSpy.mockImplementation(
+          () => Promise.resolve({ currentBalance: balance } as any),
+        )
 
-          expect(commitMock).toBeCalled();
-          expect(createTransactionSpy).toBeCalled();
-          expect(getAccountSpy).toBeCalled();
-          expect(updateAccountSpy).toBeCalledWith(
-            expect.objectContaining({
-              id: BASE_TX_MOCK.accountId,
-              userId: BASE_TX_MOCK.userId,
-              currentBalance: expected,
-            }),
-            expect.anything(),
-          );
-          expect(result).toEqual(CREATED_TX_MOCK);
-        },
-      );
-      it('handles error properly', async () => {
-        jest
-          .spyOn(Transactions, 'createTransaction')
-          .mockImplementation(() => Promise.reject(new Error()))
+        const result = await createTransaction({
+          ...BASE_TX_MOCK,
+          amount,
+        });
 
-        try {
-          await createTransaction(BASE_TX_MOCK);
-        } catch (e) {
-          expect(rollbackMock).toBeCalled();
-          expect(e).toBeInstanceOf(Error);
-        }
-      });
+        expect(commitMock).toBeCalled();
+        expect(createTransactionSpy).toBeCalled();
+        expect(getAccountSpy).toBeCalled();
+        expect(updateAccountSpy).toBeCalledWith(
+          expect.objectContaining({
+            id: BASE_TX_MOCK.accountId,
+            userId: BASE_TX_MOCK.userId,
+            currentBalance: expected,
+          }),
+          expect.anything(),
+        );
+        expect(result).toEqual(CREATED_TX_MOCK);
+      },
+    );
+    it.each([
+      { txType: TRANSACTION_TYPES.income },
+      { txType: TRANSACTION_TYPES.expense },
+    ])('$txType creation error handles properly.', async ({ txType }) => {
+      createTransactionSpy.mockImplementation(() => Promise.reject(new Error()))
+
+      try {
+        await createTransaction({
+          ...BASE_TX_MOCK,
+          transactionType: txType,
+        });
+      } catch (e) {
+        expect(rollbackMock).toBeCalled();
+        expect(e).toBeInstanceOf(Error);
+      }
     });
 
-    describe(`${TRANSACTION_TYPES.transfer}`, () => {
-      // it.each([
-      //   { balance: 0, amount: 0, expected: 0 },
-      //   { balance: 1000, amount: 0, expected: 1000 },
-      //   { balance: -1000, amount: 0, expected: -1000 },
-      //   { balance: 0, amount: 1000, expected: 1000 },
-      //   { balance: 0, amount: -1000, expected: -1000 },
-      // ])(
-      //   `Account balance: $balance, tx amount: $amount, expected balance: $expected`,
-      //   async ({ balance, amount, expected }) => {
-      //     getAccountSpy.mockImplementation(
-      //       () => Promise.resolve({ currentBalance: balance } as any)
-      //     );
+    it.each([
+      {
+        amount: 20,
 
-      //     const result = await createTransaction({
-      //       ...TRANSFER_TX_MOCK,
-      //       amount,
-      //     });
+        fromAccountBalanceBefore: 100,
+        fromAccountBalanceAfter: 80,
 
-      //     expect(commitMock).toBeCalled();
-      //     expect(createTransactionSpy).toBeCalled();
-      //     expect(getAccountSpy).toBeCalled();
-      //     expect(updateAccountSpy).toHaveBeenNthCalledWith(
-      //       1,
-      //       expect.objectContaining({
-      //         id: TRANSFER_TX_MOCK.accountId,
-      //         userId: TRANSFER_TX_MOCK.userId,
-      //         currentBalance: expected,
-      //       }),
-      //       expect.anything(),
-      //     );
-      //     expect(updateAccountSpy).toHaveBeenNthCalledWith(
-      //       2,
-      //       expect.objectContaining({
-      //         id: TRANSFER_TX_MOCK.accountId,
-      //         userId: TRANSFER_TX_MOCK.userId,
-      //         currentBalance: expected,
-      //       }),
-      //       expect.anything(),
-      //     );
-      //     expect(result).toEqual(CREATED_TX_MOCK);
-      //   },
-      // );
+        toAccountBalanceBefore: 80,
+        toAccountBalanceAfter: 100,
 
-      it('handles error properly', async () => {
-        jest
-          .spyOn(Transactions, 'createTransaction')
-          .mockImplementation(() => Promise.reject(new Error()))
+        fromAccountId: TRANSFER_TX_MOCK.accountId,
+        toAccountId: TRANSFER_TX_MOCK.accountId + 1,
+      },
+    ])(`${TRANSACTION_TYPES.transfer} creation.`, async (
+      {
+        amount,
+        fromAccountBalanceBefore,
+        fromAccountBalanceAfter,
+        toAccountBalanceBefore,
+        toAccountBalanceAfter,
+        fromAccountId,
+        toAccountId,
+      },
+    ) => {
+      createTransactionSpy.mockImplementation(
+        () => Promise.resolve(CREATED_TRANSFER_TX_MOCK as any),
+      );
 
-        try {
-          await createTransaction(TRANSFER_TX_MOCK);
-        } catch (e) {
-          expect(rollbackMock).toBeCalled();
-          expect(e).toBeInstanceOf(Error);
+      getAccountSpy.mockImplementation(({ id }) => {
+        let balance = fromAccountBalanceBefore
+
+        if (id === toAccountId) {
+          balance = toAccountBalanceBefore
         }
+
+        return Promise.resolve({ currentBalance: balance } as any)
       });
+
+      const result = await createTransaction({
+        ...TRANSFER_TX_MOCK,
+        amount,
+      });
+
+      expect(commitMock).toBeCalled();
+      expect(createTransactionSpy).toBeCalled();
+      expect(getAccountSpy).toBeCalled();
+      expect(updateAccountSpy).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          id: fromAccountId,
+          userId: TRANSFER_TX_MOCK.userId,
+          currentBalance: fromAccountBalanceAfter,
+        }),
+        expect.anything(),
+      );
+      expect(updateAccountSpy).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          id: toAccountId,
+          userId: TRANSFER_TX_MOCK.userId,
+          currentBalance: toAccountBalanceAfter,
+        }),
+        expect.anything(),
+      );
+      expect((result as TransactionsModel[]).length).toEqual(2);
+    });
+
+    it(`${TRANSACTION_TYPES.transfer} creation error handles properly`, async () => {
+      createTransactionSpy.mockImplementation(() => Promise.reject(new Error()));
+
+      try {
+        await createTransaction(TRANSFER_TX_MOCK);
+      } catch (e) {
+        expect(rollbackMock).toBeCalled();
+        expect(e).toBeInstanceOf(Error);
+      }
     });
   });
 
