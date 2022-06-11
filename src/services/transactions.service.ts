@@ -330,10 +330,10 @@ export const updateTransaction = async ({
         accountId,
         categoryId,
       }) => {
-        const { amount: previousAmount } = await getTransactionById(
+        const { amount: previousAmount, toAccountId } = await getTransactionById(
           { id, userId },
           { transaction },
-        )
+        );
 
         const data = await Transactions.updateTransactionById(
           {
@@ -350,12 +350,14 @@ export const updateTransaction = async ({
           { transaction },
         );
 
+        // For "fromAccount" make amount negative
+        // For "toAccount" make amount positive
         await updateAccountBalance(
           {
             accountId,
             userId,
-            amount,
-            previousAmount,
+            amount: accountId === toAccountId ? amount : amount * -1,
+            previousAmount: accountId === toAccountId ? previousAmount : previousAmount * -1,
           },
           { transaction },
         );
@@ -388,7 +390,7 @@ export const updateTransaction = async ({
       const tx2 = await updateAmount({
         id: tx2Id,
         userId,
-        amount: amount * -1,
+        amount,
         note,
         time,
         transactionType,

@@ -51,29 +51,24 @@ const TRANSFER_TX_MOCK = {
   ...BASE_TX_MOCK,
   fromAccountId: BASE_TX_MOCK.accountId,
   fromAccountType: ACCOUNT_TYPES.system,
-  toAccountId: 2,
+  toAccountId: BASE_TX_MOCK.accountId + 1,
   toAccountType: ACCOUNT_TYPES.system,
   transactionType: TRANSACTION_TYPES.transfer,
 };
 
 const CREATED_TRANSFER_TX_MOCK = {
   ...TRANSFER_TX_MOCK,
-  oppositeId: TRANSFER_TX_MOCK.id,
+  oppositeId: TRANSFER_TX_MOCK.id + 1,
 }
 
 describe('transactions.service', () => {
-  const createTransactionSpy = jest.spyOn(Transactions, 'createTransaction')
+  const createTransactionSpy = jest.spyOn(Transactions, 'createTransaction');
 
-  const updateTransactionByIdSpy = jest
-    .spyOn(Transactions, 'updateTransactionById')
-    .mockImplementation((passedParams) => Promise.resolve({
-      ...CREATED_TX_MOCK as any,
-      ...passedParams,
-    }))
+  const updateTransactionByIdSpy = jest.spyOn(Transactions, 'updateTransactionById');
 
   const deleteTransactionSpy = jest
     .spyOn(Transactions, 'deleteTransactionById')
-    .mockImplementation(() => Promise.resolve(1))
+    .mockImplementation(() => Promise.resolve(1));
 
   const updateAccountSpy = jest
     .spyOn(accountsService, 'updateAccount')
@@ -90,6 +85,12 @@ describe('transactions.service', () => {
 
     createTransactionSpy
       .mockImplementation(() => Promise.resolve(CREATED_TX_MOCK as any));
+
+    updateTransactionByIdSpy
+      .mockImplementation((passedParams) => Promise.resolve({
+        ...CREATED_TX_MOCK as any,
+        ...passedParams,
+      }))
   });
 
   describe('calculates new balance for the previous balance correctly', () => {
@@ -304,7 +305,7 @@ describe('transactions.service', () => {
         previousAccountId: BASE_TX_MOCK.accountId,
         newAccountId: BASE_TX_MOCK.accountId + 1,
       },
-    ])('Update both amount and account type of $txType transaction', async (
+    ])('Update both amount and account id of $txType transaction', async (
       {
         txType,
         newAmount,
@@ -318,10 +319,10 @@ describe('transactions.service', () => {
       },
     ) => {
       getAccountSpy.mockImplementation(({ id }) => {
-        let balance = currentBalance
+        let balance = currentBalance;
 
         if (id === newAccountId) {
-          balance = newAccountCurrentBalance
+          balance = newAccountCurrentBalance;
         }
 
         return Promise.resolve({ currentBalance: balance } as any)
@@ -434,8 +435,107 @@ describe('transactions.service', () => {
       });
     });
 
+    it.each([
+      {
+        oldAmount: 100,
+        newAmount: 10,
+
+        fromAccountBalanceBefore: -100,
+        fromAccountBalanceAfter: -10,
+
+        toAccountBalanceBefore: 100,
+        toAccountBalanceAfter: 10,
+
+        fromAccountId: CREATED_TRANSFER_TX_MOCK.fromAccountId,
+        toAccountId: CREATED_TRANSFER_TX_MOCK.toAccountId,
+      },
+      {
+        oldAmount: 10,
+        newAmount: 100,
+
+        fromAccountBalanceBefore: -10,
+        fromAccountBalanceAfter: -100,
+
+        toAccountBalanceBefore: 10,
+        toAccountBalanceAfter: 100,
+
+        fromAccountId: CREATED_TRANSFER_TX_MOCK.fromAccountId,
+        toAccountId: CREATED_TRANSFER_TX_MOCK.toAccountId,
+      },
+    ])(`${TRANSACTION_TYPES.transfer}. Updates amount and changes accounts balances`, async (
+      {
+        newAmount,
+        oldAmount,
+
+        fromAccountBalanceBefore,
+        fromAccountBalanceAfter,
+
+        toAccountBalanceBefore,
+        toAccountBalanceAfter,
+
+        fromAccountId,
+        toAccountId,
+      }
+    ) => {
+      getTxSpy.mockImplementation(({ id }) => {
+        let accountId = fromAccountId
+
+        if (id === CREATED_TRANSFER_TX_MOCK.oppositeId) {
+          accountId = toAccountId
+        }
+
+        return Promise.resolve({
+          ...CREATED_TRANSFER_TX_MOCK,
+          amount: oldAmount,
+          accountId: accountId,
+        } as any)
+    });
+
+      updateTransactionByIdSpy.mockImplementation((passedParams) => Promise.resolve({
+        ...CREATED_TRANSFER_TX_MOCK as any,
+        ...passedParams,
+      }));
+
+      getAccountSpy.mockImplementation(({ id }) => {
+        let balance = fromAccountBalanceBefore;
+
+        if (id === toAccountId) {
+          balance = toAccountBalanceBefore;
+        }
+
+        return Promise.resolve({ currentBalance: balance } as any)
+      });
+
+      const result = await updateTransaction({
+        ...TRANSFER_TX_MOCK,
+        amount: newAmount,
+      });
+
+      expect(commitMock).toBeCalled();
+      expect(getAccountSpy).toBeCalled();
+      expect(updateAccountSpy).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          id: fromAccountId,
+          userId: TRANSFER_TX_MOCK.userId,
+          currentBalance: fromAccountBalanceAfter,
+        }),
+        expect.anything(),
+      );
+      expect(updateAccountSpy).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          id: toAccountId,
+          userId: TRANSFER_TX_MOCK.userId,
+          currentBalance: toAccountBalanceAfter,
+        }),
+        expect.anything(),
+      );
+
+      expect((result as TransactionsModel[]).length).toEqual(2);
+    });
+
     describe('transfer', () => {
-      it.todo('when amount is changed, amount should be updated for both transactions; balance of both accounts should be updated. Try different amounts');
       it.todo('when accountFrom is changed, then update tx account to a new one, update balance for new account, update balance for old account');
       it.todo('when accountTo is changed, then find opposite tx, update tx account to a new one, update balance for new account, update balance for old account');
       it.todo('when old tx type was expense/income, and the new one is transfer, then run all the transfer creation flow');
