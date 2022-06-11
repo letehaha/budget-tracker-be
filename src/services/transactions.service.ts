@@ -255,11 +255,13 @@ export const updateTransaction = async ({
     transaction = await connection.sequelize.transaction();
 
     if (transactionType !== TRANSACTION_TYPES.transfer) {
-      // TODO: updateBalance when account is changed
-      const { amount: previousAmount } = await getTransactionById(
+      const {
+        amount: previousAmount,
+        accountId: previousAccountId,
+      } = await getTransactionById(
         { id, userId },
         { transaction },
-      )
+      );
 
       const data = await Transactions.updateTransactionById(
         {
@@ -276,15 +278,41 @@ export const updateTransaction = async ({
         { transaction },
       );
 
-      await updateAccountBalance(
-        {
-          accountId,
-          userId,
-          amount,
-          previousAmount,
-        },
-        { transaction },
-      )
+      // If accountId was changed to a new one
+      if (accountId && accountId !== previousAccountId) {
+        // Make previous account's balance if like there was no transaction before
+        await updateAccountBalance(
+          {
+            accountId: previousAccountId,
+            userId,
+            amount: 0,
+            previousAmount,
+          },
+          { transaction },
+        );
+
+        // Update balance for the new account
+        await updateAccountBalance(
+          {
+            accountId,
+            userId,
+            amount,
+            previousAmount: 0,
+          },
+          { transaction },
+        );
+      } else {
+        // Update balance for the new account
+        await updateAccountBalance(
+          {
+            accountId,
+            userId,
+            amount,
+            previousAmount,
+          },
+          { transaction },
+        );
+      }
 
       await transaction.commit();
 
