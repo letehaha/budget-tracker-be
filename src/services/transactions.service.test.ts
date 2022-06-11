@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types'
 import { connection } from '@models/index';
 import * as transactionsService from './transactions.service';
@@ -53,22 +55,23 @@ const TRANSFER_TX_MOCK = {
 };
 
 describe('transactions.service', () => {
-  const createTransactionSpy = jest.spyOn(Transactions, 'createTransaction')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createTransactionSpy = jest
+    .spyOn(Transactions, 'createTransaction')
     .mockImplementation(() => Promise.resolve(CREATED_TX_MOCK as any))
 
-  const updateTransactionByIdSpy = jest.spyOn(Transactions, 'updateTransactionById')
+  const updateTransactionByIdSpy = jest
+    .spyOn(Transactions, 'updateTransactionById')
     .mockImplementation((passedParams) => Promise.resolve({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...CREATED_TX_MOCK as any,
       ...passedParams,
     }))
 
-  const deleteTransactionSpy = jest.spyOn(Transactions, 'deleteTransactionById')
+  const deleteTransactionSpy = jest
+    .spyOn(Transactions, 'deleteTransactionById')
     .mockImplementation(() => Promise.resolve(1))
 
-  const updateAccountSpy = jest.spyOn(accountsService, 'updateAccount')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateAccountSpy = jest
+    .spyOn(accountsService, 'updateAccount')
     .mockImplementation(() => ({}) as any);
 
   let getAccountSpy = null;
@@ -113,7 +116,6 @@ describe('transactions.service', () => {
         `Account balance: $balance, tx amount: $amount, expected balance: $expected`,
         async ({ balance, amount, expected }) => {
           getAccountSpy.mockImplementation(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             () => Promise.resolve({ currentBalance: balance } as any),
           )
 
@@ -137,8 +139,8 @@ describe('transactions.service', () => {
         },
       );
       it('handles error properly', async () => {
-        jest.spyOn(Transactions, 'createTransaction')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        jest
+          .spyOn(Transactions, 'createTransaction')
           .mockImplementation(() => Promise.reject(new Error()))
 
         try {
@@ -162,7 +164,6 @@ describe('transactions.service', () => {
       //   async ({ balance, amount, expected }) => {
       //     const getAccountSpy = jest
       //       .spyOn(accountsService, 'getAccountById')
-      //       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       //       .mockImplementation(() => Promise.resolve({ currentBalance: balance } as any))
 
       //     const result = await createTransaction({
@@ -196,8 +197,8 @@ describe('transactions.service', () => {
       // );
 
       it('handles error properly', async () => {
-        jest.spyOn(Transactions, 'createTransaction')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        jest
+          .spyOn(Transactions, 'createTransaction')
           .mockImplementation(() => Promise.reject(new Error()))
 
         try {
@@ -289,7 +290,6 @@ describe('transactions.service', () => {
           balance = newAccountCurrentBalance
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return Promise.resolve({ currentBalance: balance } as any)
       })
 
@@ -297,7 +297,6 @@ describe('transactions.service', () => {
         ...BASE_TX_MOCK,
         amount: oldAmount,
         accountId: previousAccountId,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any));
 
       const result = await updateTransaction({
@@ -361,14 +360,12 @@ describe('transactions.service', () => {
       },
     ) => {
       getAccountSpy.mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         () => Promise.resolve({ currentBalance } as any)
       )
 
       getTxSpy.mockImplementation(() => Promise.resolve({
         ...BASE_TX_MOCK,
         amount: oldAmount,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any));
 
       const result = await updateTransaction({
@@ -412,8 +409,8 @@ describe('transactions.service', () => {
     });
 
     it('handles error properly', async () => {
-      jest.spyOn(Transactions, 'updateTransactionById')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      jest
+        .spyOn(Transactions, 'updateTransactionById')
         .mockImplementation(() => Promise.reject(new Error()))
 
       try {
@@ -434,12 +431,10 @@ describe('transactions.service', () => {
         ...BASE_TX_MOCK,
         amount: txAmount,
         transactionType: txType,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any));
 
       jest
         .spyOn(accountsService, 'getAccountById')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .mockImplementation(() => Promise.resolve({ currentBalance } as any))
 
       const result = await deleteTransaction({
@@ -493,13 +488,11 @@ describe('transactions.service', () => {
           toAccountId: TO_ACCOUNT_ID,
           toAccountType: BASE_TX_MOCK.accountType,
           oppositeId: OPPOSITE_TX_ID,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
       })
 
       jest
         .spyOn(accountsService, 'getAccountById')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .mockImplementation(() => Promise.resolve({ currentBalance: CURRENT_BALANCE } as any))
 
       const result = await deleteTransaction({
@@ -562,8 +555,8 @@ describe('transactions.service', () => {
     });
 
     it('handles error properly', async () => {
-      jest.spyOn(Transactions, 'deleteTransactionById')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      jest
+        .spyOn(Transactions, 'deleteTransactionById')
         .mockImplementation(() => Promise.reject(new Error()))
 
       try {
