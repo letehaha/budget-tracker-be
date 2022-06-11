@@ -1,8 +1,11 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
+import { ValidationError } from '@js/errors'
 import {
   Table,
+  BeforeCreate,
+  BeforeUpdate,
   Column,
   Model,
   Length,
@@ -113,6 +116,22 @@ export default class Transactions extends Model {
   // Id to the opposite tx. Used for the Transfer feature
   @Column({ allowNull: true, defaultValue: null })
   oppositeId: number;
+
+  @BeforeCreate
+  @BeforeUpdate
+  static validateAmountAndType(instance: Transactions) {
+    const { amount, transactionType } = instance;
+
+    if (transactionType === TRANSACTION_TYPES.expense && amount > 0) {
+      throw new ValidationError({ message: 'Expense amount cannot be positive' });
+    }
+    if (transactionType === TRANSACTION_TYPES.income && amount < 0) {
+      throw new ValidationError({ message: 'Income amount cannot be negative' });
+    }
+    if (transactionType === TRANSACTION_TYPES.transfer && amount < 0) {
+      throw new ValidationError({ message: 'Transfer amount cannot be negative' });
+    }
+  }
 }
 
 export const getTransactions = async ({
