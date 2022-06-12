@@ -1,6 +1,6 @@
 const config = require('config').get('db');
 
-console.log('DBconfig', config);
+console.log(config);
 
 const options = {
   username: config.user,
