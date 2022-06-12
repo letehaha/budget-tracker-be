@@ -13,7 +13,9 @@ const DBConfig: Record<string, unknown> = config.get('db');
 const sequelize = new Sequelize({
   ...DBConfig,
   models: [__dirname + '/**/*.model.ts'],
-})
+});
+
+console.log('DBConfig', DBConfig);
 
 // Object.keys(connection).forEach((modelName) => {
 //   if (connection[modelName].associate) {
