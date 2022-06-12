@@ -13,7 +13,7 @@
     "database": "budget-tracker",
     "port": "5432",
     "dialect": "postgres",
-    "logging": false
+    "logging": true
   },
   "redis": {
     "host": "redis"
