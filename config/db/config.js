@@ -1,9 +1,7 @@
 const config = require('config').get('db');
 
-console.log(config);
-
 const options = {
-  username: config.user,
+  username: config.username,
   password: config.password,
   database: config.database,
   host: config.host,
