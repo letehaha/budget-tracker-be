@@ -1,33 +1,31 @@
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
+import { ValidationError } from '@js/errors'
 import {
   Table,
+  BeforeCreate,
+  BeforeUpdate,
   Column,
   Model,
   Length,
   ForeignKey,
 } from 'sequelize-typescript';
 import { isExist } from '../js/helpers';
-import Users from './Users.model';
-import TransactionTypes from './TransactionTypes.model';
-import PaymentTypes from './PaymentTypes.model';
-import Accounts from './Accounts.model';
-import Categories from './Categories.model';
-import TransactionEntities from './TransactionEntities.model';
+import Users from '@models/Users.model';
+import Accounts from '@models/Accounts.model';
+import Categories from '@models/Categories.model';
+import Currencies from '@models/Currencies.model';
 
 const prepareTXInclude = (
   {
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
     nestedInclude,
   }: {
     includeUser?: boolean;
-    includeTransactionType?: boolean;
-    includePaymentType?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
     includeAll?: boolean;
@@ -42,10 +40,6 @@ const prepareTXInclude = (
     include = [];
 
     if (isExist(includeUser)) include.push({ model: Users });
-    if (isExist(includeTransactionType)) {
-      include.push({ model: TransactionTypes });
-    }
-    if (isExist(includePaymentType)) include.push({ model: PaymentTypes });
     if (isExist(includeAccount)) include.push({ model: Accounts });
     if (isExist(includeCategory)) include.push({ model: Categories });
   }
@@ -82,13 +76,11 @@ export default class Transactions extends Model {
   @Column
   userId: number;
 
-  @ForeignKey(() => TransactionTypes)
-  @Column
-  transactionTypeId: number;
+  @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
+  transactionType: TRANSACTION_TYPES;
 
-  @ForeignKey(() => PaymentTypes)
-  @Column
-  paymentTypeId: number;
+  @Column({ allowNull: false, defaultValue: PAYMENT_TYPES.creditCard })
+  paymentType: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
   @Column
@@ -98,17 +90,83 @@ export default class Transactions extends Model {
   @Column
   categoryId: number;
 
-  @ForeignKey(() => TransactionEntities)
-  @Column
-  transactionEntityId: number;
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: false })
+  currencyId: number;
+
+  @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system })
+  accountType: ACCOUNT_TYPES;
+
+  // Describes from which account tx was sent
+  @Column({ allowNull: true, defaultValue: null })
+  fromAccountId: number;
+
+  // Describes from's account type
+  @Column({ allowNull: true, defaultValue: null })
+  fromAccountType: ACCOUNT_TYPES;
+
+  // Describes to which account tx was sent
+  @Column({ allowNull: true, defaultValue: null })
+  toAccountId: number;
+
+  // Describes to's account type
+  @Column({ allowNull: true, defaultValue: null })
+  toAccountType: ACCOUNT_TYPES;
+
+  // Id to the opposite tx. Used for the Transfer feature
+  @Column({ allowNull: true, defaultValue: null })
+  oppositeId: number;
+
+  @BeforeCreate
+  @BeforeUpdate
+  static validateAmountAndType(instance: Transactions) {
+    const { amount, transactionType } = instance;
+
+    if (transactionType === TRANSACTION_TYPES.expense && amount > 0) {
+      throw new ValidationError({ message: 'Expense amount cannot be positive' });
+    }
+    if (transactionType === TRANSACTION_TYPES.income && amount < 0) {
+      throw new ValidationError({ message: 'Income amount cannot be negative' });
+    }
+    if (transactionType === TRANSACTION_TYPES.transfer && amount < 0) {
+      throw new ValidationError({ message: 'Transfer amount cannot be negative' });
+    }
+  }
+
+  // User should set all of requiredFields for transfer transaction
+  @BeforeCreate
+  @BeforeUpdate
+  static validateTransferRelatedFields(instance: Transactions) {
+    const {
+      transactionType,
+      fromAccountId,
+      toAccountId,
+      accountId,
+      fromAccountType,
+      toAccountType,
+    } = instance;
+
+    const requiredFields = [fromAccountId, toAccountId, fromAccountType, toAccountType]
+
+    if (transactionType === TRANSACTION_TYPES.transfer) {
+      if (requiredFields.some(item => item === undefined)) {
+        throw new ValidationError({
+          message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
+        });
+      }
+      if (![fromAccountId, toAccountId].some(item => item === accountId)) {
+        throw new ValidationError({
+          message: `"accountId" should be one of "toAccountId" or "fromAccountId"`,
+        });
+      }
+    }
+  }
 }
 
 export const getTransactions = async ({
   userId,
   sortDirection,
   includeUser,
-  includeTransactionType,
-  includePaymentType,
   includeAccount,
   includeCategory,
   includeAll,
@@ -117,8 +175,6 @@ export const getTransactions = async ({
 }) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -140,8 +196,6 @@ export const getTransactionById = (
     id,
     userId,
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -150,8 +204,6 @@ export const getTransactionById = (
     id: number;
     userId: number;
     includeUser?: boolean;
-    includeTransactionType?: boolean;
-    includePaymentType?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
     includeAll?: boolean;
@@ -161,8 +213,6 @@ export const getTransactionById = (
 ) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -182,8 +232,6 @@ export const getTransactionsByArrayOfField = async (
     fieldName,
     userId,
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -192,8 +240,6 @@ export const getTransactionsByArrayOfField = async (
 ) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -220,21 +266,33 @@ export const createTransaction = async (
     note,
     time,
     userId,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     accountId,
     categoryId,
-    transactionEntityId,
+    accountType,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
   }: {
     amount: number;
     note?: string;
-    time: Date;
+    time: string;
     userId: number;
-    transactionTypeId: number;
-    paymentTypeId: number;
+    transactionType: TRANSACTION_TYPES;
+    paymentType: PAYMENT_TYPES;
     accountId: number;
     categoryId: number;
-    transactionEntityId: number;
+    fromAccountId?: number;
+    fromAccountType?: ACCOUNT_TYPES;
+    toAccountId?: number;
+    toAccountType?: ACCOUNT_TYPES;
+    oppositeId?: number;
+    currencyId: number;
+    accountType: ACCOUNT_TYPES;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
@@ -243,11 +301,17 @@ export const createTransaction = async (
     note,
     time,
     userId,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     accountId,
     categoryId,
-    transactionEntityId,
+    accountType,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
   }, { transaction });
 
   return getTransactionById(
@@ -266,24 +330,52 @@ export const updateTransactionById = async (
     note,
     time,
     userId,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     accountId,
     categoryId,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
+  }: {
+    id: number;
+    amount?: number;
+    note?: string;
+    time?: string;
+    userId: number;
+    transactionType?: TRANSACTION_TYPES;
+    paymentType?: PAYMENT_TYPES;
+    accountId?: number;
+    categoryId?: number;
+    fromAccountId?: number;
+    fromAccountType?: ACCOUNT_TYPES;
+    toAccountId?: number;
+    toAccountType?: ACCOUNT_TYPES;
+    oppositeId?: number;
+    accountType?: ACCOUNT_TYPES;
+    currencyId?: number;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const where = { id };
+  const where = { id, userId };
   await Transactions.update(
     {
       amount,
       note,
       time,
-      userId,
-      transactionTypeId,
-      paymentTypeId,
+      transactionType,
+      paymentType,
       accountId,
       categoryId,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      oppositeId,
+      currencyId,
     },
     { where, transaction },
   );

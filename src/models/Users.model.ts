@@ -84,13 +84,13 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserById = async ({ id }) => {
+export const getUserById = async ({ id }: { id: number }) => {
   const user = await Users.findOne({ where: { id } });
 
   return user;
 };
 
-export const getUserDefaultCategory = async ({ id }) => {
+export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   const user = await Users.findOne({
     where: { id },
     attributes: ['defaultCategoryId'],
@@ -116,16 +116,13 @@ export const getUserCurrencies = async ({ userId }) => {
 };
 
 export const getUserByCredentials = async ({
-  password,
   username,
   email,
 }: {
-  password?: string;
   username?: string;
   email?: string;
 }) => {
   const where: Record<string, unknown> = {};
-  if (password) where.password = password;
   if (username) where.username = username;
   if (email) where.email = email;
   const user = await Users.scope('withPassword').findOne({ where });

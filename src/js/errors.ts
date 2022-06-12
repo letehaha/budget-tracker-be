@@ -1,3 +1,5 @@
+import { ERROR_CODES } from 'shared-types';
+
 export class CustomError extends Error {
   public httpCode: number;
   public code: string;
@@ -7,6 +9,33 @@ export class CustomError extends Error {
 
     this.httpCode = httpCode
     this.code = code
+  }
+}
+
+export class Unauthorized extends CustomError {
+  constructor(code: string, message: string) {
+    super(401, code, message);
+  }
+}
+
+export class NotFoundError extends CustomError {
+  constructor(code: string, message: string) {
+    super(404, code, message);
+  }
+}
+
+export class ConflictError extends CustomError {
+  constructor(code: string, message: string) {
+    super(409, code, message);
+  }
+}
+
+export class ValidationError extends CustomError {
+  constructor(
+    { code = ERROR_CODES.validationError, message }:
+    { code?: string; message: string }
+  ) {
+    super(422, code, message);
   }
 }
 

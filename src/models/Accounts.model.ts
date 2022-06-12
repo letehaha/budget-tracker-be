@@ -1,6 +1,5 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Transaction } from 'sequelize/types';
-import { AccountModel } from 'shared-types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
@@ -32,6 +31,12 @@ export default class Accounts extends Model {
   })
   creditLimit: number;
 
+  @Column({
+    allowNull: false,
+    defaultValue: false,
+  })
+  internal: boolean;
+
   @ForeignKey(() => AccountTypes)
   @Column
   accountTypeId: number;
@@ -48,7 +53,7 @@ export default class Accounts extends Model {
 export const getAccounts = async (
   { userId }: { userId: number },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel[]> => {
+) => {
   const accounts = await Accounts.findAll({ where: { userId }, transaction });
 
   return accounts;
@@ -63,7 +68,7 @@ export const getAccountById = async (
     id: number;
   },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel> => {
+) => {
   const account = await Accounts.findOne({ where: { userId, id }, transaction });
 
   return account;
@@ -77,6 +82,7 @@ export const createAccount = async (
     currentBalance,
     creditLimit,
     userId,
+    internal,
   }: {
     accountTypeId: number;
     currencyId: number;
@@ -84,9 +90,10 @@ export const createAccount = async (
     currentBalance: number;
     creditLimit: number;
     userId: number;
+    internal?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel> => {
+) => {
   const response = await Accounts.create({
     accountTypeId,
     currencyId,
@@ -94,6 +101,7 @@ export const createAccount = async (
     currentBalance,
     creditLimit,
     userId,
+    internal: internal ?? false,
   }, { transaction });
 
   const account = await getAccountById({
@@ -123,7 +131,7 @@ export const updateAccountById = async (
     userId: number;
   },
   { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel> => {
+) => {
   const where = { id, userId };
   await Accounts.update(
     {

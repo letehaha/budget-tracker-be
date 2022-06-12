@@ -20,11 +20,8 @@ import userRoutes from './routes/user.route';
 import accountsRoutes from './routes/accounts.route';
 import transactionsRoutes from './routes/transactions.route';
 import modelsAccountTypesRoutes from './routes/account-types.route';
-import сategoriesRoutes from './routes/categories.route';
+import categoriesRoutes from './routes/categories.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
-import modelsPaymentTypesRoutes from './routes/payment-types.route';
-import modelsTransactionTypesRoutes from './routes/transaction-types.route';
-import modelsTransactionEntitiesRoutes from './routes/transaction-entities.route';
 import monobankRoutes from './routes/banks/monobank.route';
 import binanceRoutes from './routes/crypto/binance.route';
 
@@ -71,12 +68,9 @@ app.use(`${apiPrefix}/user`, userRoutes);
 app.use(`${apiPrefix}/users`, usersRoutes);
 app.use(`${apiPrefix}/accounts`, accountsRoutes);
 app.use(`${apiPrefix}/transactions`, transactionsRoutes);
-app.use(`${apiPrefix}/categories`, сategoriesRoutes);
+app.use(`${apiPrefix}/categories`, categoriesRoutes);
 app.use(`${apiPrefix}/models/account-types`, modelsAccountTypesRoutes);
 app.use(`${apiPrefix}/models/currencies`, modelsCurrenciesRoutes);
-app.use(`${apiPrefix}/models/payment-types`, modelsPaymentTypesRoutes);
-app.use(`${apiPrefix}/models/transaction-types`, modelsTransactionTypesRoutes);
-app.use(`${apiPrefix}/models/transaction-entities`, modelsTransactionEntitiesRoutes);
 app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
 app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 

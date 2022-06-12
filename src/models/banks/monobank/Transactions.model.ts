@@ -1,3 +1,4 @@
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { Op } from 'sequelize';
 import {
   Table,
@@ -9,9 +10,6 @@ import {
 import Users from '../../Users.model';
 import Currencies from '../../Currencies.model';
 import Categories from '../../Categories.model';
-import TransactionTypes from '../../TransactionTypes.model';
-import PaymentTypes from '../../PaymentTypes.model';
-import TransactionEntities from '../../TransactionEntities.model';
 import MonobankAccounts from './Accounts.model';
 
 import { isExist } from '../../../js/helpers';
@@ -19,8 +17,6 @@ import { isExist } from '../../../js/helpers';
 const prepareTXInclude = (
   {
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -35,10 +31,6 @@ const prepareTXInclude = (
     include = [];
 
     if (isExist(includeUser)) include.push({ model: Users });
-    if (isExist(includeTransactionType)) {
-      include.push({ model: TransactionTypes });
-    }
-    if (isExist(includePaymentType)) include.push({ model: PaymentTypes });
     if (isExist(includeAccount)) include.push({ model: MonobankAccounts });
     if (isExist(includeCategory)) include.push({ model: Categories });
   }
@@ -103,13 +95,11 @@ export default class MonobankTransactions extends Model {
   @Column({ allowNull: false })
   categoryId: number;
 
-  @ForeignKey(() => TransactionTypes)
-  @Column({ allowNull: false })
-  transactionTypeId: number;
+  @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
+  transactionType: TRANSACTION_TYPES;
 
-  @ForeignKey(() => PaymentTypes)
-  @Column({ allowNull: false })
-  paymentTypeId: number;
+  @Column({ allowNull: false, defaultValue: PAYMENT_TYPES.creditCard })
+  paymentType: PAYMENT_TYPES;
 
   @ForeignKey(() => MonobankAccounts)
   @Column({ allowNull: false })
@@ -119,17 +109,14 @@ export default class MonobankTransactions extends Model {
   @Column({ allowNull: false })
   currencyId: number;
 
-  @ForeignKey(() => TransactionEntities)
-  @Column({ allowNull: false })
-  transactionEntityId: number;
+  @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.monobank })
+  accountType: ACCOUNT_TYPES;
 }
 
 export const getTransactions = async ({
   systemUserId,
   sortDirection,
   includeUser,
-  includeTransactionType,
-  includePaymentType,
   includeAccount,
   includeCategory,
   includeAll,
@@ -141,8 +128,6 @@ export const getTransactions = async ({
   systemUserId: number;
   sortDirection: string;
   includeUser?: boolean;
-  includeTransactionType?: boolean;
-  includePaymentType?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
   includeAll?: boolean;
@@ -154,8 +139,6 @@ export const getTransactions = async ({
 }) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -179,8 +162,6 @@ export const getTransactionsByArrayOfField = async ({
   fieldName,
   systemUserId,
   includeUser,
-  includeTransactionType,
-  includePaymentType,
   includeAccount,
   includeCategory,
   includeAll,
@@ -189,8 +170,6 @@ export const getTransactionsByArrayOfField = async ({
 }) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -214,8 +193,6 @@ export const getTransactionsByArrayOfField = async ({
 export const getTransactionById = async ({
   id,
   includeUser,
-  includeTransactionType,
-  includePaymentType,
   includeAccount,
   includeCategory,
   includeAll,
@@ -223,8 +200,6 @@ export const getTransactionById = async ({
 }: {
   id: number;
   includeUser?: boolean;
-  includeTransactionType?: boolean;
-  includePaymentType?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
   includeAll?: boolean;
@@ -232,8 +207,6 @@ export const getTransactionById = async ({
 }) => {
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -249,8 +222,6 @@ export const getTransactionByOriginalId = async ({
   originalId,
   userId,
   includeUser,
-  includeTransactionType,
-  includePaymentType,
   includeAccount,
   includeCategory,
   includeAll,
@@ -259,8 +230,6 @@ export const getTransactionByOriginalId = async ({
   originalId: number;
   userId: number;
   includeUser?: boolean;
-  includeTransactionType?: boolean;
-  includePaymentType?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
   includeAll?: boolean;
@@ -275,8 +244,6 @@ export const getTransactionByOriginalId = async ({
 
   const include = prepareTXInclude({
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -302,13 +269,13 @@ export const createTransaction = async ({
   balance,
   hold,
   userId,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   monoAccountId,
   categoryId,
   receiptId,
   currencyId,
-  transactionEntityId,
+  accountType,
 }: {
   originalId: number;
   description: string;
@@ -320,13 +287,13 @@ export const createTransaction = async ({
   balance: number;
   hold: number;
   userId: number;
-  transactionTypeId: number;
-  paymentTypeId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
   monoAccountId: number;
   categoryId: number;
   receiptId: number;
   currencyId: number;
-  transactionEntityId: number;
+  accountType: ACCOUNT_TYPES;
 }) => {
   const tx = await getTransactionByOriginalId({ originalId, userId });
 
@@ -346,13 +313,13 @@ export const createTransaction = async ({
     balance,
     hold,
     userId,
-    transactionTypeId,
-    paymentTypeId,
+    transactionType,
+    paymentType,
     monoAccountId,
     categoryId,
     receiptId,
     currencyId,
-    transactionEntityId,
+    accountType,
   });
 
   const transaction = await getTransactionById({ id: response.get('id') });
@@ -371,8 +338,8 @@ export const updateTransactionById = async ({
   balance,
   hold,
   userId,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   monoAccountId,
   categoryId,
   receiptId,
@@ -389,8 +356,8 @@ export const updateTransactionById = async ({
   cashbackAmount?: number;
   balance?: number;
   hold?: boolean;
-  transactionTypeId?: number;
-  paymentTypeId?: number;
+  transactionType?: TRANSACTION_TYPES;
+  paymentType?: PAYMENT_TYPES;
   monoAccountId?: number;
   categoryId?: number;
   receiptId?: number;
@@ -409,8 +376,8 @@ export const updateTransactionById = async ({
       balance,
       hold,
       userId,
-      transactionTypeId,
-      paymentTypeId,
+      transactionType,
+      paymentType,
       monoAccountId,
       categoryId,
       receiptId,

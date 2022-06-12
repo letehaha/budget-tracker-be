@@ -7,7 +7,7 @@ import {
   startOfMonth,
   differenceInCalendarMonths,
 } from 'date-fns';
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
+import { RESPONSE_STATUS, CustomResponse, ERROR_CODES, TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types';
 
 import * as MonobankUsers from '../../models/banks/monobank/Users.model';
 import * as MonobankAccounts from '../../models/banks/monobank/Accounts.model';
@@ -16,10 +16,8 @@ import * as Currencies from '../../models/Currencies.model';
 import * as MerchantCategoryCodes from '../../models/MerchantCategoryCodes.model';
 import * as UserMerchantCategoryCodes from '../../models/UserMerchantCategoryCodes.model';
 import * as Users from '../../models/Users.model';
-import * as TransactionEntities from '../../models/TransactionEntities.model';
 
 import { logger } from '../../js/utils';
-import { TRANSACTION_ENTITIES } from '../../js/const';
 
 const SORT_DIRECTIONS = {
   asc: 'asc',
@@ -114,10 +112,6 @@ async function createMonoTransaction({ data, account, userId }) {
     });
   }
 
-  const entity = await TransactionEntities.getTransactionEntityByType({
-    type: TRANSACTION_ENTITIES.monobank,
-  });
-
   await MonobankTransactions.createTransaction({
     originalId: data.id,
     description: data.description,
@@ -131,11 +125,11 @@ async function createMonoTransaction({ data, account, userId }) {
     hold: data.hold,
     monoAccountId: account.get('id'),
     userId: userData.get('systemUserId'),
-    transactionTypeId: data.amount > 0 ? 1 : 2,
-    paymentTypeId: 6,
+    transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
+    paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
     currencyId: account.get('currencyId'),
-    transactionEntityId: entity.get('id'),
+    accountType: ACCOUNT_TYPES.monobank,
   });
 
   // eslint-disable-next-line no-console
@@ -296,8 +290,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
   const {
     sort = SORT_DIRECTIONS.desc,
     includeUser,
-    includeTransactionType,
-    includePaymentType,
     includeAccount,
     includeCategory,
     includeAll,
@@ -321,8 +313,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
       systemUserId: id,
       sortDirection: sort,
       includeUser,
-      includeTransactionType,
-      includePaymentType,
       includeAccount,
       includeCategory,
       includeAll,

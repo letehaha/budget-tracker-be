@@ -1,81 +1,55 @@
+import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES, ERROR_CODES } from 'shared-types'
+
 import { Transaction } from 'sequelize/types';
-import { TRANSACTION_TYPES, ERROR_CODES } from 'shared-types'
 
 import { connection } from '@models/index';
 import { UnexpectedError } from '@js/errors'
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
-import * as transactionTypesService from '@services/transaction-types.service'
 
-const transformAmountDependingOnTxType = async (
-  { amount, transactionTypeId}: { transactionTypeId: number; amount: number },
-  { transaction }: { transaction: Transaction },
+export const calculateNewBalance = (
+  amount: number,
+  previousAmount: number,
+  currentBalance: number,
 ) => {
-  const txType = await transactionTypesService.getTransactionTypeById(
-    transactionTypeId, { transaction }
-  );
-  const isIncome = txType.type === TRANSACTION_TYPES.income
-  if (!isIncome) amount *= -1
-  return amount
+  if (amount > previousAmount) {
+    return currentBalance + (amount - previousAmount)
+  } else if (amount < previousAmount) {
+    return currentBalance - (previousAmount - amount)
+  }
+
+  return currentBalance
 }
 
 /**
  * Updates the balance of the account associated with the transaction
  */
-const updateAccountBalance = async (
+export const updateAccountBalance = async (
   {
-    transactionTypeId,
     accountId,
     userId,
     amount,
     // keep it 0 be default for the tx creation flow
     previousAmount = 0,
-    previousTransactionTypeId,
   }: {
-    transactionTypeId: number;
     accountId: number;
     userId: number;
     amount: number;
     previousAmount?: number;
-    previousTransactionTypeId?: number;
   },
   { transaction }: { transaction: Transaction },
-) => {
+): Promise<void> => {
   try {
     const { currentBalance } = await accountsService.getAccountById(
       { id: accountId, userId },
       { transaction },
     );
 
-    if (previousTransactionTypeId) {
-      // Make the previous amount value positive or negative depending on the tx type
-      previousAmount = await transformAmountDependingOnTxType({
-          amount: previousAmount,
-          transactionTypeId: previousTransactionTypeId,
-        }, { transaction })
-    }
-
-    // Make the current amount value positive or negative depending on the tx type
-    amount = await transformAmountDependingOnTxType({
-      amount,
-      transactionTypeId,
-    }, { transaction })
-
-    let newBalance = currentBalance
-
-    if (amount > previousAmount) {
-      newBalance = currentBalance + (amount - previousAmount)
-    } else if (amount < previousAmount) {
-      newBalance = currentBalance - (previousAmount - amount)
-    } else if (amount === previousAmount) {
-      newBalance = currentBalance + amount
-    }
-
     await accountsService.updateAccount(
       {
         id: accountId,
         userId,
-        currentBalance: newBalance,
+        currentBalance: calculateNewBalance(amount, previousAmount ?? 0, currentBalance),
       },
       { transaction },
     )
@@ -88,6 +62,43 @@ const updateAccountBalance = async (
   }
 };
 
+export const getTransactionById = async (
+  {
+    id,
+    userId,
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }: {
+    id: number;
+    userId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  try {
+    const data = await Transactions.getTransactionById({
+      id,
+      userId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    }, { transaction });
+
+    return data;
+  } catch (err) {
+    throw new err;
+  }
+};
+
 /**
  * Creates transaction and updates account balance.
  */
@@ -95,46 +106,131 @@ export const createTransaction = async ({
   amount,
   note,
   time,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   accountId,
   categoryId,
-  transactionEntityId,
+  accountType,
   userId,
-}) => {
+  fromAccountId,
+  fromAccountType,
+  toAccountId,
+  toAccountType,
+  currencyId,
+}: {
+  amount: number;
+  note?: string;
+  time: string;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  fromAccountId?: number;
+  fromAccountType?: ACCOUNT_TYPES;
+  toAccountId?: number;
+  toAccountType?: ACCOUNT_TYPES;
+  oppositeId?: number;
+  currencyId: number;
+  accountType: ACCOUNT_TYPES;
+},) => {
   let transaction: Transaction = null;
 
+  transaction = await connection.sequelize.transaction();
+
   try {
-    transaction = await connection.sequelize.transaction();
-
-    const data = await Transactions.createTransaction(
-      {
-        amount,
-        note,
-        time,
-        userId,
-        transactionTypeId,
-        paymentTypeId,
-        accountId,
-        categoryId,
-        transactionEntityId,
-      },
-      { transaction }
-    );
-
-    await updateAccountBalance({
-      transactionTypeId,
-      accountId,
-      userId,
+    const txParams = {
       amount,
-    }, { transaction })
+      note,
+      time,
+      userId,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      accountType,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      currencyId,
+    };
 
-    await transaction.commit();
+    if (transactionType !== TRANSACTION_TYPES.transfer) {
+      const data = await Transactions.createTransaction(
+        txParams,
+        { transaction },
+      );
 
-    return data
+      await updateAccountBalance({
+        accountId: txParams.accountId,
+        userId: txParams.userId,
+        amount: txParams.amount,
+      }, { transaction });
+
+      await transaction.commit();
+
+      return data;
+    } else {
+      let tx1 = await Transactions.createTransaction(
+        txParams,
+        { transaction },
+      );
+
+      await updateAccountBalance({
+        accountId: txParams.accountId,
+        userId: txParams.userId,
+        amount: txParams.amount * -1,
+      }, { transaction });
+
+      const tx2Params = {
+        ...txParams,
+        amount: txParams.amount,
+        accountId: toAccountId,
+        accountType: toAccountType,
+      };
+
+      let tx2 = await Transactions.createTransaction(
+        tx2Params,
+        { transaction },
+      );
+
+      await updateAccountBalance({
+        accountId: tx2Params.accountId,
+        userId: tx2Params.userId,
+        amount: tx2Params.amount,
+      }, { transaction });
+
+      // Set correct oppositeId to tx1
+      tx1 = await Transactions.updateTransactionById(
+        {
+          id: tx1.id,
+          userId: tx1.userId,
+          oppositeId: tx2.id,
+        },
+        { transaction },
+      );
+      // Set correct oppositeId to tx2
+      tx2 = await Transactions.updateTransactionById(
+        {
+          id: tx2.id,
+          userId: tx2.userId,
+          oppositeId: tx1.id,
+        },
+        { transaction },
+      );
+
+      await transaction.commit();
+
+      return [tx1, tx2];
+    }
+
   } catch (e) {
+    // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
-    console.error(e);
     throw e;
   }
 };
@@ -147,8 +243,8 @@ export const updateTransaction = async ({
   amount,
   note,
   time,
-  transactionTypeId,
-  paymentTypeId,
+  transactionType,
+  paymentType,
   accountId,
   categoryId,
   userId,
@@ -158,46 +254,160 @@ export const updateTransaction = async ({
   try {
     transaction = await connection.sequelize.transaction();
 
-    const {
-      amount: previousAmount,
-      transactionTypeId: previousTransactionTypeId,
-    } = await Transactions.getTransactionById(
-      { id, userId },
-      { transaction },
-    )
+    if (transactionType !== TRANSACTION_TYPES.transfer) {
+      const {
+        amount: previousAmount,
+        accountId: previousAccountId,
+      } = await getTransactionById(
+        { id, userId },
+        { transaction },
+      );
 
-    const data = await Transactions.updateTransactionById(
-      {
+      const data = await Transactions.updateTransactionById(
+        {
+          id,
+          amount,
+          note,
+          time,
+          userId,
+          transactionType,
+          paymentType,
+          accountId,
+          categoryId,
+        },
+        { transaction },
+      );
+
+      // If accountId was changed to a new one
+      if (accountId && accountId !== previousAccountId) {
+        // Make previous account's balance if like there was no transaction before
+        await updateAccountBalance(
+          {
+            accountId: previousAccountId,
+            userId,
+            amount: 0,
+            previousAmount,
+          },
+          { transaction },
+        );
+
+        // Update balance for the new account
+        await updateAccountBalance(
+          {
+            accountId,
+            userId,
+            amount,
+            previousAmount: 0,
+          },
+          { transaction },
+        );
+      } else {
+        // Update balance for the new account
+        await updateAccountBalance(
+          {
+            accountId,
+            userId,
+            amount,
+            previousAmount,
+          },
+          { transaction },
+        );
+      }
+
+      await transaction.commit();
+
+      return data
+    } else {
+      // TODO: updateBalance when account is changed
+      const updateAmount = async ({
         id,
+        userId,
         amount,
         note,
         time,
-        userId,
-        transactionTypeId,
-        paymentTypeId,
+        transactionType,
+        paymentType,
         accountId,
         categoryId,
-      },
-      { transaction },
-    );
+      }) => {
+        const { amount: previousAmount, toAccountId } = await getTransactionById(
+          { id, userId },
+          { transaction },
+        );
 
-    await updateAccountBalance(
-      {
-        transactionTypeId,
-        accountId,
+        const data = await Transactions.updateTransactionById(
+          {
+            id,
+            amount,
+            note,
+            time,
+            userId,
+            transactionType,
+            paymentType,
+            accountId,
+            categoryId,
+          },
+          { transaction },
+        );
+
+        // For "fromAccount" make amount negative
+        // For "toAccount" make amount positive
+        await updateAccountBalance(
+          {
+            accountId,
+            userId,
+            amount: accountId === toAccountId ? amount : amount * -1,
+            previousAmount: accountId === toAccountId ? previousAmount : previousAmount * -1,
+          },
+          { transaction },
+        );
+
+        return data;
+      };
+
+      const tx1 = await updateAmount({
+        id,
         userId,
         amount,
-        previousAmount,
-        previousTransactionTypeId,
-      },
-      { transaction },
-    )
+        note,
+        time,
+        transactionType,
+        paymentType,
+        accountId,
+        categoryId,
+      });
 
-    await transaction.commit();
+      const { oppositeId } = await getTransactionById(
+        { id, userId },
+        { transaction },
+      );
 
-    return data
+      const { id: tx2Id, accountId: tx2AccountId } = await getTransactionById(
+        { id: oppositeId, userId },
+        { transaction },
+      );
+
+      const tx2 = await updateAmount({
+        id: tx2Id,
+        userId,
+        amount,
+        note,
+        time,
+        transactionType,
+        paymentType,
+        accountId: tx2AccountId,
+        categoryId,
+      });
+
+      await transaction.commit();
+
+      return [tx1, tx2];
+    }
   } catch (e) {
-    console.error(e);
+    // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
     throw e;
   }
@@ -209,7 +419,7 @@ export const deleteTransaction = async ({
 }: {
   id: number;
   userId: number;
-}) => {
+}): Promise<void> => {
   let transaction: Transaction = null;
 
   try {
@@ -217,28 +427,55 @@ export const deleteTransaction = async ({
 
     const {
       amount: previousAmount,
-      transactionTypeId,
       accountId,
-    } = await Transactions.getTransactionById({ id, userId }, { transaction })
+      oppositeId,
+      transactionType,
+    } = await getTransactionById({ id, userId }, { transaction });
 
     await updateAccountBalance(
       {
         userId,
         accountId,
-        transactionTypeId,
-        previousTransactionTypeId: transactionTypeId,
         // make new amount 0, so the balance won't depend on this tx anymore
         amount: 0,
-        previousAmount,
+        previousAmount: transactionType === TRANSACTION_TYPES.transfer
+          ? previousAmount * -1
+          : previousAmount,
       },
       { transaction },
-    )
+    );
 
     await Transactions.deleteTransactionById({ id, userId }, { transaction });
 
+    if (transactionType === TRANSACTION_TYPES.transfer && oppositeId) {
+      const {
+        amount: previousAmount,
+        accountId,
+      } = await getTransactionById({ id: oppositeId, userId }, { transaction })
+
+      await updateAccountBalance(
+        {
+          userId,
+          accountId,
+          // make new amount 0, so the balance won't depend on this tx anymore
+          amount: 0,
+          previousAmount,
+        },
+        { transaction },
+      )
+
+      await Transactions.deleteTransactionById({ id: oppositeId, userId }, { transaction });
+    } else if (transactionType === TRANSACTION_TYPES.transfer && !oppositeId) {
+      // TODO: add error logger that Transfer function does not have oppositeId for some reason
+      console.log('NO OPPOSITE ID FOR TRANSFER TYPE')
+    }
+
     await transaction.commit();
   } catch (e) {
-    console.error(e);
+    // TODO: add logger
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(e);
+    }
     await transaction.rollback();
     throw e
   }
