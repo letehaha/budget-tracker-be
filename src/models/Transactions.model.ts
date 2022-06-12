@@ -132,6 +132,35 @@ export default class Transactions extends Model {
       throw new ValidationError({ message: 'Transfer amount cannot be negative' });
     }
   }
+
+  // User should set all of requiredFields for transfer transaction
+  @BeforeCreate
+  @BeforeUpdate
+  static validateTransferRelatedFields(instance: Transactions) {
+    const {
+      transactionType,
+      fromAccountId,
+      toAccountId,
+      accountId,
+      fromAccountType,
+      toAccountType,
+    } = instance;
+
+    const requiredFields = [fromAccountId, toAccountId, fromAccountType, toAccountType]
+
+    if (transactionType === TRANSACTION_TYPES.transfer) {
+      if (requiredFields.some(item => item === undefined)) {
+        throw new ValidationError({
+          message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
+        });
+      }
+      if (![fromAccountId, toAccountId].some(item => item === accountId)) {
+        throw new ValidationError({
+          message: `"accountId" should be one of "toAccountId" or "fromAccountId"`,
+        });
+      }
+    }
+  }
 }
 
 export const getTransactions = async ({
@@ -315,7 +344,7 @@ export const updateTransactionById = async (
     id: number;
     amount?: number;
     note?: string;
-    time?: Date;
+    time?: string;
     userId: number;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
