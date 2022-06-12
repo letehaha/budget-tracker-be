@@ -2,6 +2,5 @@ FROM node:16.13.1
 WORKDIR /app
 COPY . .
 RUN npm ci
-RUN npm run migrate
-RUN npm run seed
+ENV NODE_ENV=production
 CMD ["/bin/sh", "-c", "npm run prod"]
