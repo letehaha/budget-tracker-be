@@ -6,7 +6,7 @@ const connection: {
   sequelize?: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Sequelize?: any,
-}= {};
+} = {};
 
 const DBConfig: Record<string, unknown> = config.get('db');
 
@@ -16,12 +16,6 @@ const sequelize = new Sequelize({
 });
 
 console.log('DBConfig', DBConfig);
-
-// Object.keys(connection).forEach((modelName) => {
-//   if (connection[modelName].associate) {
-//     connection[modelName].associate(connection);
-//   }
-// });
 
 connection.sequelize = sequelize;
 connection.Sequelize = Sequelize;
