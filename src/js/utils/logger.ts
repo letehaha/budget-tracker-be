@@ -48,8 +48,8 @@ const formatErrorToString = (error: string | Error) => {
 
 function loggerErrorHandler(message: string, ...extra: Record<string, unknown>[]): void;
 function loggerErrorHandler(error: Error, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(messageParam: { message: string, error?: Error } | string | Error, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(messageParam: { message?: string, error: Error } | string | Error, ...extra: Record<string, unknown>[]): void;
+function loggerErrorHandler(messageParam: { message: string, error?: Error }, ...extra: Record<string, unknown>[]): void;
+function loggerErrorHandler(messageParam: { message?: string, error: Error }, ...extra: Record<string, unknown>[]): void;
 function loggerErrorHandler(messageParam: { message?: string, error?: Error } | string | Error, ...extra: Record<string, unknown>[]): void {
   let messageReult = ''
 
