@@ -17,7 +17,7 @@ import * as MerchantCategoryCodes from '../../models/MerchantCategoryCodes.model
 import * as UserMerchantCategoryCodes from '../../models/UserMerchantCategoryCodes.model';
 import * as Users from '../../models/Users.model';
 
-import { logger } from '../../js/utils';
+import { logger} from '@js/utils/logger';
 
 const SORT_DIRECTIONS = {
   asc: 'asc',
@@ -133,7 +133,7 @@ async function createMonoTransaction({ data, account, userId }) {
   });
 
   // eslint-disable-next-line no-console
-  console.log(`New MONOBANK transaction! Amount is ${data.amount}`);
+  logger.info(`New MONOBANK transaction! Amount is ${data.amount}`);
 }
 
 export const pairAccount = async (req, res: CustomResponse) => {
