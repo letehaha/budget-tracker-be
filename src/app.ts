@@ -10,6 +10,7 @@ import { createClient } from 'redis';
 import locale from 'locale';
 import passport from 'passport';
 import { promisify } from 'util';
+import { logger} from '@js/utils/logger';
 
 /**
  *  Routes
@@ -35,9 +36,8 @@ const redisClient = createClient({
   host: config.get('redis.host'),
 });
 
-redisClient.on('error', (error: unknown) => {
-  // eslint-disable-next-line no-undef
-  console.error('Redis Client Error', error);
+redisClient.on('error', (error: Error) => {
+  logger.error({ message: 'Redis Client Error', error });
 });
 
 ['get', 'set', 'del', 'expire'].forEach((item) => {
@@ -77,5 +77,5 @@ app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 app.listen(app.get('port'), () => {
   // eslint-disable-next-line no-console
   // eslint-disable-next-line no-undef
-  console.log(`[OK] Server is running on localhost:${app.get('port')}`);
+  logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
 });

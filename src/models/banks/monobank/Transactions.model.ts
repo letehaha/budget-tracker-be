@@ -7,12 +7,14 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
-import Users from '../../Users.model';
-import Currencies from '../../Currencies.model';
-import Categories from '../../Categories.model';
+import Users from '@models/Users.model';
+import Currencies from '@models/Currencies.model';
+import Categories from '@models/Categories.model';
 import MonobankAccounts from './Accounts.model';
 
-import { isExist } from '../../../js/helpers';
+import { isExist } from '@js/helpers';
+
+import { logger} from '@js/utils/logger';
 
 const prepareTXInclude = (
   {
@@ -298,7 +300,7 @@ export const createTransaction = async ({
   const tx = await getTransactionByOriginalId({ originalId, userId });
 
   if (tx) {
-    console.error('Transaction with such id already exist!');
+    logger.error('Transaction with such id already exist!');
     return undefined;
   }
 

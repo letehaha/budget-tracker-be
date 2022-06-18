@@ -7,6 +7,7 @@ import { connection } from '@models/index';
 import * as userService from '@services/user.service';
 import * as categoriesService from '@services/categories.service';
 import { DEFAULT_CATEGORIES } from '@js/const';
+import { logger} from '@js/utils/logger';
 import { Unauthorized, NotFoundError, UnexpectedError, ConflictError } from '@js/errors';
 
 export const login = async (
@@ -53,8 +54,7 @@ export const login = async (
       'User not found!'
     )
   } catch (err) {
-    // TODO: log error
-    console.error(err)
+    logger.error(err)
     throw err
   }
 };
@@ -171,8 +171,7 @@ export const register = async (
       await registrationTransaction.rollback();
     }
 
-    // TODO: log error
-    console.error(err)
+    logger.error(err)
     throw err
   }
 };

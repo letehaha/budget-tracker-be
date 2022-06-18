@@ -2,8 +2,9 @@ import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES, ERROR_CODES } from 'sh
 
 import { Transaction } from 'sequelize/types';
 
-import { connection } from '@models/index';
 import { UnexpectedError } from '@js/errors'
+import { logger} from '@js/utils/logger';
+import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as accountsService from '@services/accounts.service';
 
@@ -54,7 +55,7 @@ export const updateAccountBalance = async (
       { transaction },
     )
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     throw new UnexpectedError(
       ERROR_CODES.txServiceUpdateBalance,
       'Cannot update balance.'
@@ -226,9 +227,8 @@ export const createTransaction = async ({
     }
 
   } catch (e) {
-    // TODO: add logger
     if (process.env.NODE_ENV !== 'test') {
-      console.error(e);
+      logger.error(e);
     }
     await transaction.rollback();
     throw e;
@@ -404,9 +404,8 @@ export const updateTransaction = async ({
       return [tx1, tx2];
     }
   } catch (e) {
-    // TODO: add logger
     if (process.env.NODE_ENV !== 'test') {
-      console.error(e);
+      logger.error(e);
     }
     await transaction.rollback();
     throw e;
@@ -466,15 +465,13 @@ export const deleteTransaction = async ({
 
       await Transactions.deleteTransactionById({ id: oppositeId, userId }, { transaction });
     } else if (transactionType === TRANSACTION_TYPES.transfer && !oppositeId) {
-      // TODO: add error logger that Transfer function does not have oppositeId for some reason
-      console.log('NO OPPOSITE ID FOR TRANSFER TYPE')
+      logger.info('NO OPPOSITE ID FOR TRANSFER TYPE')
     }
 
     await transaction.commit();
   } catch (e) {
-    // TODO: add logger
     if (process.env.NODE_ENV !== 'test') {
-      console.error(e);
+      logger.error(e);
     }
     await transaction.rollback();
     throw e
