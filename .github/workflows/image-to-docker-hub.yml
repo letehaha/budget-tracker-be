@@ -37,11 +37,15 @@ jobs:
 
       - name: Show secrets
         run: |
-          echo ${{ secrets.VPS_HOST }}
-          echo ${{ secrets.VPS_USERNAME }}
-          echo ${{ secrets.VPS_SSH_KEY }}
-          echo ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
-
+          'echo "$VPS_HOST" > key'
+          'echo "$VPS_USERNAME" > key'
+          'echo "$VPS_SSH_KEY" > key'
+          'echo "$VPS_SSH_KEY_PASSPHRASE" > key'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KEY_PASSPHRASE: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
       - name: Actualize docker images on VPS
         uses: appleboy/ssh-action@master
         with:
