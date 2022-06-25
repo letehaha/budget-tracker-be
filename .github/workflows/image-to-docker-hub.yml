@@ -35,6 +35,13 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
+      - name: Show secrets
+        run: |
+          echo ${{ secrets.VPS_HOST }}
+          echo ${{ secrets.VPS_USERNAME }}
+          echo ${{ secrets.VPS_SSH_KEY }}
+          echo ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+
       - name: Actualize docker images on VPS
         uses: appleboy/ssh-action@master
         with:
