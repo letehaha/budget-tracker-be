@@ -17,7 +17,7 @@ const createWinstonLogger = () => {
       // - Write all logs with importance level of `info` or less to `combined.log`
       //
       new transports.File({ filename: 'error.log', level: 'error' }),
-      new transports.File({ filename: 'combined.log' }),
+      // new transports.File({ filename: 'combined.log' }),
       new transports.Console(),
     ],
   });
