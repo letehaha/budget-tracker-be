@@ -56,6 +56,12 @@ export const updateAccountBalance = async (
     )
   } catch (e) {
     logger.error(e);
+    if (!accountId) {
+      throw new UnexpectedError(
+        ERROR_CODES.txServiceUpdateBalance,
+        'Cannot update balance. "accountId" is missing.',
+      )
+    }
     throw new UnexpectedError(
       ERROR_CODES.txServiceUpdateBalance,
       'Cannot update balance.'
@@ -431,18 +437,21 @@ export const deleteTransaction = async ({
       transactionType,
     } = await getTransactionById({ id, userId }, { transaction });
 
-    await updateAccountBalance(
-      {
-        userId,
-        accountId,
-        // make new amount 0, so the balance won't depend on this tx anymore
-        amount: 0,
-        previousAmount: transactionType === TRANSACTION_TYPES.transfer
-          ? previousAmount * -1
-          : previousAmount,
-      },
-      { transaction },
-    );
+    // It might be the case that accountId is not specified in the tx
+    if (accountId !== null) {
+      await updateAccountBalance(
+        {
+          userId,
+          accountId,
+          // make new amount 0, so the balance won't depend on this tx anymore
+          amount: 0,
+          previousAmount: transactionType === TRANSACTION_TYPES.transfer
+            ? previousAmount * -1
+            : previousAmount,
+        },
+        { transaction },
+      );
+    }
 
     await Transactions.deleteTransactionById({ id, userId }, { transaction });
 
