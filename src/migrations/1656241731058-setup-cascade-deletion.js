@@ -4,9 +4,10 @@
 // 4. On system user deletion, delete all associated mono users
 // 5. On monobank account deletion, delete all associated mono transactions
 // 6. On system user deletion, delete all associated categories
+// 7. On system user deletion, delete all associated accounts
 
-// 7. On system user deletion, delete all associated user currencies
-// 8. On system user deletion, delete all associated user MCC codes
+// 8. On system user deletion, delete all associated user currencies
+// 9. On system user deletion, delete all associated user MCC codes
 
 module.exports = {
   up: async (queryInterface) => {
@@ -118,6 +119,25 @@ module.exports = {
         fields: ['userId'],
         type: 'foreign key',
         name: 'Categories_userId_fkey',
+        references: {
+          table: 'Users',
+          field: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+        transaction,
+      });
+
+      // 7. On system user deletion, delete all associated accounts
+      await queryInterface.removeConstraint(
+        'Accounts',
+        'Accounts_userId_fkey',
+        { transaction }
+      );
+      await queryInterface.addConstraint('Accounts', {
+        fields: ['userId'],
+        type: 'foreign key',
+        name: 'Accounts_userId_fkey',
         references: {
           table: 'Users',
           field: 'id',
@@ -241,6 +261,25 @@ module.exports = {
         fields: ['userId'],
         type: 'foreign key',
         name: 'Categories_userId_fkey',
+        references: {
+          table: 'Users',
+          field: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+        transaction,
+      });
+
+      // 7. On system user deletion, delete all associated accounts
+      await queryInterface.removeConstraint(
+        'Accounts',
+        'Accounts_userId_fkey',
+        { transaction }
+      );
+      await queryInterface.addConstraint('Accounts', {
+        fields: ['userId'],
+        type: 'foreign key',
+        name: 'Accounts_userId_fkey',
         references: {
           table: 'Users',
           field: 'id',
