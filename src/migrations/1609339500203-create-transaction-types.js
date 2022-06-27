@@ -1,5 +1,3 @@
-const { TRANSACTION_TYPES } = require('../js/const');
-
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('TransactionTypes', {
@@ -21,9 +19,9 @@ module.exports = {
     });
 
     await queryInterface.bulkInsert('TransactionTypes', [
-      { name: 'Income', type: TRANSACTION_TYPES.income },
-      { name: 'Expense', type: TRANSACTION_TYPES.expense },
-      { name: 'Transfer', type: TRANSACTION_TYPES.transfer },
+      { name: 'Income', type: 'income' },
+      { name: 'Expense', type: 'expense' },
+      { name: 'Transfer', type: 'transfer' },
     ], {});
   },
   down: async (queryInterface) => {

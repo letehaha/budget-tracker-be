@@ -1,7 +1,5 @@
 require('module-alias/register');
 
-const { CATEGORY_TYPES } = require('../js/const');
-
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('Categories', {
@@ -25,9 +23,9 @@ module.exports = {
         allowNull: false,
       },
       type: {
-        type: Sequelize.ENUM(Object.values(CATEGORY_TYPES)),
+        type: Sequelize.ENUM(Object.values('internal', 'custom')),
         allowNull: false,
-        default: CATEGORY_TYPES.custom,
+        default: 'custom',
       },
       parentId: {
         type: Sequelize.INTEGER,
