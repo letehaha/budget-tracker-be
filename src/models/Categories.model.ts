@@ -1,5 +1,5 @@
 import { Transaction } from 'sequelize/types';
-import { ERROR_CODES } from 'shared-types';
+import { ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
 import {
   Table,
   Column,
@@ -8,16 +8,9 @@ import {
   DataType,
   BelongsToMany,
 } from 'sequelize-typescript';
-import { CATEGORY_TYPES } from '../js/const';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
-
-// TODO: move to global types
-enum CategoryTypes {
-  internal = 'internal',
-  custom = 'custom',
-}
 
 @Table({
   timestamps: false,
@@ -43,9 +36,9 @@ export default class Categories extends Model {
   @Column({
     allowNull: false,
     defaultValue: CATEGORY_TYPES.custom,
-    type: DataType.ENUM({ values: Object.keys(CategoryTypes) }),
+    type: DataType.ENUM({ values: Object.values(CATEGORY_TYPES) }),
   })
-  type: CategoryTypes;
+  type: CATEGORY_TYPES;
 
   @Column({ allowNull: true })
   parentId: number;
@@ -75,14 +68,14 @@ export const createCategory = async (
     name,
     imageUrl,
     color,
-    type = CategoryTypes.custom,
+    type = CATEGORY_TYPES.custom,
     parentId,
     userId,
   }: {
     name: string;
     imageUrl?: string;
     color?: string;
-    type?: CategoryTypes;
+    type?: CATEGORY_TYPES;
     parentId?: number;
     userId: number;
   },
