@@ -35,4 +35,9 @@ export enum TRANSACTION_TYPES {
   transfer = 'transfer',
 }
 
+export enum CATEGORY_TYPES {
+  custom = 'custom',
+  internal = 'internal',
+}
+
 export * from './error-codes';

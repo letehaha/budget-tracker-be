@@ -1,4 +1,4 @@
-import CATEGORY_TYPES from './category-types.const';
+import { CATEGORY_TYPES } from 'shared-types';
 
 const CATEGORY_NAMES = Object.freeze({
   food: 'Food & Drinks',
@@ -14,7 +14,7 @@ const CATEGORY_NAMES = Object.freeze({
   other: 'Other',
 });
 
-export default {
+export const DEFAULT_CATEGORIES = Object.freeze({
   main: [
     {
       name: CATEGORY_NAMES.food,
@@ -401,4 +401,4 @@ export default {
     },
   ],
   names: CATEGORY_NAMES,
-};
+});
