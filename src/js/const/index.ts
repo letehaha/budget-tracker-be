@@ -1,1 +1,1 @@
-export { DEFAULT_CATEGORIES } from './default-categories.const';
+export * from './default-categories.const';
