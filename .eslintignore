@@ -1,4 +1,3 @@
-src/seeders/**/*.js
-src/migrations/**/*.js
 .eslintrc.js
 config/db/config.js
+src/db/build/**/*.js

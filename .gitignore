@@ -1,3 +1,6 @@
+# Custom build outputs
+src/db/build
+
 # Configs
 .git
 

@@ -3,6 +3,7 @@
     "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
+    "resolveJsonModule": true,
     "rootDir": "./",
     "outDir": "./build",
     "baseUrl": "./src",
@@ -24,5 +25,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/db/**/*"]
 }

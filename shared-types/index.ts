@@ -19,6 +19,11 @@ export enum ACCOUNT_TYPES {
   monobank = 'monobank',
 }
 
+export enum CATEGORY_TYPES {
+  internal = 'internal',
+  custom = 'custom',
+}
+
 export enum PAYMENT_TYPES {
   bankTransfer = 'bankTransfer',
   voucher = 'voucher',

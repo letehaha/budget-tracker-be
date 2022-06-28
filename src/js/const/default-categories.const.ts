@@ -1,4 +1,4 @@
-import CATEGORY_TYPES from './category-types.const';
+import { CATEGORY_TYPES } from 'shared-types';
 
 const CATEGORY_NAMES = Object.freeze({
   food: 'Food & Drinks',

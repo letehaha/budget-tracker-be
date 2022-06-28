@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "rootDir": "../../",
+    "outDir": "./build",
+    "baseUrl": "./",
+    "paths": {
+      "shared-types": ["../../shared-types"],
+      "currency-codes": ["../../node_modules/currency-codes"],
+    },
+    "skipLibCheck": true,
+    "strict": false
+  },
+  "ignore": ["build"],
+}
