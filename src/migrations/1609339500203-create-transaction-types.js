@@ -19,9 +19,9 @@ module.exports = {
     });
 
     await queryInterface.bulkInsert('TransactionTypes', [
-      { name: 'Income', type: 'income' },
-      { name: 'Expense', type: 'expense' },
-      { name: 'Transfer', type: 'transfer' },
+      { name: 'Income', type: 1 },
+      { name: 'Expense', type: 2 },
+      { name: 'Transfer', type: 3 },
     ], {});
   },
   down: async (queryInterface) => {
