@@ -41,7 +41,7 @@ module.exports = {
       totalBalance: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        default: 0,
+        defaultValue: 0,
       },
       defaultCategoryId: {
         type: Sequelize.INTEGER,

@@ -15,12 +15,12 @@ module.exports = {
       balance: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        default: 0,
+        defaultValue: 0,
       },
       creditLimit: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        default: 0,
+        defaultValue: 0,
       },
       cashbackType: {
         type: Sequelize.STRING,
@@ -40,7 +40,7 @@ module.exports = {
       },
       isEnabled: {
         type: Sequelize.BOOLEAN,
-        default: false,
+        defaultValue: false,
         allowNull: false,
       },
       createdAt: {
@@ -53,7 +53,7 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
-        default: false,
+        defaultValue: false,
         allowNull: true,
       },
     });

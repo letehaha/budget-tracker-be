@@ -14,7 +14,6 @@ module.exports = {
         references: {
           model: 'Users',
           key: 'id',
-          as: 'userId',
         },
       },
       currencyId: {
@@ -23,7 +22,6 @@ module.exports = {
         references: {
           model: 'Currencies',
           key: 'id',
-          as: 'currencyId',
         },
       },
     });

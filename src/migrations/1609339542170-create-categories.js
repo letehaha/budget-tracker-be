@@ -23,7 +23,7 @@ module.exports = {
       type: {
         type: Sequelize.ENUM(['custom', 'internal']),
         allowNull: false,
-        default: 'custom',
+        defaultValue: 'custom',
       },
       parentId: {
         type: Sequelize.INTEGER,

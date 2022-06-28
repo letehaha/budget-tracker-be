@@ -14,7 +14,6 @@ module.exports = {
         references: {
           model: 'Categories',
           key: 'id',
-          as: 'categoryId',
         },
       },
       mccId: {
@@ -23,7 +22,6 @@ module.exports = {
         references: {
           model: 'MerchantCategoryCodes',
           key: 'id',
-          as: 'mccId',
         },
       },
       userId: {
@@ -32,7 +30,6 @@ module.exports = {
         references: {
           model: 'Users',
           key: 'id',
-          as: 'userId',
         },
       },
     });
