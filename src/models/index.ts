@@ -15,7 +15,9 @@ const sequelize = new Sequelize({
   models: [__dirname + '/**/*.model.ts'],
 });
 
-console.log('DBConfig', DBConfig);
+if (process.env.NODE_ENV === 'development') {
+  console.log('DBConfig', DBConfig);
+}
 
 connection.sequelize = sequelize;
 connection.Sequelize = Sequelize;
