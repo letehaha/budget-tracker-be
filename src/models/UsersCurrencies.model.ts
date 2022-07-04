@@ -26,4 +26,22 @@ export default class UsersCurrencies extends Model {
   @ForeignKey(() => Currencies)
   @Column({ allowNull: false })
   currencyId: number;
+
+  @Column({
+    allowNull: true,
+    defaultValue: null,
+  })
+  exchangeRate: number;
+
+  @Column({
+    allowNull: false,
+    defaultValue: false,
+  })
+  liveRateUpdate: boolean;
+
+  @Column({
+    allowNull: false,
+    defaultValue: false,
+  })
+  isDefaultCurrency: boolean;
 }
