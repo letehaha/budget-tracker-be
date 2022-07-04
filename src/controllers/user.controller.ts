@@ -23,29 +23,6 @@ export const getUser = async (req, res: CustomResponse) => {
   }
 };
 
-export const getUserCurrencies = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  try {
-    const result = await userService.getUserCurrencies({
-      userId: Number(userId),
-    });
-
-    return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
-  }
-};
-
 export const updateUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
@@ -116,3 +93,69 @@ export const deleteUser = async (req, res: CustomResponse) => {
     });
   }
 };
+
+export const getUserCurrencies = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  try {
+    const result = await userService.getUserCurrencies({
+      userId: Number(userId),
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
+  }
+};
+
+export const addUserCurrencies = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  const { currencies }: {
+    currencies: {
+      currencyId: number,
+      exchangeRate?: number;
+      liveRateUpdate?: boolean;
+    }[]
+  } = req.body;
+
+  // TODO: types validation
+
+  try {
+    const result = await userService.addUserCurrencies(
+      currencies.map(item => ({ userId, ...item })),
+    );
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    if (err.code === ERROR_CODES.validationError) {
+      return res.status(500).json({
+        status: RESPONSE_STATUS.error,
+        response: {
+          message: err.message,
+          code: ERROR_CODES.validationError,
+        },
+      });
+    }
+
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
+  }
+}

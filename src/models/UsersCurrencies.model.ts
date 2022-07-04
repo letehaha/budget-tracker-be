@@ -1,3 +1,4 @@
+import { Transaction } from 'sequelize/types';
 import {
   Table,
   Column,
@@ -46,6 +47,43 @@ export default class UsersCurrencies extends Model {
   isDefaultCurrency: boolean;
 }
 
-export const getCurrencies = ({ userId }: { userId: number }) => {
-  return UsersCurrencies.findAll({ where: { userId } });
+export const getCurrencies = (
+  { userId }: { userId: number },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return UsersCurrencies.findAll({
+    where: { userId },
+    transaction,
+  });
+};
+
+export const addCurrency = (
+  {
+    userId,
+    currencyId,
+    exchangeRate,
+    liveRateUpdate,
+    isDefaultCurrency,
+  }: {
+    userId: number;
+    currencyId: number;
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+    isDefaultCurrency?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return UsersCurrencies.create(
+    {
+      userId,
+      currencyId,
+      exchangeRate,
+      liveRateUpdate,
+      isDefaultCurrency,
+    },
+    {
+      returning: true,
+      transaction,
+    },
+  );
 };
