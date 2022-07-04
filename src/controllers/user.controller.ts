@@ -25,12 +25,10 @@ export const getUser = async (req, res: CustomResponse) => {
 
 export const getUserCurrencies = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { includeUser } = req.query;
 
   try {
     const result = await userService.getUserCurrencies({
       userId: Number(userId),
-      includeUser: Boolean(includeUser),
     });
 
     return res.status(200).json({

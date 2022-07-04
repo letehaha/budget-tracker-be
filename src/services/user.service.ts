@@ -2,6 +2,7 @@
 import { Transaction } from 'sequelize/types';
 
 import * as Users from '@models/Users.model';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 export const getUser = async (id: number) => {
   try {
@@ -73,20 +74,13 @@ export const getUserByCredentials = async ({
 };
 
 export const getUserCurrencies = async (
-  {
-    userId,
-    includeUser,
-  }:
-  {
-    userId: number;
-    includeUser?: boolean;
-  },
+  { userId }:
+  { userId: number },
 ) => {
   try {
-    const user = await Users.getUserCurrencies({ userId });
-    const result = includeUser === undefined ? user.get('currencies') : user;
+    const list = await UsersCurrencies.getCurrencies({ userId });
 
-    return result;
+    return list;
   } catch (err) {
     throw err
   }

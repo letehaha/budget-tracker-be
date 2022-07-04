@@ -45,3 +45,7 @@ export default class UsersCurrencies extends Model {
   })
   isDefaultCurrency: boolean;
 }
+
+export const getCurrencies = ({ userId }: { userId: number }) => {
+  return UsersCurrencies.findAll({ where: { userId } });
+};
