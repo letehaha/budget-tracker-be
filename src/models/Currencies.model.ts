@@ -1,5 +1,6 @@
 import cc from 'currency-codes';
 import { Transaction } from 'sequelize/types';
+import { Op } from 'sequelize';
 import {
   Table,
   Column,
@@ -12,6 +13,7 @@ import {
 } from 'sequelize-typescript';
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
+import { ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -66,6 +68,33 @@ export async function getCurrency(
   const currencies = await Currencies.findOne({ where: { id, currency, number, code }, transaction });
 
   return currencies;
+}
+
+export async function getCurrencies(
+  {
+    ids,
+    currencies,
+    numbers,
+    codes,
+  }: {
+    ids?: number[];
+    numbers?: number[];
+    currencies?: string[];
+    codes?: string[]
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) {
+  if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
+    throw new ValidationError({ message: 'Neither "ids", "currencies" or "codes" should be specified.' })
+  }
+  const where: Record<string, unknown> = {};
+
+  if (ids) where.id = { [Op.in]: ids }
+  if (currencies) where.currency = { [Op.in]: currencies }
+  if (codes) where.code = { [Op.in]: codes }
+  if (numbers) where.number = { [Op.in]: numbers }
+
+  return Currencies.findAll({ where, transaction });
 }
 
 export const createCurrency = async ({ code }) => {

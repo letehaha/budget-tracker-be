@@ -150,10 +150,17 @@ export const addUserCurrencies = async (
     exchangeRate?: number;
     liveRateUpdate?: boolean;
   }[],
+  { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
+  const isTxPassedFromAbove = transaction !== undefined;
+
+  transaction = transaction ?? await connection.sequelize.transaction();
 
   try {
+    if (!currencies.length) {
+      throw new ValidationError({ message: 'Currencies list is empty' });
+    }
+
     const existingCurrencies = await UsersCurrencies.getCurrencies({ userId: currencies[0].userId });
     const duplicatedCurrencies = [];
 
@@ -173,11 +180,15 @@ export const addUserCurrencies = async (
       currencies.map(item => UsersCurrencies.addCurrency(item, { transaction }))
     );
 
-    await transaction.commit();
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
 
     return result;
   } catch (err) {
-    await transaction.rollback();
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
 
     throw err;
   }
@@ -235,8 +246,11 @@ export const setDefaultUserCurrency = async (
     userId: number;
     currencyId: number;
   },
+  { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
+  const isTxPassedFromAbove = transaction !== undefined;
+
+  transaction = transaction ?? await connection.sequelize.transaction();
 
   try {
     const passedCurrency = await UsersCurrencies.getCurrency(
@@ -262,11 +276,15 @@ export const setDefaultUserCurrency = async (
       isDefaultCurrency: true,
     }, { transaction });
 
-    await transaction.commit();
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
 
     return result;
   } catch (err) {
-    await transaction.rollback();
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
 
     throw err;
   }
