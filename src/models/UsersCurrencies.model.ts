@@ -1,4 +1,5 @@
 import { Transaction } from 'sequelize/types';
+import { Op } from 'sequelize';
 import {
   Table,
   Column,
@@ -57,6 +58,16 @@ export const getCurrencies = (
   });
 };
 
+export const getCurrency = (
+  { userId, currencyId }: { userId: number; currencyId: number; },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return UsersCurrencies.findAll({
+    where: { userId, currencyId },
+    transaction,
+  });
+};
+
 export const addCurrency = (
   {
     userId,
@@ -86,4 +97,86 @@ export const addCurrency = (
       transaction,
     },
   );
+};
+
+export const updateCurrency = async (
+  {
+    userId,
+    currencyId,
+    exchangeRate,
+    liveRateUpdate,
+    isDefaultCurrency,
+  }: {
+    userId: number;
+    currencyId: number;
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+    isDefaultCurrency?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+
+  const where = { userId, currencyId };
+
+  await UsersCurrencies.update(
+    {
+      exchangeRate,
+      liveRateUpdate,
+      isDefaultCurrency,
+    },
+    {
+      where,
+      transaction,
+    },
+  );
+
+  const currency = await getCurrency(where, { transaction });
+
+  return currency;
+};
+
+export const updateCurrencies = async (
+  {
+    userId,
+    currencyIds,
+    exchangeRate,
+    liveRateUpdate,
+    isDefaultCurrency,
+  }: {
+    userId: number;
+    currencyIds?: number[];
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+    isDefaultCurrency?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+
+  const where: {
+    userId: number;
+    currencyId?: { [Op.in]: number[] };
+  } = { userId };
+
+  if (currencyIds?.length) {
+    where.currencyId = {
+      [Op.in]: currencyIds,
+    }
+  }
+
+  await UsersCurrencies.update(
+    {
+      exchangeRate,
+      liveRateUpdate,
+      isDefaultCurrency,
+    },
+    {
+      where,
+      transaction,
+    },
+  );
+
+  return UsersCurrencies.findAll({
+    where,
+    transaction,
+  });
 };

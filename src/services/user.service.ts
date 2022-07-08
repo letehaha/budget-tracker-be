@@ -181,3 +181,92 @@ export const addUserCurrencies = async (
     throw err;
   }
 };
+
+export const editUserCurrency = async (
+  {
+    userId,
+    currencyId,
+    exchangeRate,
+    liveRateUpdate,
+  }: {
+    userId: number;
+    currencyId: number;
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+  },
+) => {
+  const transaction: Transaction = await connection.sequelize.transaction();
+
+  try {
+    const passedCurrency = await UsersCurrencies.getCurrency(
+      { userId, currencyId },
+      { transaction },
+    );
+
+    if (!passedCurrency || !passedCurrency.length) {
+      throw new ValidationError({
+        message: `Currency with id "${currencyId}" does not exist.`,
+      });
+    }
+
+    const result = await UsersCurrencies.updateCurrency({
+      userId,
+      currencyId,
+      exchangeRate,
+      liveRateUpdate,
+    }, { transaction });
+
+    await transaction.commit();
+
+    return result;
+  } catch (err) {
+    await transaction.rollback();
+
+    throw err;
+  }
+};
+
+export const setDefaultUserCurrency = async (
+  {
+    userId,
+    currencyId,
+  }: {
+    userId: number;
+    currencyId: number;
+  },
+) => {
+  const transaction: Transaction = await connection.sequelize.transaction();
+
+  try {
+    const passedCurrency = await UsersCurrencies.getCurrency(
+      { userId, currencyId },
+      { transaction },
+    );
+
+    if (!passedCurrency || !passedCurrency.length) {
+      throw new ValidationError({
+        message: `Currency with id "${currencyId}" does not exist.`,
+      });
+    }
+
+    // Make all curerncies not default
+    await UsersCurrencies.updateCurrencies({
+      userId,
+      isDefaultCurrency: false,
+    }, { transaction });
+
+    const result = await UsersCurrencies.updateCurrency({
+      userId,
+      currencyId,
+      isDefaultCurrency: true,
+    }, { transaction });
+
+    await transaction.commit();
+
+    return result;
+  } catch (err) {
+    await transaction.rollback();
+
+    throw err;
+  }
+};
