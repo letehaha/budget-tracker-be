@@ -4,6 +4,7 @@ import { Transaction } from 'sequelize/types';
 import { connection } from '@models/index';
 import { ValidationError } from '@js/errors'
 import * as Users from '@models/Users.model';
+import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 export const getUser = async (id: number) => {
@@ -203,7 +204,7 @@ export const editUserCurrency = async (
       { transaction },
     );
 
-    if (!passedCurrency || !passedCurrency.length) {
+    if (!passedCurrency) {
       throw new ValidationError({
         message: `Currency with id "${currencyId}" does not exist.`,
       });
@@ -243,7 +244,7 @@ export const setDefaultUserCurrency = async (
       { transaction },
     );
 
-    if (!passedCurrency || !passedCurrency.length) {
+    if (!passedCurrency) {
       throw new ValidationError({
         message: `Currency with id "${currencyId}" does not exist.`,
       });
@@ -264,6 +265,61 @@ export const setDefaultUserCurrency = async (
     await transaction.commit();
 
     return result;
+  } catch (err) {
+    await transaction.rollback();
+
+    throw err;
+  }
+};
+
+export const deleteUserCurrency = async (
+  {
+    userId,
+    currencyId,
+  }: {
+    userId: number;
+    currencyId: number;
+  },
+) => {
+  const transaction: Transaction = await connection.sequelize.transaction();
+
+  try {
+    const passedCurrency = await UsersCurrencies.getCurrency(
+      { userId, currencyId },
+      { transaction },
+    );
+
+    if (!passedCurrency) {
+      throw new ValidationError({
+        message: `Currency with id "${currencyId}" does not exist.`,
+      });
+    }
+
+    if (passedCurrency.isDefaultCurrency) {
+      throw new ValidationError({
+        message: `It is not allowed to delete default currency. Unmake it default first.`,
+      });
+    }
+
+    const defaultCurrency = await UsersCurrencies.getCurrency(
+      { userId, isDefaultCurrency: true },
+      { transaction },
+    );
+
+    await Transactions.updateTransactions(
+      {
+        currencyId: defaultCurrency.currencyId,
+      },
+      { userId, currencyId: passedCurrency.currencyId },
+      { transaction },
+    );
+
+    await UsersCurrencies.deleteCurrency({
+      userId,
+      currencyId,
+    }, { transaction });
+
+    await transaction.commit();
   } catch (err) {
     await transaction.rollback();
 

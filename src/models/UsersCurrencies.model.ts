@@ -8,6 +8,7 @@ import {
 } from 'sequelize-typescript';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
+import { ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -59,11 +60,28 @@ export const getCurrencies = (
 };
 
 export const getCurrency = (
-  { userId, currencyId }: { userId: number; currencyId: number; },
+  {
+    userId,
+    currencyId,
+    isDefaultCurrency,
+  }: {
+    userId: number;
+    currencyId?: number;
+    isDefaultCurrency?: boolean;
+  },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  return UsersCurrencies.findAll({
-    where: { userId, currencyId },
+  if (currencyId === undefined && isDefaultCurrency === undefined) {
+    throw new ValidationError({ message: 'Neither "currencyId" or "isDefaultCurrency" should be specified.' })
+  }
+
+  const where: Record<string, unknown> = { userId }
+
+  if (currencyId) where.currencyId = currencyId
+  if (isDefaultCurrency) where.isDefaultCurrency = isDefaultCurrency
+
+  return UsersCurrencies.findOne({
+    where,
     transaction,
   });
 };
@@ -133,6 +151,25 @@ export const updateCurrency = async (
   const currency = await getCurrency(where, { transaction });
 
   return currency;
+};
+
+export const deleteCurrency = async (
+  {
+    userId,
+    currencyId,
+  }: {
+    userId: number;
+    currencyId: number;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+
+  const where = { userId, currencyId };
+
+  return UsersCurrencies.destroy({
+    where,
+    transaction,
+  });
 };
 
 export const updateCurrencies = async (

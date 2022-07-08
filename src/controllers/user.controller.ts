@@ -177,3 +177,22 @@ export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
     errorHandler(res, err);
   }
 }
+
+export const deleteUserCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  const { currencyId }: { currencyId: number } = req.body;
+
+  try {
+    await userService.deleteUserCurrency({
+      userId,
+      currencyId,
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}

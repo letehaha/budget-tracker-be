@@ -1,7 +1,6 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
-import { ValidationError } from '@js/errors'
 import {
   Table,
   BeforeCreate,
@@ -11,7 +10,8 @@ import {
   Length,
   ForeignKey,
 } from 'sequelize-typescript';
-import { isExist } from '../js/helpers';
+import { isExist } from '@js/helpers';
+import { ValidationError } from '@js/errors'
 import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
@@ -466,6 +466,60 @@ export const updateTransactionById = async (
   );
 
   return getTransactionById({ id, authorId }, { transaction });
+};
+
+export const updateTransactions = (
+  {
+    amount,
+    note,
+    time,
+    transactionType,
+    paymentType,
+    accountId,
+    categoryId,
+    fromAccountId,
+    fromAccountType,
+    toAccountId,
+    toAccountType,
+    oppositeId,
+    currencyId,
+  }: {
+    amount?: number;
+    note?: string;
+    time?: string;
+    transactionType?: TRANSACTION_TYPES;
+    paymentType?: PAYMENT_TYPES;
+    accountId?: number;
+    categoryId?: number;
+    fromAccountId?: number;
+    fromAccountType?: ACCOUNT_TYPES;
+    toAccountId?: number;
+    toAccountType?: ACCOUNT_TYPES;
+    oppositeId?: number;
+    accountType?: ACCOUNT_TYPES;
+    currencyId?: number;
+  },
+  where: Record<string, unknown>,
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return Transactions.update(
+    {
+      amount,
+      note,
+      time,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      fromAccountId,
+      fromAccountType,
+      toAccountId,
+      toAccountType,
+      oppositeId,
+      currencyId,
+    },
+    { where, transaction },
+  );
 };
 
 export const deleteTransactionById = (
