@@ -62,10 +62,24 @@ export async function getCurrency({ number }: { number: number })
 export async function getCurrency({ code }: { code: string })
 export async function getCurrency(
   { id, currency, number, code }:
-  { id?: number; currency?: string; digits?: number; number?: number; code?: string },
+  {
+    id?: number;
+    currency?: string;
+    number?: number;
+    code?: string;
+  },
   { transaction }: { transaction?: Transaction } = {},
 ) {
-  const currencies = await Currencies.findOne({ where: { id, currency, number, code }, transaction });
+  const currencies = await Currencies.findOne({
+    where: { id, currency, number, code },
+    include: [
+      {
+        model: Users,
+
+      }
+    ],
+    transaction,
+  });
 
   return currencies;
 }
