@@ -32,7 +32,6 @@ export enum PAYMENT_TYPES {
 export enum TRANSACTION_TYPES {
   income = 'income',
   expense = 'expense',
-  transfer = 'transfer',
 }
 
 export enum CATEGORY_TYPES {
