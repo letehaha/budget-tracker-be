@@ -65,7 +65,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       const txs = await connection.sequelize
         .query(
           `SELECT * FROM(
-            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
+            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "authorId"=${userId}
             UNION
             SELECT "id", "time", "accountType" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
