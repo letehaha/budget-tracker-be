@@ -275,7 +275,17 @@ export const getTransactionsByArrayOfField = async (
     includeCategory,
     includeAll,
     nestedInclude,
-  }, { transaction }: { transaction?: Transaction } = {}
+  }: {
+    fieldValues: unknown[];
+    fieldName: string;
+    authorId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
 ) => {
   const include = prepareTXInclude({
     includeUser,

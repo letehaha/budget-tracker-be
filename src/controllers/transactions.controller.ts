@@ -245,40 +245,4 @@ export const updateTransaction = async (req, res: CustomResponse) => {
   // }
 };
 
-export const deleteTransaction = async (req, res: CustomResponse) => {
-  // try {
-  //   const { id } = req.params;
-  //   const { id: userId } = req.user;
-
-  //   const tx = await transactionsService.getTransactionById({ id, userId });
-
-  //   validateTransactionOppositeChange(tx.id, tx.oppositeId);
-
-  //   await transactionsService.deleteTransaction({ id, userId })
-
-  //   return res.status(200).json({
-  //     status: RESPONSE_STATUS.success,
-  //     response: {},
-  //   });
-  // } catch (err) {
-  //   if (err instanceof CustomError) {
-  //     return res.status(err.httpCode).json({
-  //       status: RESPONSE_STATUS.error,
-  //       response: {
-  //         message: err.message,
-  //         code: err.code,
-  //       },
-  //     });
-  //   }
-
-  //   return res.status(500).json({
-  //     status: RESPONSE_STATUS.error,
-  //     response: {
-  //       message: 'Unexpected error.',
-  //       code: ERROR_CODES.unexpected,
-  //     },
-  //   });
-  // }
-};
-
-export { createTransaction } from './transactions.controller/index';
+export * from './transactions.controller/index';
