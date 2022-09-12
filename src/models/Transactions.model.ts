@@ -265,6 +265,41 @@ export const getTransactionById = (
   });
 };
 
+export const getTransactionsByTransferId = (
+  {
+    transferId,
+    authorId,
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }: {
+    transferId: number;
+    authorId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  const include = prepareTXInclude({
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  });
+
+  return Transactions.findAll({
+    where: { transferId, authorId },
+    include,
+    transaction,
+  });
+};
+
 export const getTransactionsByArrayOfField = async (
   {
     fieldValues,
@@ -345,23 +380,6 @@ export const createTransaction = async (
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  console.log('params', {
-    amount,
-    refAmount,
-    note,
-    time,
-    authorId,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    accountType,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    isTransfer,
-    transferId,
-  })
   const response = await Transactions.create({
     amount,
     refAmount,
@@ -395,6 +413,7 @@ export const updateTransactionById = async (
   {
     id,
     amount,
+    refAmount,
     note,
     time,
     authorId,
@@ -402,29 +421,27 @@ export const updateTransactionById = async (
     paymentType,
     accountId,
     categoryId,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    oppositeId,
     currencyId,
+    currencyCode,
+    refCurrencyCode,
+    isTransfer,
+    transferId,
   }: {
     id: number;
-    amount?: number;
+    amount: number;
+    refAmount: number;
     note?: string;
-    time?: string;
+    time: string;
     authorId: number;
-    transactionType?: TRANSACTION_TYPES;
-    paymentType?: PAYMENT_TYPES;
-    accountId?: number;
-    categoryId?: number;
-    fromAccountId?: number;
-    fromAccountType?: ACCOUNT_TYPES;
-    toAccountId?: number;
-    toAccountType?: ACCOUNT_TYPES;
-    oppositeId?: number;
-    accountType?: ACCOUNT_TYPES;
-    currencyId?: number;
+    transactionType: TRANSACTION_TYPES;
+    paymentType: PAYMENT_TYPES;
+    accountId: number;
+    categoryId: number;
+    currencyId: number;
+    currencyCode: string;
+    refCurrencyCode?: string;
+    isTransfer?: boolean;
+    transferId?: string;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
@@ -432,17 +449,17 @@ export const updateTransactionById = async (
   await Transactions.update(
     {
       amount,
+      refAmount,
       note,
       time,
       transactionType,
       paymentType,
       accountId,
       categoryId,
-      fromAccountId,
-      fromAccountType,
-      toAccountId,
-      toAccountType,
-      oppositeId,
+      currencyCode,
+      refCurrencyCode,
+      isTransfer,
+      transferId,
       currencyId,
     },
     { where, transaction },

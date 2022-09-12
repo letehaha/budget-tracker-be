@@ -2,13 +2,12 @@ import {
   CustomResponse,
   ERROR_CODES,
   ACCOUNT_TYPES,
-  TRANSACTION_TYPES,
   RESPONSE_STATUS,
 } from 'shared-types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 
-import { CustomError, ValidationError } from '@js/errors'
+import { ValidationError } from '@js/errors'
 
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
@@ -20,31 +19,6 @@ const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
   desc: 'DESC',
 });
-
-const validateTransactionAmount = (amount): void => {
-  if (amount === 0) throw new ValidationError({ message: 'Amount cannot be 0.' });
-};
-
-const validateTransactionAmountByType = (
-  amount: number,
-  type: TRANSACTION_TYPES,
-) => {
-  if (type === TRANSACTION_TYPES.income && amount < 0) {
-    throw new ValidationError({ message: `Amount cannot be negative when transaction type is "${TRANSACTION_TYPES.income}".`})
-  }
-  if (type === TRANSACTION_TYPES.expense && amount > 0) {
-    throw new ValidationError({ message: `Amount cannot be positive when transaction type is "${TRANSACTION_TYPES.expense}".`})
-  }
-};
-
-const validateTransactionOppositeChange = (
-  id: number,
-  oppositeId: number,
-) => {
-  if (id === oppositeId) {
-    throw new ValidationError({ message: 'You cannot edit or delete opposite transaction.'})
-  }
-};
 
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
@@ -185,64 +159,45 @@ export const getTransactionById = async (req, res: CustomResponse) => {
   }
 };
 
-// TODO:
+export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
+  try {
+    const { transferId } = req.params;
+    const { id: authorId } = req.user;
+    const {
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    } = req.query;
 
-export const updateTransaction = async (req, res: CustomResponse) => {
-  // try {
-  //   const { id } = req.params;
-  //   const {
-  //     amount,
-  //     note,
-  //     time,
-  //     transactionType,
-  //     paymentType,
-  //     accountId,
-  //     categoryId,
-  //   } = req.body;
-  //   const { id: userId } = req.user;
+    if (transferId === undefined) throw new ValidationError({ message: '"transferId" is required.' });
 
-  //   validateTransactionAmount(amount);
-  //   validateTransactionAmountByType(amount, transactionType);
+    const data = await transactionsService.getTransactionsByTransferId({
+      transferId,
+      authorId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
-  //   const tx = await transactionsService.getTransactionById({ id, userId });
-
-  //   validateTransactionOppositeChange(tx.id, tx.oppositeId);
-
-  //   const data = await transactionsService.updateTransaction({
-  //     id,
-  //     amount,
-  //     note,
-  //     time,
-  //     userId,
-  //     transactionType,
-  //     paymentType,
-  //     accountId,
-  //     categoryId,
-  //   });
-
-  //   return res.status(200).json({
-  //     status: RESPONSE_STATUS.success,
-  //     response: data,
-  //   });
-  // } catch (err) {
-  //   if (err instanceof CustomError) {
-  //     return res.status(err.httpCode).json({
-  //       status: RESPONSE_STATUS.error,
-  //       response: {
-  //         message: err.message,
-  //         code: err.code,
-  //       },
-  //     });
-  //   }
-
-  //   return res.status(500).json({
-  //     status: RESPONSE_STATUS.error,
-  //     response: {
-  //       message: 'Unexpected error.',
-  //       code: ERROR_CODES.unexpected,
-  //     },
-  //   });
-  // }
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: RESPONSE_STATUS.error,
+      response: {
+        message: 'Unexpected error.',
+        code: ERROR_CODES.unexpected,
+      },
+    });
+  }
 };
+
+// TODO:
 
 export * from './transactions.controller/index';

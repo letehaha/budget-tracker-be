@@ -1,21 +1,23 @@
 import {
   CustomResponse,
   ERROR_CODES,
-  ACCOUNT_TYPES,
   RESPONSE_STATUS,
 } from 'shared-types';
 
-import { CustomError} from '@js/errors'
+import { CustomError } from '@js/errors'
 
 import * as transactionsService from '@services/transactions.service';
 
 import { validateTransactionAmount } from './helpers';
 
-export const createTransaction = async (req, res: CustomResponse) => {
+export const updateTransaction = async (req, res: CustomResponse) => {
   try {
+    const { id } = req.params;
     const {
       amount,
       destinationAmount,
+      currencyId,
+      currencyCode,
       note,
       time,
       transactionType,
@@ -23,40 +25,31 @@ export const createTransaction = async (req, res: CustomResponse) => {
       accountId,
       destinationAccountId,
       categoryId,
-      currencyId,
-      currencyCode,
+      isTransfer,
       destinationCurrencyId,
       destinationCurrencyCode,
-      accountType = ACCOUNT_TYPES.system,
-      isTransfer,
     } = req.body;
     const { id: authorId } = req.user;
 
     validateTransactionAmount(amount);
 
-    // Add validations
-    // 1. That amount and destinationAmount are integers
-    // 2. If isTransfer, then all required fields are passed
-    // 3. That passed currencyId exists
-    // 4. Amount and destinationAmount with same currency should be equal
-
-    const data = await transactionsService.createTransaction({
+    const data = await transactionsService.updateTransaction({
+      id,
       amount,
       destinationAmount,
+      currencyId,
+      currencyCode,
       note,
       time,
+      authorId,
       transactionType,
       paymentType,
       accountId,
       destinationAccountId,
       categoryId,
-      accountType,
-      authorId,
-      currencyId,
-      currencyCode,
+      isTransfer,
       destinationCurrencyId,
       destinationCurrencyCode,
-      isTransfer,
     });
 
     return res.status(200).json({

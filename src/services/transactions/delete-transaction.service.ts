@@ -62,8 +62,6 @@ export const deleteTransaction = async ({
         authorId,
       });
 
-      console.log('transferTransactions', transferTransactions)
-
       await Promise.all(
         // For the each transaction with the same "transferId" update amount
         // and then delete transaction itself.
