@@ -153,7 +153,7 @@ interface UpdateTransferParams {
         fieldValues: [transferId],
         fieldName: 'transferId',
         authorId,
-      })).find(item => item.id !== id);
+      })).find(item => Number(item.id) !== Number(id));
 
       const destinationTransaction = await Transactions.updateTransactionById(
         {
@@ -163,7 +163,7 @@ interface UpdateTransferParams {
           note,
           time,
           authorId,
-          transactionType: transactionType,
+          transactionType: TRANSACTION_TYPES.income,
           paymentType: paymentType,
           accountId: destinationAccountId,
           categoryId,
@@ -174,14 +174,14 @@ interface UpdateTransferParams {
       );
 
       // If accountId was changed to a new one
-      if (accountId && accountId !== previousAccountId) {
+      if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
         // Make previous account's balance if like there was no transaction before
         await updateAccountBalance(
           {
-            accountId: previousAccountId,
+            accountId: notBaseTransaction.accountId,
             userId: authorId,
             amount: 0,
-            previousAmount: defineCorrectAmountFromTxType(previousAmount, previousTransactionType),
+            previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
           },
           { transaction },
         );
@@ -191,7 +191,7 @@ interface UpdateTransferParams {
           {
             accountId,
             userId: authorId,
-            amount: defineCorrectAmountFromTxType(amount, transactionType),
+            amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
             previousAmount: 0,
           },
           { transaction },
