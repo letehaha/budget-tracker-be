@@ -7,7 +7,7 @@ import { ValidationError } from '@js/errors';
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 
-import { getTransactionById } from './get-by-id.service';
+import { getTransactionById } from './get-by-id';
 import { updateAccountBalance } from './helpers';
 
 const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {

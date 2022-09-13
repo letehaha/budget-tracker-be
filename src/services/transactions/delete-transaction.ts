@@ -7,7 +7,7 @@ import { logger} from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
 
-import { getTransactionById } from './get-by-id.service';
+import { getTransactionById } from './get-by-id';
 import { updateAccountBalance } from './helpers';
 
 export const deleteTransaction = async ({
