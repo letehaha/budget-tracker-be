@@ -19,8 +19,6 @@ export const deleteTransaction = async ({
 }): Promise<void> => {
   let transaction: Transaction = null;
 
-  console.log('start deletion')
-
   try {
     transaction = await connection.sequelize.transaction();
 
@@ -32,12 +30,9 @@ export const deleteTransaction = async ({
       transactionType,
     } = await getTransactionById({ id, authorId }, { transaction });
 
-    console.log('isTransfer', isTransfer)
-
     if (!isTransfer) {
       // It might be the case that accountId is not specified in the tx
       if (accountId !== null) {
-        console.log('start updating account')
         await updateAccountBalance(
           {
             userId: authorId,
@@ -51,8 +46,6 @@ export const deleteTransaction = async ({
           { transaction },
         );
       }
-
-      console.log('start deleting tx')
 
       await Transactions.deleteTransactionById({ id, authorId }, { transaction });
     } else if (isTransfer && transferId) {
