@@ -8,6 +8,7 @@ import { logger} from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { updateAccountBalance } from './helpers';
 
@@ -66,7 +67,15 @@ export interface CreateTransferTransactionParams {
       currencyCode: undefined,
       isTransfer,
       transferId: undefined,
+      refCurrencyCode: undefined,
     };
+
+    const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
+      { userId: authorId, isDefaultCurrency: true },
+      { transaction }
+    );
+
+    generalTxParams.refCurrencyCode = defaultUserCurrency.code;
 
     const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
       userId: authorId,

@@ -10,6 +10,7 @@ import {
 import TransactionsModel from '@models/Transactions.model';
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as accountsService from '@services/accounts.service';
 
 const commitMock = jest.fn().mockImplementation(() => Promise.resolve());
@@ -71,12 +72,14 @@ describe('transactions.service', () => {
 
   let getAccountSpy = null;
   let getAccountCurrencySpy = null;
+  let getUserDefaultCurrency = null;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     getAccountSpy = jest.spyOn(accountsService, 'getAccountById');
     getAccountCurrencySpy = jest.spyOn(Accounts, 'getAccountCurrency');
+    getUserDefaultCurrency = jest.spyOn(UsersCurrencies, 'getCurrency');
   });
 
   describe('transactions creation', () => {
@@ -100,6 +103,9 @@ describe('transactions.service', () => {
         getAccountCurrencySpy.mockImplementation(
           () => Promise.resolve({ currency: DEFAULT_REFERENCE_CURRENCY } as any),
         );
+        getUserDefaultCurrency.mockImplementation(
+          () => Promise.resolve({ currency: DEFAULT_REFERENCE_CURRENCY } as any),
+        );
         createTransactionSpy
           .mockImplementation(() => Promise.resolve({ ...CREATED_TX_MOCK, amount } as any));
 
@@ -111,6 +117,7 @@ describe('transactions.service', () => {
         expect(commitMock).toBeCalled();
         expect(createTransactionSpy).toBeCalled();
         expect(getAccountSpy).toBeCalled();
+        expect(getUserDefaultCurrency).toBeCalledTimes(1);
         expect(updateAccountSpy).toBeCalledWith(
           expect.objectContaining({
             id: BASE_TX_MOCK.accountId,
@@ -177,6 +184,10 @@ describe('transactions.service', () => {
         } as any)
       });
 
+      getUserDefaultCurrency.mockImplementation(
+        () => Promise.resolve({ currency: DEFAULT_REFERENCE_CURRENCY } as any),
+      );
+
       getAccountSpy.mockImplementation(({ id }) => {
         let balance = fromAccountBalanceBefore
 
@@ -200,6 +211,7 @@ describe('transactions.service', () => {
       expect(commitMock).toBeCalled();
       expect(createTransactionSpy).toBeCalled();
       expect(getAccountSpy).toBeCalled();
+      expect(getUserDefaultCurrency).toBeCalledTimes(1);
       expect(updateAccountSpy).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({

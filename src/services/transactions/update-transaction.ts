@@ -7,6 +7,7 @@ import { logger} from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
+import * as Accounts from '@models/Accounts.model';
 
 import { getTransactionById } from './get-by-id';
 import { updateAccountBalance } from './helpers';
@@ -27,16 +28,12 @@ interface UpdateParams {
   paymentType?: PAYMENT_TYPES;
   accountId?: number;
   categoryId?: number;
-  currencyId?: number;
-  currencyCode?: string;
   isTransfer?: boolean;
 }
 
 interface UpdateTransferParams {
   destinationAmount?: number;
   destinationAccountId?: number;
-  destinationCurrencyId?: number;
-  destinationCurrencyCode?: string;
 }
 
 /**
@@ -54,11 +51,7 @@ interface UpdateTransferParams {
   accountId,
   categoryId,
   isTransfer = false,
-  currencyId,
-  currencyCode,
   destinationAccountId,
-  destinationCurrencyId,
-  destinationCurrencyCode,
 }: UpdateParams & UpdateTransferParams) => {
   let transaction: Transaction = null;
 
@@ -95,8 +88,6 @@ interface UpdateTransferParams {
         paymentType,
         accountId,
         categoryId,
-        currencyId,
-        currencyCode,
         isTransfer,
       },
       { transaction },
@@ -104,6 +95,22 @@ interface UpdateTransferParams {
 
     // If accountId was changed to a new one
     if (accountId && accountId !== previousAccountId) {
+      // Since accountId is changed, we need to change currency too
+      const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
+        userId: authorId,
+        id: accountId,
+      });
+
+      await Transactions.updateTransactionById(
+        {
+          id,
+          authorId,
+          currencyId: baseTxCurrency.id,
+          currencyCode: baseTxCurrency.code,
+        },
+        { transaction },
+      );
+
       // Make previous account's balance if like there was no transaction before
       await updateAccountBalance(
         {
@@ -157,23 +164,35 @@ interface UpdateTransferParams {
         const destinationTransaction = await Transactions.updateTransactionById(
           {
             id: notBaseTransaction.id,
+            authorId,
             amount: destinationAmount,
             refAmount: destinationAmount,
             note,
             time,
-            authorId,
             transactionType: TRANSACTION_TYPES.income,
             paymentType: paymentType,
             accountId: destinationAccountId,
             categoryId,
-            currencyId: destinationCurrencyId,
-            currencyCode: destinationCurrencyCode,
           },
           { transaction },
         );
 
         // If accountId was changed to a new one
         if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
+          // Since accountId is changed, we need to change currency too
+          const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
+            userId: authorId,
+            id: accountId,
+          });
+          await Transactions.updateTransactionById(
+            {
+              id: notBaseTransaction.id,
+              authorId,
+              currencyId: oppositeTxCurrency.id,
+              currencyCode: oppositeTxCurrency.code,
+            },
+            { transaction },
+          );
           // Make previous account's balance if like there was no transaction before
           await updateAccountBalance(
             {
@@ -216,9 +235,9 @@ interface UpdateTransferParams {
         // 2. update account balance for the new opposite tx
         // 3. generate "transferId" and put it to both transactions
 
-        if (!destinationAmount || !destinationAccountId || !destinationCurrencyId || !destinationCurrencyCode) {
+        if (!destinationAmount || !destinationAccountId) {
           throw new ValidationError({
-            message: `One of required fields are missing: destinationAmount, destinationAccountId, destinationCurrencyId, destinationCurrencyCode.`,
+            message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
           })
         }
 
@@ -230,6 +249,11 @@ interface UpdateTransferParams {
           transferId,
           isTransfer: true,
         }, { transaction });
+
+        const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
+          userId: authorId,
+          id: destinationAccountId,
+        });
 
         const createdTx = await Transactions.createTransaction(
           {
@@ -244,8 +268,8 @@ interface UpdateTransferParams {
             accountId: destinationAccountId,
             categoryId: baseTransaction.categoryId,
             accountType: baseTransaction.accountType,
-            currencyId: destinationCurrencyId,
-            currencyCode: destinationCurrencyCode,
+            currencyId: oppositeTxCurrency.id,
+            currencyCode: oppositeTxCurrency.code,
             isTransfer: true,
             transferId,
           },

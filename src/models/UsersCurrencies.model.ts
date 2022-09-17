@@ -7,9 +7,9 @@ import {
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
+import { removeUndefinedKeys } from '@js/helpers';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
-import { ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -78,7 +78,17 @@ export const getCurrencies = (
   });
 };
 
-export const getCurrency = (
+type getCurrencyOverload = {
+  (
+    { userId, currencyId }: { userId: number; currencyId: number; },
+    { transaction }: { transaction?: Transaction }
+  ): Promise<UsersCurrencies & { currency: Currencies }>;
+  (
+    { userId, isDefaultCurrency }: { userId: number; isDefaultCurrency: boolean; },
+    { transaction }: { transaction?: Transaction }
+  ): Promise<UsersCurrencies & { currency: Currencies }>;
+}
+export const getCurrency: getCurrencyOverload = (
   {
     userId,
     currencyId,
@@ -90,19 +100,13 @@ export const getCurrency = (
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  if (currencyId === undefined && isDefaultCurrency === undefined) {
-    throw new ValidationError({ message: 'Neither "currencyId" or "isDefaultCurrency" should be specified.' })
-  }
-
-  const where: Record<string, unknown> = { userId }
-
-  if (currencyId) where.currencyId = currencyId
-  if (isDefaultCurrency) where.isDefaultCurrency = isDefaultCurrency
-
   return UsersCurrencies.findOne({
-    where,
+    where: removeUndefinedKeys({ userId, currencyId, isDefaultCurrency }),
+    include: {
+      model: Currencies,
+    },
     transaction,
-  });
+  }) as Promise<UsersCurrencies & { currency: Currencies }>;
 };
 
 export const addCurrency = (
