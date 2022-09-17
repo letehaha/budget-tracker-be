@@ -45,7 +45,6 @@ module.exports = {
         {
           type: Sequelize.STRING,
           allowNull: false,
-          defaultValue: '',
         },
         { transaction },
       );

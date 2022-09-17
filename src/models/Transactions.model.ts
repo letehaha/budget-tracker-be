@@ -127,7 +127,7 @@ export default class Transactions extends Model {
   @Column({ allowNull: false })
   currencyId: number;
 
-  @Column({ allowNull: false, defaultValue: '' })
+  @Column({ allowNull: false })
   currencyCode: string;
 
   @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system })
