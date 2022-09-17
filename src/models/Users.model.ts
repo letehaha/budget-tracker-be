@@ -32,6 +32,7 @@ export default class Users extends Model {
       through: () => UsersCurrencies,
     }
   )
+
   @Column({
     primaryKey: true,
     autoIncrement: true,

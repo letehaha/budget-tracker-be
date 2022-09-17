@@ -26,6 +26,7 @@ export default class Currencies extends Model {
       through: () => UsersCurrencies,
     }
   )
+
   @Unique
   @AllowNull(false)
   @AutoIncrement
