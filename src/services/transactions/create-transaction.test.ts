@@ -23,7 +23,7 @@ jest.spyOn(connection.sequelize, 'transaction').mockImplementation(
 
 const BASE_TX_MOCK: CreateTransactionParams = {
   amount: 100,
-  time: new Date().toISOString(),
+  time: new Date(),
   transactionType: TRANSACTION_TYPES.income,
   paymentType: PAYMENT_TYPES.creditCard,
   accountId: 1,

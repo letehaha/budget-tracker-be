@@ -432,7 +432,7 @@ export const updateTransactionById = async (
     amount?: number;
     refAmount?: number;
     note?: string;
-    time?: string;
+    time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
     accountId?: number;

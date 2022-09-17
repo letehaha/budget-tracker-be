@@ -22,7 +22,7 @@ const EXISTING_BASE_TX_MOCK = {
   id: 1,
   amount: 100,
   refAmount: 100,
-  time: new Date().toISOString(),
+  time: new Date(),
   transactionType: TRANSACTION_TYPES.expense,
   paymentType: PAYMENT_TYPES.creditCard,
   accountId: 1,

@@ -22,7 +22,7 @@ interface UpdateParams {
   authorId: number;
   amount?: number;
   note?: string;
-  time?: string;
+  time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
   accountId?: number;
@@ -61,17 +61,6 @@ interface UpdateTransferParams {
   destinationCurrencyCode,
 }: UpdateParams & UpdateTransferParams) => {
   let transaction: Transaction = null;
-
-  // - [x] amount changed = we change amount in both transactions
-  // - [x] destinationAmount changed = need to update only second transaction
-  // - [x] note, time, paymentType changed = both
-  // transactionType =
-  //                  from expense/income to transfer - ask for destionation- fields, create second tx
-  //                  from transfer - remove second transfer transaction, clear base transaction (remove/edit transfer related fields)
-  // - [x] accountId - change only base
-  // - [x] destinationAccountId - change only second tx
-  // - [x] currencyId + code - change only base, same about destination
-  // - [x] categoryId - change only base if it is not a transefer (add validation)
 
   try {
     transaction = await connection.sequelize.transaction();
