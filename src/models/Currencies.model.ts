@@ -14,6 +14,7 @@ import {
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
+import { removeUndefinedKeys } from '@js/helpers';
 
 @Table({
   timestamps: false,
@@ -71,18 +72,11 @@ export async function getCurrency(
   },
   { transaction }: { transaction?: Transaction } = {},
 ) {
-  const currencies = await Currencies.findOne({
-    where: { id, currency, number, code },
-    include: [
-      {
-        model: Users,
-
-      }
-    ],
+  return Currencies.findOne({
+    where: removeUndefinedKeys({ id, currency, number, code }),
+    include: [{ model: Users }],
     transaction,
   });
-
-  return currencies;
 }
 
 export async function getCurrencies(
