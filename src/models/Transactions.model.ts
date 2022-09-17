@@ -46,36 +46,6 @@ const prepareTXInclude = (
 
   return include;
 };
-
-// + id
-// + accountId
-// + amount
-// + categoryId
-// + currencyId
-// + paymentType
-// + note
-// + time
-// + transactionType: (expense, income) no "transfer" so that we can easily calculate incomes and expenses
-// + authorId (userId)
-// + refAmount (amount of reference used in Transfer)
-// + refCurrencyCode (currencyCode of reference. used in Transfer)
-// + isTransfer (boolean)
-// + transferId (hash, used to connect two transactions)
-// + currencyCode
-// + revision (hash, maybe will be used in revisions to build statistics)
-
-// non-system fields
-// remoteCategoryName
-// integrationId (not sure how to use)
-// integrationOriginalTransactionId
-// integrationRecipeId
-// integrationTransactionTime
-// integrationNote
-// integrationComission
-// integrationCashbackAmount
-// integrationAccountId
-//
-
 @Table({
   timestamps: false,
 })
@@ -143,41 +113,6 @@ export default class Transactions extends Model {
   // (hash, used to connect two transactions)
   @Column({ allowNull: true, defaultValue: null })
   transferId: string;
-
-  // revision (hash, maybe will be used in revisions to build statistics)
-
-  // Describes from which account tx was sent
-  // @Column({ allowNull: true, defaultValue: null })
-  // fromAccountId: number;
-
-  // Describes from's account type
-  // @Column({ allowNull: true, defaultValue: null })
-  // fromAccountType: ACCOUNT_TYPES;
-
-  // Describes to which account tx was sent
-  // @Column({ allowNull: true, defaultValue: null })
-  // toAccountId: number;
-
-  // Describes to's account type
-  // @Column({ allowNull: true, defaultValue: null })
-  // toAccountType: ACCOUNT_TYPES;
-
-  // Id to the opposite tx. Used for the Transfer feature
-  // @Column({ allowNull: true, defaultValue: null })
-  // oppositeId: number;
-
-  // @BeforeCreate
-  // @BeforeUpdate
-  // static validateAmountAndType(instance: Transactions) {
-  //   const { amount, transactionType } = instance;
-
-  //   if (transactionType === TRANSACTION_TYPES.expense && amount > 0) {
-  //     throw new ValidationError({ message: 'Expense amount cannot be positive' });
-  //   }
-  //   if (transactionType === TRANSACTION_TYPES.income && amount < 0) {
-  //     throw new ValidationError({ message: 'Income amount cannot be negative' });
-  //   }
-  // }
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
@@ -398,8 +333,6 @@ export const createTransaction = async (
     transferId,
   }, { transaction });
 
-  console.log(1)
-
   return getTransactionById(
     {
       id: response.get('id'),
@@ -477,12 +410,8 @@ export const updateTransactions = (
     paymentType,
     accountId,
     categoryId,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    oppositeId,
     currencyId,
+    refCurrencyCode,
   }: {
     amount?: number;
     note?: string;
@@ -491,13 +420,9 @@ export const updateTransactions = (
     paymentType?: PAYMENT_TYPES;
     accountId?: number;
     categoryId?: number;
-    fromAccountId?: number;
-    fromAccountType?: ACCOUNT_TYPES;
-    toAccountId?: number;
-    toAccountType?: ACCOUNT_TYPES;
-    oppositeId?: number;
     accountType?: ACCOUNT_TYPES;
     currencyId?: number;
+    refCurrencyCode?: string;
   },
   where: Record<string, unknown>,
   { transaction }: { transaction?: Transaction } = {},
@@ -511,12 +436,8 @@ export const updateTransactions = (
       paymentType,
       accountId,
       categoryId,
-      fromAccountId,
-      fromAccountType,
-      toAccountId,
-      toAccountType,
-      oppositeId,
       currencyId,
+      refCurrencyCode,
     },
     { where, transaction },
   );
