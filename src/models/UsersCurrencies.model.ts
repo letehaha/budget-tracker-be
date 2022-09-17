@@ -1,12 +1,13 @@
 import { Transaction } from 'sequelize/types';
-import { Op, QueryTypes } from 'sequelize';
+// import { Op, QueryTypes } from 'sequelize';
+import { Op } from 'sequelize';
 import {
   Table,
   Column,
   Model,
   ForeignKey,
 } from 'sequelize-typescript';
-import { connection } from '@models/index';
+// import { connection } from '@models/index';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
 import { ValidationError } from '@js/errors';
@@ -54,14 +55,20 @@ export const getCurrencies = (
   { userId }: { userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  // TODO: check if it is possible to use findAll
-  return connection.sequelize
-    .query(
-      `SELECT * FROM "UsersCurrencies"
-      INNER JOIN "Currencies" ON "UsersCurrencies"."currencyId" = "Currencies"."id"
-      WHERE "userId"=${userId}`,
-      { type: QueryTypes.SELECT, transaction },
-    );
+  return UsersCurrencies.findAll({
+    where: { userId },
+    transaction,
+  });
+  // TODO: check if it is possible to use findAll. Also for some reason this causes an error:
+  // "No default export defined for file "Accounts.model" or export does not satisfy filename.""
+
+  // return connection.sequelize
+  //   .query(
+  //     `SELECT * FROM "UsersCurrencies"
+  //     INNER JOIN "Currencies" ON "UsersCurrencies"."currencyId" = "Currencies"."id"
+  //     WHERE "userId"=${userId}`,
+  //     { type: QueryTypes.SELECT, transaction },
+  //   );
 };
 
 export const getCurrency = (
