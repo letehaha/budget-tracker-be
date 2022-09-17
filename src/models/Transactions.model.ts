@@ -47,6 +47,35 @@ const prepareTXInclude = (
   return include;
 };
 
+// + id
+// + accountId
+// + amount
+// + categoryId
+// + currencyId
+// + paymentType
+// + note
+// + time
+// + transactionType: (expense, income) no "transfer" so that we can easily calculate incomes and expenses
+// + authorId (userId)
+// + refAmount (amount of reference used in Transfer)
+// + refCurrencyCode (currencyCode of reference. used in Transfer)
+// + isTransfer (boolean)
+// + transferId (hash, used to connect two transactions)
+// + currencyCode
+// + revision (hash, maybe will be used in revisions to build statistics)
+
+// non-system fields
+// remoteCategoryName
+// integrationId (not sure how to use)
+// integrationOriginalTransactionId
+// integrationRecipeId
+// integrationTransactionTime
+// integrationNote
+// integrationComission
+// integrationCashbackAmount
+// integrationAccountId
+//
+
 @Table({
   timestamps: false,
 })
@@ -59,12 +88,16 @@ export default class Transactions extends Model {
   })
   id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, defaultValue: 0 })
   amount: number;
+
+  // Amount in curreny of account
+  @Column({ allowNull: false, defaultValue: 0 })
+  refAmount: number;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true })
-  note: number;
+  note: string;
 
   @Column({
     defaultValue: Date.now(),
@@ -74,7 +107,7 @@ export default class Transactions extends Model {
 
   @ForeignKey(() => Users)
   @Column
-  userId: number;
+  authorId: number;
 
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
   transactionType: TRANSACTION_TYPES;
@@ -94,69 +127,75 @@ export default class Transactions extends Model {
   @Column({ allowNull: false })
   currencyId: number;
 
+  @Column({ allowNull: false, defaultValue: '' })
+  currencyCode: string;
+
   @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system })
   accountType: ACCOUNT_TYPES;
 
-  // Describes from which account tx was sent
   @Column({ allowNull: true, defaultValue: null })
-  fromAccountId: number;
+  refCurrencyCode: string;
+
+  // is transaction transfer?
+  @Column({ allowNull: false, defaultValue: false })
+  isTransfer: boolean;
+
+  // (hash, used to connect two transactions)
+  @Column({ allowNull: true, defaultValue: null })
+  transferId: string;
+
+  // revision (hash, maybe will be used in revisions to build statistics)
+
+  // Describes from which account tx was sent
+  // @Column({ allowNull: true, defaultValue: null })
+  // fromAccountId: number;
 
   // Describes from's account type
-  @Column({ allowNull: true, defaultValue: null })
-  fromAccountType: ACCOUNT_TYPES;
+  // @Column({ allowNull: true, defaultValue: null })
+  // fromAccountType: ACCOUNT_TYPES;
 
   // Describes to which account tx was sent
-  @Column({ allowNull: true, defaultValue: null })
-  toAccountId: number;
+  // @Column({ allowNull: true, defaultValue: null })
+  // toAccountId: number;
 
   // Describes to's account type
-  @Column({ allowNull: true, defaultValue: null })
-  toAccountType: ACCOUNT_TYPES;
+  // @Column({ allowNull: true, defaultValue: null })
+  // toAccountType: ACCOUNT_TYPES;
 
   // Id to the opposite tx. Used for the Transfer feature
-  @Column({ allowNull: true, defaultValue: null })
-  oppositeId: number;
+  // @Column({ allowNull: true, defaultValue: null })
+  // oppositeId: number;
 
-  @BeforeCreate
-  @BeforeUpdate
-  static validateAmountAndType(instance: Transactions) {
-    const { amount, transactionType } = instance;
+  // @BeforeCreate
+  // @BeforeUpdate
+  // static validateAmountAndType(instance: Transactions) {
+  //   const { amount, transactionType } = instance;
 
-    if (transactionType === TRANSACTION_TYPES.expense && amount > 0) {
-      throw new ValidationError({ message: 'Expense amount cannot be positive' });
-    }
-    if (transactionType === TRANSACTION_TYPES.income && amount < 0) {
-      throw new ValidationError({ message: 'Income amount cannot be negative' });
-    }
-    if (transactionType === TRANSACTION_TYPES.transfer && amount < 0) {
-      throw new ValidationError({ message: 'Transfer amount cannot be negative' });
-    }
-  }
+  //   if (transactionType === TRANSACTION_TYPES.expense && amount > 0) {
+  //     throw new ValidationError({ message: 'Expense amount cannot be positive' });
+  //   }
+  //   if (transactionType === TRANSACTION_TYPES.income && amount < 0) {
+  //     throw new ValidationError({ message: 'Income amount cannot be negative' });
+  //   }
+  // }
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
   @BeforeUpdate
   static validateTransferRelatedFields(instance: Transactions) {
     const {
-      transactionType,
-      fromAccountId,
-      toAccountId,
-      accountId,
-      fromAccountType,
-      toAccountType,
+      isTransfer,
+      transferId,
+      refAmount,
+      refCurrencyCode,
     } = instance;
 
-    const requiredFields = [fromAccountId, toAccountId, fromAccountType, toAccountType]
+    const requiredFields = [transferId, refCurrencyCode, refAmount]
 
-    if (transactionType === TRANSACTION_TYPES.transfer) {
+    if (isTransfer) {
       if (requiredFields.some(item => item === undefined)) {
         throw new ValidationError({
           message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
-        });
-      }
-      if (![fromAccountId, toAccountId].some(item => item === accountId)) {
-        throw new ValidationError({
-          message: `"accountId" should be one of "toAccountId" or "fromAccountId"`,
         });
       }
     }
@@ -164,7 +203,7 @@ export default class Transactions extends Model {
 }
 
 export const getTransactions = async ({
-  userId,
+  authorId,
   sortDirection,
   includeUser,
   includeAccount,
@@ -183,7 +222,7 @@ export const getTransactions = async ({
 
   const transactions = await Transactions.findAll({
     include,
-    where: { userId },
+    where: { authorId },
     order: [['time', sortDirection.toUpperCase()]],
     raw: isRaw,
   });
@@ -194,7 +233,7 @@ export const getTransactions = async ({
 export const getTransactionById = (
   {
     id,
-    userId,
+    authorId,
     includeUser,
     includeAccount,
     includeCategory,
@@ -202,7 +241,7 @@ export const getTransactionById = (
     nestedInclude,
   }: {
     id: number;
-    userId: number;
+    authorId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
@@ -220,7 +259,42 @@ export const getTransactionById = (
   });
 
   return Transactions.findOne({
-    where: { id, userId },
+    where: { id, authorId },
+    include,
+    transaction,
+  });
+};
+
+export const getTransactionsByTransferId = (
+  {
+    transferId,
+    authorId,
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  }: {
+    transferId: number;
+    authorId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  const include = prepareTXInclude({
+    includeUser,
+    includeAccount,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+  });
+
+  return Transactions.findAll({
+    where: { transferId, authorId },
     include,
     transaction,
   });
@@ -230,13 +304,23 @@ export const getTransactionsByArrayOfField = async (
   {
     fieldValues,
     fieldName,
-    userId,
+    authorId,
     includeUser,
     includeAccount,
     includeCategory,
     includeAll,
     nestedInclude,
-  }, { transaction }: { transaction?: Transaction } = {}
+  }: {
+    fieldValues: unknown[];
+    fieldName: string;
+    authorId: number;
+    includeUser?: boolean;
+    includeAccount?: boolean;
+    includeCategory?: boolean;
+    includeAll?: boolean;
+    nestedInclude?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
 ) => {
   const include = prepareTXInclude({
     includeUser,
@@ -251,7 +335,7 @@ export const getTransactionsByArrayOfField = async (
       [fieldName]: {
         [Op.in]: fieldValues,
       },
-      userId,
+      authorId,
     },
     include,
     transaction,
@@ -263,61 +347,63 @@ export const getTransactionsByArrayOfField = async (
 export const createTransaction = async (
   {
     amount,
+    refAmount,
     note,
     time,
-    userId,
+    authorId,
     transactionType,
     paymentType,
     accountId,
     categoryId,
-    accountType,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    oppositeId,
     currencyId,
+    currencyCode,
+    refCurrencyCode,
+    accountType,
+    isTransfer,
+    transferId,
   }: {
     amount: number;
+    refAmount: number;
     note?: string;
-    time: string;
-    userId: number;
+    time: Date;
+    authorId: number;
     transactionType: TRANSACTION_TYPES;
     paymentType: PAYMENT_TYPES;
     accountId: number;
     categoryId: number;
-    fromAccountId?: number;
-    fromAccountType?: ACCOUNT_TYPES;
-    toAccountId?: number;
-    toAccountType?: ACCOUNT_TYPES;
-    oppositeId?: number;
     currencyId: number;
+    currencyCode: string;
+    refCurrencyCode?: string;
     accountType: ACCOUNT_TYPES;
+    isTransfer?: boolean;
+    transferId?: string;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const response = await Transactions.create({
     amount,
+    refAmount,
     note,
     time,
-    userId,
+    authorId,
     transactionType,
     paymentType,
     accountId,
     categoryId,
     accountType,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    oppositeId,
     currencyId,
+    currencyCode,
+    refCurrencyCode,
+    isTransfer,
+    transferId,
   }, { transaction });
+
+  console.log(1)
 
   return getTransactionById(
     {
       id: response.get('id'),
-      userId,
+      authorId,
     },
     { transaction }
   );
@@ -326,72 +412,71 @@ export const createTransaction = async (
 export const updateTransactionById = async (
   {
     id,
+    authorId,
     amount,
+    refAmount,
     note,
     time,
-    userId,
     transactionType,
     paymentType,
     accountId,
     categoryId,
-    fromAccountId,
-    fromAccountType,
-    toAccountId,
-    toAccountType,
-    oppositeId,
     currencyId,
+    currencyCode,
+    refCurrencyCode,
+    isTransfer,
+    transferId,
   }: {
     id: number;
+    authorId: number;
     amount?: number;
+    refAmount?: number;
     note?: string;
-    time?: string;
-    userId: number;
+    time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
     accountId?: number;
     categoryId?: number;
-    fromAccountId?: number;
-    fromAccountType?: ACCOUNT_TYPES;
-    toAccountId?: number;
-    toAccountType?: ACCOUNT_TYPES;
-    oppositeId?: number;
-    accountType?: ACCOUNT_TYPES;
     currencyId?: number;
+    currencyCode?: string;
+    refCurrencyCode?: string;
+    isTransfer?: boolean;
+    transferId?: string;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const where = { id, userId };
+  const where = { id, authorId };
   await Transactions.update(
     {
       amount,
+      refAmount,
       note,
       time,
       transactionType,
       paymentType,
       accountId,
       categoryId,
-      fromAccountId,
-      fromAccountType,
-      toAccountId,
-      toAccountType,
-      oppositeId,
+      currencyCode,
+      refCurrencyCode,
+      isTransfer,
+      transferId,
       currencyId,
     },
     { where, transaction },
   );
 
-  return getTransactionById({ id, userId }, { transaction });
+  return getTransactionById({ id, authorId }, { transaction });
 };
 
 export const deleteTransactionById = (
   {
     id,
-    userId,
+    authorId,
   }: {
     id: number;
-    userId: number;
+    authorId: number;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  return Transactions.destroy({ where: { id, userId }, transaction });
+  return Transactions.destroy({ where: { id, authorId }, transaction });
 }

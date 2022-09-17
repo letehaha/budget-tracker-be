@@ -2,13 +2,12 @@ import {
   CustomResponse,
   ERROR_CODES,
   ACCOUNT_TYPES,
-  TRANSACTION_TYPES,
   RESPONSE_STATUS,
 } from 'shared-types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 
-import { CustomError, ValidationError } from '@js/errors'
+import { ValidationError } from '@js/errors'
 
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
@@ -20,31 +19,6 @@ const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
   desc: 'DESC',
 });
-
-const validateTransactionAmount = (amount): void => {
-  if (amount === 0) throw new ValidationError({ message: 'Amount cannot be 0.' });
-};
-
-const validateTransactionAmountByType = (
-  amount: number,
-  type: TRANSACTION_TYPES,
-) => {
-  if (type === TRANSACTION_TYPES.income && amount < 0) {
-    throw new ValidationError({ message: `Amount cannot be negative when transaction type is "${TRANSACTION_TYPES.income}".`})
-  }
-  if (type === TRANSACTION_TYPES.expense && amount > 0) {
-    throw new ValidationError({ message: `Amount cannot be positive when transaction type is "${TRANSACTION_TYPES.expense}".`})
-  }
-};
-
-const validateTransactionOppositeChange = (
-  id: number,
-  oppositeId: number,
-) => {
-  if (id === oppositeId) {
-    throw new ValidationError({ message: 'You cannot edit or delete opposite transaction.'})
-  }
-};
 
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
@@ -65,7 +39,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       const txs = await connection.sequelize
         .query(
           `SELECT * FROM(
-            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
+            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "authorId"=${userId}
             UNION
             SELECT "id", "time", "accountType" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
@@ -80,7 +54,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
           .filter((item) => item.accountType === ACCOUNT_TYPES.system)
           .map((item) => Number(item.id)),
         fieldName: 'id',
-        userId,
+        authorId: userId,
         includeUser,
         includeAccount,
         includeCategory,
@@ -110,7 +84,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       });
     }
     const transactions = await Transactions.getTransactions({
-      userId,
+      authorId: userId,
       sortDirection: sort,
       includeUser,
       includeAccount,
@@ -149,7 +123,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
 export const getTransactionById = async (req, res: CustomResponse) => {
   try {
     const { id } = req.params;
-    const { id: userId } = req.user;
+    const { id: authorId } = req.user;
     const {
       includeUser,
       includeAccount,
@@ -162,7 +136,7 @@ export const getTransactionById = async (req, res: CustomResponse) => {
 
     const data = await transactionsService.getTransactionById({
       id,
-      userId,
+      authorId,
       includeUser,
       includeAccount,
       includeCategory,
@@ -185,43 +159,28 @@ export const getTransactionById = async (req, res: CustomResponse) => {
   }
 };
 
-export const createTransaction = async (req, res: CustomResponse) => {
+export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
   try {
+    const { transferId } = req.params;
+    const { id: authorId } = req.user;
     const {
-      amount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-      fromAccountId,
-      fromAccountType,
-      toAccountId,
-      toAccountType,
-      currencyId,
-      accountType = ACCOUNT_TYPES.system,
-    } = req.body;
-    const { id: userId } = req.user;
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    } = req.query;
 
-    validateTransactionAmount(amount);
-    validateTransactionAmountByType(amount, transactionType);
+    if (transferId === undefined) throw new ValidationError({ message: '"transferId" is required.' });
 
-    const data = await transactionsService.createTransaction({
-      amount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-      accountType,
-      userId,
-      fromAccountId,
-      fromAccountType,
-      toAccountId,
-      toAccountType,
-      currencyId,
+    const data = await transactionsService.getTransactionsByTransferId({
+      transferId,
+      authorId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
     });
 
     return res.status(200).json({
@@ -229,16 +188,6 @@ export const createTransaction = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(err.httpCode).json({
-        status: RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: err.code,
-        },
-      });
-    }
-
     return res.status(500).json({
       status: RESPONSE_STATUS.error,
       response: {
@@ -249,96 +198,6 @@ export const createTransaction = async (req, res: CustomResponse) => {
   }
 };
 
-export const updateTransaction = async (req, res: CustomResponse) => {
-  try {
-    const { id } = req.params;
-    const {
-      amount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-    } = req.body;
-    const { id: userId } = req.user;
+// TODO:
 
-    validateTransactionAmount(amount);
-    validateTransactionAmountByType(amount, transactionType);
-
-    const tx = await transactionsService.getTransactionById({ id, userId });
-
-    validateTransactionOppositeChange(tx.id, tx.oppositeId);
-
-    const data = await transactionsService.updateTransaction({
-      id,
-      amount,
-      note,
-      time,
-      userId,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-    });
-
-    return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(err.httpCode).json({
-        status: RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: err.code,
-        },
-      });
-    }
-
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
-  }
-};
-
-export const deleteTransaction = async (req, res: CustomResponse) => {
-  try {
-    const { id } = req.params;
-    const { id: userId } = req.user;
-
-    const tx = await transactionsService.getTransactionById({ id, userId });
-
-    validateTransactionOppositeChange(tx.id, tx.oppositeId);
-
-    await transactionsService.deleteTransaction({ id, userId })
-
-    return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: {},
-    });
-  } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(err.httpCode).json({
-        status: RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: err.code,
-        },
-      });
-    }
-
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
-  }
-};
+export * from './transactions.controller/index';
