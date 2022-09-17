@@ -9,6 +9,7 @@ import {
 } from './create-transaction';
 import TransactionsModel from '@models/Transactions.model';
 import * as Transactions from '@models/Transactions.model';
+import * as Accounts from '@models/Accounts.model';
 import * as accountsService from '@services/accounts.service';
 
 const commitMock = jest.fn().mockImplementation(() => Promise.resolve());
@@ -21,6 +22,11 @@ jest.spyOn(connection.sequelize, 'transaction').mockImplementation(
   })
 );
 
+const DEFAULT_REFERENCE_CURRENCY = {
+  id: 868,
+  code: 'USD',
+}
+
 const BASE_TX_MOCK: CreateTransactionParams = {
   amount: 100,
   time: new Date(),
@@ -28,8 +34,6 @@ const BASE_TX_MOCK: CreateTransactionParams = {
   paymentType: PAYMENT_TYPES.creditCard,
   accountId: 1,
   categoryId: 1,
-  currencyId: 1,
-  currencyCode: 'USD',
   accountType: ACCOUNT_TYPES.system,
   authorId: 1,
   note: 'random',
@@ -39,7 +43,7 @@ const BASE_TX_MOCK: CreateTransactionParams = {
 const CREATED_TX_MOCK = {
   ...BASE_TX_MOCK,
   refAmount: BASE_TX_MOCK.amount,
-  refCurrencyCode: BASE_TX_MOCK.currencyCode,
+  refCurrencyCode: DEFAULT_REFERENCE_CURRENCY.code,
   transferId: 'random-hash',
 };
 
@@ -47,8 +51,6 @@ const TRANSFER_TX_MOCK: CreateTransactionParams & CreateTransferTransactionParam
   ...BASE_TX_MOCK,
   destinationAmount: 1000,
   destinationAccountId: 2,
-  destinationCurrencyId: 2,
-  destinationCurrencyCode: 'USD',
   transactionType: TRANSACTION_TYPES.expense,
   isTransfer: true,
 };
@@ -56,7 +58,7 @@ const TRANSFER_TX_MOCK: CreateTransactionParams & CreateTransferTransactionParam
 const CREATED_TRANSFER_TX_MOCK = {
   ...TRANSFER_TX_MOCK,
   refAmount: BASE_TX_MOCK.amount,
-  refCurrencyCode: BASE_TX_MOCK.currencyCode,
+  refCurrencyCode: DEFAULT_REFERENCE_CURRENCY.code,
   transferId: 'random-hash',
 }
 
@@ -68,11 +70,13 @@ describe('transactions.service', () => {
     .mockImplementation(() => ({}) as any);
 
   let getAccountSpy = null;
+  let getAccountCurrencySpy = null;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    getAccountSpy = jest.spyOn(accountsService, 'getAccountById')
+    getAccountSpy = jest.spyOn(accountsService, 'getAccountById');
+    getAccountCurrencySpy = jest.spyOn(Accounts, 'getAccountCurrency');
   });
 
   describe('transactions creation', () => {
@@ -92,6 +96,9 @@ describe('transactions.service', () => {
         // TODO: check if it is possible to do these tests with no mocks
         getAccountSpy.mockImplementation(
           () => Promise.resolve({ currentBalance: balance } as any),
+        );
+        getAccountCurrencySpy.mockImplementation(
+          () => Promise.resolve({ currency: DEFAULT_REFERENCE_CURRENCY } as any),
         );
         createTransactionSpy
           .mockImplementation(() => Promise.resolve({ ...CREATED_TX_MOCK, amount } as any));
@@ -179,6 +186,10 @@ describe('transactions.service', () => {
 
         return Promise.resolve({ currentBalance: balance } as any)
       });
+
+      getAccountCurrencySpy.mockImplementation(
+        () => Promise.resolve({ currency: DEFAULT_REFERENCE_CURRENCY } as any),
+      );
 
       const result = await createTransaction({
         ...TRANSFER_TX_MOCK,

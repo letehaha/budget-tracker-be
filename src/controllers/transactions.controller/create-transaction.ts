@@ -23,10 +23,6 @@ export const createTransaction = async (req, res: CustomResponse) => {
       accountId,
       destinationAccountId,
       categoryId,
-      currencyId,
-      currencyCode,
-      destinationCurrencyId,
-      destinationCurrencyCode,
       accountType = ACCOUNT_TYPES.system,
       isTransfer,
     } = req.body;
@@ -52,10 +48,6 @@ export const createTransaction = async (req, res: CustomResponse) => {
       categoryId,
       accountType,
       authorId,
-      currencyId,
-      currencyCode,
-      destinationCurrencyId,
-      destinationCurrencyCode,
       isTransfer,
     });
 
