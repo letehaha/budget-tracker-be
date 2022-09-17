@@ -154,12 +154,7 @@ export const editUserCurrency = async (req, res: CustomResponse) => {
 
 export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-
-  const {
-    currencyId,
-  }: {
-    currencyId: number;
-  } = req.body;
+  const { currencyId }: { currencyId: number } = req.body;
 
   // TODO: types validation
 

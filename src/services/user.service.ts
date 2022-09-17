@@ -1,11 +1,13 @@
 /* eslint-disable no-useless-catch */
 import { Transaction } from 'sequelize/types';
+import { ACCOUNT_TYPES } from 'shared-types';
 
 import { connection } from '@models/index';
 import { ValidationError } from '@js/errors'
 import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as Currencies from '@models/Currencies.model';
 
 export const getUser = async (id: number) => {
   try {
@@ -275,6 +277,16 @@ export const setDefaultUserCurrency = async (
       currencyId,
       isDefaultCurrency: true,
     }, { transaction });
+
+    const currency = await Currencies.getCurrency({ id: currencyId })
+
+    await Transactions.updateTransactions(
+      {
+        refCurrencyCode: currency.code,
+      },
+      { authorId: userId, accountType: ACCOUNT_TYPES.system },
+      { transaction },
+    );
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
