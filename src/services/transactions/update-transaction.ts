@@ -1,6 +1,7 @@
 import { PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types'
 
 import { Transaction } from 'sequelize/types';
+import { v4 as uuidv4 } from 'uuid';
 
 import { logger} from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
@@ -61,16 +62,16 @@ interface UpdateTransferParams {
 }: UpdateParams & UpdateTransferParams) => {
   let transaction: Transaction = null;
 
-  // amount changed = we change amount in both transactions
-  // destinationAmount changed = need to update only second transaction
-  // note, time, paymentType changed = both
+  // - [x] amount changed = we change amount in both transactions
+  // - [x] destinationAmount changed = need to update only second transaction
+  // - [x] note, time, paymentType changed = both
   // transactionType =
   //                  from expense/income to transfer - ask for destionation- fields, create second tx
   //                  from transfer - remove second transfer transaction, clear base transaction (remove/edit transfer related fields)
-  // accountId - change only base
-  // destinationAccountId - change only second tx
-  // currencyId + code - change only base, same about destination
-  // categoryId - change only base if it is not a transefer (add validation)
+  // - [x] accountId - change only base
+  // - [x] destinationAccountId - change only second tx
+  // - [x] currencyId + code - change only base, same about destination
+  // - [x] categoryId - change only base if it is not a transefer (add validation)
 
   try {
     transaction = await connection.sequelize.transaction();
@@ -79,6 +80,7 @@ interface UpdateTransferParams {
       amount: previousAmount,
       accountId: previousAccountId,
       transactionType: previousTransactionType,
+      isTransfer: previouslyItWasTransfer,
       transferId,
     } = await getTransactionById(
       { id, authorId },
@@ -99,12 +101,14 @@ interface UpdateTransferParams {
         note,
         time,
         authorId,
-        transactionType,
+        // When transfer, base tx can only be "expense'
+        transactionType: isTransfer ? TRANSACTION_TYPES.expense : transactionType,
         paymentType,
         accountId,
         categoryId,
         currencyId,
         currencyCode,
+        isTransfer,
       },
       { transaction },
     );
@@ -148,68 +152,165 @@ interface UpdateTransferParams {
     updatedTransactions.push(baseTransaction)
 
     if (isTransfer) {
-      // TODO: validate that passed id relates EXACTLY to BASE transaction ('expense')
+      if (previouslyItWasTransfer) {
+        // If previously the base tx was transfer, we need to:
+        // 1. Find opposite tx to get access to old tx data
+        // 2. Update opposite tx data
+        // 3.1. If accountId is the same, just update the balance
+        // 3.2. If accountId changed, update new and old accounts balance
+
+        const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
+          fieldValues: [transferId],
+          fieldName: 'transferId',
+          authorId,
+        })).find(item => Number(item.id) !== Number(id));
+
+        const destinationTransaction = await Transactions.updateTransactionById(
+          {
+            id: notBaseTransaction.id,
+            amount: destinationAmount,
+            refAmount: destinationAmount,
+            note,
+            time,
+            authorId,
+            transactionType: TRANSACTION_TYPES.income,
+            paymentType: paymentType,
+            accountId: destinationAccountId,
+            categoryId,
+            currencyId: destinationCurrencyId,
+            currencyCode: destinationCurrencyCode,
+          },
+          { transaction },
+        );
+
+        // If accountId was changed to a new one
+        if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
+          // Make previous account's balance if like there was no transaction before
+          await updateAccountBalance(
+            {
+              accountId: notBaseTransaction.accountId,
+              userId: authorId,
+              amount: 0,
+              previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
+            },
+            { transaction },
+          );
+
+          // Update balance for the new account
+          await updateAccountBalance(
+            {
+              accountId,
+              userId: authorId,
+              amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
+              previousAmount: 0,
+            },
+            { transaction },
+          );
+        } else {
+          // Update balance for the new account
+          await updateAccountBalance(
+            {
+              accountId: destinationAccountId,
+              userId: authorId,
+              amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
+              previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
+            },
+            { transaction },
+          );
+        }
+
+        updatedTransactions.push(destinationTransaction)
+      } else {
+        // If previously the base tx wasn't transfer, so it was income or expense,
+        // we need to:
+        // 1. create an opposite tx
+        // 2. update account balance for the new opposite tx
+        // 3. generate "transferId" and put it to both transactions
+
+        if (!destinationAmount || !destinationAccountId || !destinationCurrencyId || !destinationCurrencyCode) {
+          throw new ValidationError({
+            message: `One of required fields are missing: destinationAmount, destinationAccountId, destinationCurrencyId, destinationCurrencyCode.`,
+          })
+        }
+
+        const transferId = uuidv4();
+
+        await Transactions.updateTransactionById({
+          id: baseTransaction.id,
+          authorId: baseTransaction.authorId,
+          transferId,
+          isTransfer: true,
+        }, { transaction });
+
+        const createdTx = await Transactions.createTransaction(
+          {
+            authorId: baseTransaction.authorId,
+            amount: destinationAmount,
+            refAmount: destinationAmount,
+            note: baseTransaction.note,
+            time: new Date(baseTransaction.time),
+            // opposite tx can only be income
+            transactionType: TRANSACTION_TYPES.income,
+            paymentType: baseTransaction.paymentType,
+            accountId: destinationAccountId,
+            categoryId: baseTransaction.categoryId,
+            accountType: baseTransaction.accountType,
+            currencyId: destinationCurrencyId,
+            currencyCode: destinationCurrencyCode,
+            isTransfer: true,
+            transferId,
+          },
+          { transaction },
+        );
+
+        await updateAccountBalance(
+          {
+            accountId: destinationAccountId,
+            userId: authorId,
+            amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
+          },
+          { transaction },
+        );
+
+        updatedTransactions.push(createdTx);
+      }
+    } else if (!isTransfer && previouslyItWasTransfer) {
+      // If right now base tx is not transfer, but previously it was one, we need
+      // to:
+      // 1. remove old opposite tx
+      // 2. remove "trasferId" from base tx
+      // 3. update the balance of the account related to opposite tx.
+
       const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
         fieldValues: [transferId],
         fieldName: 'transferId',
         authorId,
       })).find(item => Number(item.id) !== Number(id));
 
-      const destinationTransaction = await Transactions.updateTransactionById(
+      await Transactions.deleteTransactionById({
+        id: notBaseTransaction.id,
+        authorId: notBaseTransaction.authorId
+      }, { transaction });
+
+      await Transactions.updateTransactionById(
         {
-          id: notBaseTransaction.id,
-          amount: destinationAmount,
-          refAmount: destinationAmount,
-          note,
-          time,
-          authorId,
-          transactionType: TRANSACTION_TYPES.income,
-          paymentType: paymentType,
-          accountId: destinationAccountId,
-          categoryId,
-          currencyId: destinationCurrencyId,
-          currencyCode: destinationCurrencyCode,
+          id: baseTransaction.id,
+          authorId: baseTransaction.authorId,
+          transferId: null,
+          isTransfer: false,
         },
         { transaction },
       );
 
-      // If accountId was changed to a new one
-      if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
-        // Make previous account's balance if like there was no transaction before
-        await updateAccountBalance(
-          {
-            accountId: notBaseTransaction.accountId,
-            userId: authorId,
-            amount: 0,
-            previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
-          },
-          { transaction },
-        );
-
-        // Update balance for the new account
-        await updateAccountBalance(
-          {
-            accountId,
-            userId: authorId,
-            amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
-            previousAmount: 0,
-          },
-          { transaction },
-        );
-      } else {
-        // Update balance for the new account
-        await updateAccountBalance(
-          {
-            accountId: destinationAccountId,
-            userId: authorId,
-            amount: defineCorrectAmountFromTxType(destinationAmount, TRANSACTION_TYPES.income),
-            previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
-          },
-          { transaction },
-        );
-      }
-
-      updatedTransactions.push(destinationTransaction)
+      await updateAccountBalance(
+        {
+          accountId: notBaseTransaction.accountId,
+          userId: authorId,
+          amount: 0,
+          previousAmount: defineCorrectAmountFromTxType(notBaseTransaction.amount, TRANSACTION_TYPES.income),
+        },
+        { transaction },
+      );
     }
 
     await transaction.commit();

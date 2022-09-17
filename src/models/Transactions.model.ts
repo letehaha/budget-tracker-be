@@ -365,7 +365,7 @@ export const createTransaction = async (
     amount: number;
     refAmount: number;
     note?: string;
-    time: string;
+    time: Date;
     authorId: number;
     transactionType: TRANSACTION_TYPES;
     paymentType: PAYMENT_TYPES;
@@ -412,11 +412,11 @@ export const createTransaction = async (
 export const updateTransactionById = async (
   {
     id,
+    authorId,
     amount,
     refAmount,
     note,
     time,
-    authorId,
     transactionType,
     paymentType,
     accountId,
@@ -428,17 +428,17 @@ export const updateTransactionById = async (
     transferId,
   }: {
     id: number;
-    amount: number;
-    refAmount: number;
-    note?: string;
-    time: string;
     authorId: number;
-    transactionType: TRANSACTION_TYPES;
-    paymentType: PAYMENT_TYPES;
-    accountId: number;
-    categoryId: number;
-    currencyId: number;
-    currencyCode: string;
+    amount?: number;
+    refAmount?: number;
+    note?: string;
+    time?: string;
+    transactionType?: TRANSACTION_TYPES;
+    paymentType?: PAYMENT_TYPES;
+    accountId?: number;
+    categoryId?: number;
+    currencyId?: number;
+    currencyCode?: string;
     refCurrencyCode?: string;
     isTransfer?: boolean;
     transferId?: string;
