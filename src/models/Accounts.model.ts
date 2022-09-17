@@ -1,4 +1,10 @@
-import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  ForeignKey,
+  BelongsTo,
+} from 'sequelize-typescript';
 import { Transaction } from 'sequelize/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
@@ -8,6 +14,14 @@ import AccountTypes from '@models/AccountTypes.model';
   timestamps: false,
 })
 export default class Accounts extends Model {
+  @BelongsTo(
+    () => Currencies,
+    {
+      as: 'currency',
+      foreignKey: 'currencyId',
+    }
+  )
+
   @Column({
     unique: true,
     allowNull: false,
@@ -155,3 +169,25 @@ export const deleteAccountById = (
 ) => {
   return Accounts.destroy({ where: { id }, transaction });
 };
+
+export const getAccountCurrency = async (
+  {
+    userId,
+    id,
+  }: {
+    userId: number;
+    id: number;
+  },
+  { transaction }: { transaction?: Transaction } = {}
+) => {
+
+  const account = await Accounts.findOne({
+    where: { userId, id },
+    transaction,
+    include: {
+      model: Currencies,
+    },
+  }) as (Accounts & { currency: Currencies });
+
+  return account;
+}
