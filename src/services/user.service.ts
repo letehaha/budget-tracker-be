@@ -340,7 +340,7 @@ export const deleteUserCurrency = async (
       {
         currencyId: defaultCurrency.currencyId,
       },
-      { userId, currencyId: passedCurrency.currencyId },
+      { authorId: userId, currencyId: passedCurrency.currencyId },
       { transaction },
     );
 

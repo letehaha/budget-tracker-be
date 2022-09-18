@@ -424,7 +424,7 @@ export const updateTransactions = (
     currencyId?: number;
     refCurrencyCode?: string;
   },
-  where: Record<string, unknown>,
+  where: Record<string, unknown> & { authorId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   return Transactions.update(
