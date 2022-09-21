@@ -8,6 +8,7 @@ import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Currencies from '@models/Currencies.model';
+import * as Accounts from '@models/Accounts.model';
 
 export const getUser = async (id: number) => {
   try {
@@ -327,7 +328,24 @@ export const deleteUserCurrency = async (
 
     if (passedCurrency.isDefaultCurrency) {
       throw new ValidationError({
-        message: `It is not allowed to delete default currency. Unmake it default first.`,
+        message: 'It is not allowed to delete default currency. Unmake it default first.',
+      });
+    }
+
+    const accounts = await Accounts.getAccountsByCurrency(
+      { userId, currencyId },
+      { transaction },
+    );
+
+    if (accounts.length) {
+      throw new ValidationError({
+        message: `
+          It is not allowed to delete currency associated with any accounts. Delete accounts first.
+          Accounts names: "${accounts.map(item => item.name)}".
+        `,
+        details: {
+          accounts,
+        },
       });
     }
 

@@ -180,7 +180,6 @@ export const getAccountCurrency = async (
   },
   { transaction }: { transaction?: Transaction } = {}
 ) => {
-
   const account = await Accounts.findOne({
     where: { userId, id },
     transaction,
@@ -190,4 +189,14 @@ export const getAccountCurrency = async (
   }) as (Accounts & { currency: Currencies });
 
   return account;
+}
+
+export const getAccountsByCurrency = (
+  { userId, currencyId }: { userId: number; currencyId: number },
+  { transaction }: { transaction?: Transaction } = {}
+) => {
+  return Accounts.findAll({
+    where: { userId, currencyId },
+    transaction,
+  })
 }
