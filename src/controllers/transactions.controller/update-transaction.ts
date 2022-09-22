@@ -16,8 +16,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     const {
       amount,
       destinationAmount,
-      currencyId,
-      currencyCode,
       note,
       time,
       transactionType,
@@ -26,8 +24,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       isTransfer,
-      destinationCurrencyId,
-      destinationCurrencyCode,
     } = req.body;
     const { id: authorId } = req.user;
 
@@ -37,8 +33,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       id,
       amount,
       destinationAmount,
-      currencyId,
-      currencyCode,
       note,
       time,
       authorId,
@@ -48,8 +42,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       isTransfer,
-      destinationCurrencyId,
-      destinationCurrencyCode,
     });
 
     return res.status(200).json({

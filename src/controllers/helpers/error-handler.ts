@@ -9,6 +9,7 @@ export function errorHandler(res, err: Error) {
       response: {
         message: err.message,
         code: err.code,
+        details: err.details,
       },
     });
   }

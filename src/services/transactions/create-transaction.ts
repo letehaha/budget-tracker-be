@@ -7,6 +7,8 @@ import { connection } from '@models/index';
 import { logger} from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
+import * as Accounts from '@models/Accounts.model';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { updateAccountBalance } from './helpers';
 
@@ -20,16 +22,12 @@ export interface CreateTransactionParams {
   accountId: number;
   categoryId: number;
   accountType: ACCOUNT_TYPES;
-  currencyId: number;
-  currencyCode: string;
   isTransfer;
 }
 
 export interface CreateTransferTransactionParams {
   destinationAmount?: number;
   destinationAccountId?: number;
-  destinationCurrencyId?: number;
-  destinationCurrencyCode?: string;
 }
 
 /**
@@ -45,15 +43,9 @@ export interface CreateTransferTransactionParams {
   accountId,
   categoryId,
   accountType,
-  currencyId,
-  currencyCode,
-  destinationCurrencyId,
-  destinationCurrencyCode,
   isTransfer = false,
   destinationAmount,
   destinationAccountId,
-  // TODO:
-  // destinationCurrencyCode
 }: CreateTransactionParams & CreateTransferTransactionParams) => {
   let transaction: Transaction = null;
 
@@ -71,11 +63,27 @@ export interface CreateTransferTransactionParams {
       accountId,
       categoryId,
       accountType,
-      currencyId,
-      currencyCode,
+      currencyId: undefined,
+      currencyCode: undefined,
       isTransfer,
       transferId: undefined,
+      refCurrencyCode: undefined,
     };
+
+    const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
+      { userId: authorId, isDefaultCurrency: true },
+      { transaction }
+    );
+
+    generalTxParams.refCurrencyCode = defaultUserCurrency.code;
+
+    const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
+      userId: authorId,
+      id: accountId,
+    });
+
+    generalTxParams.currencyId = generalTxCurrency.id;
+    generalTxParams.currencyCode = generalTxCurrency.code;
 
     let mainTxParams = { ...generalTxParams }
     let transactionsParams = [mainTxParams]
@@ -100,9 +108,17 @@ export interface CreateTransferTransactionParams {
         accountId: destinationAccountId,
         transferId,
         transactionType: TRANSACTION_TYPES.income,
-        currencyId: destinationCurrencyId,
-        currencyCode: destinationCurrencyCode,
+        currencyId: undefined,
+        currencyCode: undefined,
       }
+
+      const { currency: destinationTxCurrency } = await Accounts.getAccountCurrency({
+        userId: authorId,
+        id: destinationAccountId,
+      });
+
+      destinationTxParams.currencyId = destinationTxCurrency.id;
+      destinationTxParams.currencyCode = destinationTxCurrency.code;
 
       transactionsParams = [mainTxParams, destinationTxParams]
     }

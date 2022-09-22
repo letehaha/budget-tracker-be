@@ -1,6 +1,6 @@
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
-
+import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 import * as userService from '@services/user.service';
+import { errorHandler } from './helpers';
 
 export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
@@ -13,38 +13,7 @@ export const getUser = async (req, res: CustomResponse) => {
       response: user,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
-  }
-};
-
-export const getUserCurrencies = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { includeUser } = req.query;
-
-  try {
-    const result = await userService.getUserCurrencies({
-      userId: Number(userId),
-      includeUser: Boolean(includeUser),
-    });
-
-    return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
@@ -88,13 +57,7 @@ export const updateUser = async (req, res: CustomResponse) => {
       response: user,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
@@ -109,12 +72,122 @@ export const deleteUser = async (req, res: CustomResponse) => {
       response: {},
     });
   } catch (err) {
-    return res.status(500).json({
-      status: RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
+
+export const getUserCurrencies = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  try {
+    const result = await userService.getUserCurrencies({
+      userId: Number(userId),
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+};
+
+export const addUserCurrencies = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  const { currencies }: {
+    currencies: {
+      currencyId: number,
+      exchangeRate?: number;
+      liveRateUpdate?: boolean;
+    }[]
+  } = req.body;
+
+  // TODO: types validation
+
+  try {
+    const result = await userService.addUserCurrencies(
+      currencies.map(item => ({ userId, ...item })),
+    );
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const editUserCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  const {
+    currencyId,
+    exchangeRate,
+    liveRateUpdate,
+  }: {
+    currencyId: number;
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+  } = req.body;
+
+  // TODO: types validation
+
+  try {
+    const result = await userService.editUserCurrency({
+      userId,
+      currencyId,
+      exchangeRate,
+      liveRateUpdate,
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { currencyId }: { currencyId: number } = req.body;
+
+  // TODO: types validation
+
+  try {
+    const result = await userService.setDefaultUserCurrency({
+      userId,
+      currencyId,
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const deleteUserCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  const { currencyId }: { currencyId: number } = req.body;
+
+  try {
+    await userService.deleteUserCurrency({
+      userId,
+      currencyId,
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}

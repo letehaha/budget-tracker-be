@@ -9,6 +9,7 @@
     "paths": {
       "@routes/*": ["routes/*"],
       "@middlewares/*": ["middlewares/*"],
+      "@controllers/*": ["controllers/*"],
       "@models/*": ["models/*"],
       "@js/*": ["js/*"],
       "shared-types": ["../shared-types"],

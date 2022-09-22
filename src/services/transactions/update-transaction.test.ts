@@ -6,6 +6,7 @@ import * as getTransactionByIdService from './get-by-id';
 import { updateTransaction } from './update-transaction';
 // import TransactionsModel from '@models/Transactions.model';
 import * as Transactions from '@models/Transactions.model';
+import * as Accounts from '@models/Accounts.model';
 import * as accountsService from '@services/accounts.service';
 
 const commitMock = jest.fn().mockImplementation(() => Promise.resolve());
@@ -18,6 +19,11 @@ jest.spyOn(connection.sequelize, 'transaction').mockImplementation(
   })
 );
 
+const DEFAULT_CURRENCY = {
+  id: 868,
+  code: 'USD',
+}
+
 const EXISTING_BASE_TX_MOCK = {
   id: 1,
   amount: 100,
@@ -27,8 +33,8 @@ const EXISTING_BASE_TX_MOCK = {
   paymentType: PAYMENT_TYPES.creditCard,
   accountId: 1,
   categoryId: 1,
-  currencyId: 1,
-  currencyCode: 'USD',
+  currencyId: DEFAULT_CURRENCY.id,
+  currencyCode: DEFAULT_CURRENCY.code,
   accountType: ACCOUNT_TYPES.system,
   refCurrencyCode: null,
   authorId: 1,
@@ -60,12 +66,14 @@ describe('transactions.service', () => {
     .mockImplementation(() => ({}) as any);
 
   let getAccountSpy = null;
+  let getAccountCurrencySpy = null;
   let getTxSpy = null
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     getAccountSpy = jest.spyOn(accountsService, 'getAccountById')
+    getAccountCurrencySpy = jest.spyOn(Accounts, 'getAccountCurrency');
     getTxSpy = jest.spyOn(getTransactionByIdService, 'getTransactionById')
 
     updateTransactionByIdSpy
@@ -210,6 +218,7 @@ describe('transactions.service', () => {
         newAccountId
       },
     ) => {
+      const isAccountChanged = previousAccountId !== newAccountId
       getAccountSpy.mockImplementation(({ id }) => {
         let balance = currentBalance;
 
@@ -219,6 +228,10 @@ describe('transactions.service', () => {
 
         return Promise.resolve({ currentBalance: balance } as any)
       })
+
+      getAccountCurrencySpy.mockImplementation(
+        () => Promise.resolve({ currency: DEFAULT_CURRENCY } as any),
+      );
 
       getTxSpy.mockImplementation(() => {
         const toReturn = {
@@ -239,7 +252,7 @@ describe('transactions.service', () => {
       });
 
       expect(commitMock).toBeCalled();
-      expect(updateTransactionByIdSpy).toBeCalledTimes(1);
+      expect(updateTransactionByIdSpy).toBeCalledTimes(isAccountChanged ? 2 : 1);
       expect(getAccountSpy).toBeCalled();
       expect(getTxSpy).toBeCalledWith(
         expect.objectContaining({

@@ -37,6 +37,7 @@
     "@js": "src/js",
     "@routes": "src/routes",
     "@middlewares": "src/middlewares",
+    "@controllers": "src/controllers",
     "@models": "src/models",
     "@services": "src/services",
     "shared-types": "shared-types"

@@ -3,12 +3,19 @@ import { ERROR_CODES } from 'shared-types';
 export class CustomError extends Error {
   public httpCode: number;
   public code: string;
+  public details: Record<string, unknown>;
 
-  constructor(httpCode, code: string, message: string) {
+  constructor(
+    httpCode,
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
 
     this.httpCode = httpCode
     this.code = code
+    this.details = details
   }
 }
 
@@ -32,10 +39,10 @@ export class ConflictError extends CustomError {
 
 export class ValidationError extends CustomError {
   constructor(
-    { code = ERROR_CODES.validationError, message }:
-    { code?: string; message: string }
+    { code = ERROR_CODES.validationError, message, details }:
+    { code?: string; message: string, details?: Record<string, unknown> }
   ) {
-    super(422, code, message);
+    super(422, code, message, details);
   }
 }
 
