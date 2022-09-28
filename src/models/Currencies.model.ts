@@ -56,7 +56,11 @@ export default class Currencies extends Model {
 }
 
 export const getAllCurrencies = async () => {
-  const currencies = await Currencies.findAll();
+  const currencies = await Currencies.findAll({
+    where: {
+      isDisabled: { [Op.not]: true }
+    },
+  });
 
   return currencies;
 };
@@ -99,7 +103,9 @@ export async function getCurrencies(
   if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
     throw new ValidationError({ message: 'Neither "ids", "currencies" or "codes" should be specified.' })
   }
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = {
+    isDisabled: { [Op.not]: true }
+  };
 
   if (ids) where.id = { [Op.in]: ids }
   if (currencies) where.currency = { [Op.in]: currencies }
