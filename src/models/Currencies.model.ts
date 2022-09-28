@@ -50,6 +50,9 @@ export default class Currencies extends Model {
   @AllowNull(false)
   @Column
   code: string;
+
+  @Column({ allowNull: false, defaultValue: false })
+  isDisabled: boolean;
 }
 
 export const getAllCurrencies = async () => {
