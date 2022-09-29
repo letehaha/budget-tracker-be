@@ -5,6 +5,7 @@ import { RESPONSE_STATUS, ERROR_CODES } from 'shared-types';
 
 import { connection } from '@models/index';
 import * as Currencies from '@models/Currencies.model';
+import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as userService from '@services/user.service';
 import * as categoriesService from '@services/categories.service';
 import { DEFAULT_CATEGORIES } from '@js/const';
@@ -60,6 +61,7 @@ export const login = async (
   }
 };
 
+const DEFAULT_BASE_CURRENCY = 'UAH'
 export const register = async (
   {
     username,
@@ -165,17 +167,35 @@ export const register = async (
     }
 
     const currencies = await Currencies.getCurrencies({
-      codes: ['UAH', 'USD', 'EUR']
+      codes: [DEFAULT_BASE_CURRENCY, 'USD', 'EUR']
     }, { transaction: registrationTransaction });
 
+    const currenciesExchangeRates: Record<number, number> = (
+      await ExchangeRates.getRatesForCurrenciesPairs(
+        currencies.map(item => ({
+          baseCode: DEFAULT_BASE_CURRENCY,
+          quoteCode: item.code
+        })),
+        { transaction: registrationTransaction }
+      )
+    ).reduce((acc, curr) => {
+      acc[Number(curr.quoteId)] = curr.rate
+
+      return acc
+    }, {});
+
     await userService.addUserCurrencies(
-      currencies.map(i => ({ userId: user.id, currencyId: i.id })),
+      currencies.map(i => ({
+        userId: user.id,
+        currencyId: i.id,
+        exchangeRate: currenciesExchangeRates[i.id],
+      })),
       { transaction: registrationTransaction }
     );
 
     await userService.setDefaultUserCurrency({
       userId: user.id,
-      currencyId: currencies.find(item => item.code === 'UAH').id
+      currencyId: currencies.find(item => item.code === DEFAULT_BASE_CURRENCY).id
     }, { transaction: registrationTransaction });
 
     await registrationTransaction.commit();

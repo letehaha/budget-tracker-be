@@ -4,6 +4,7 @@ import {
   Model,
   ForeignKey,
 } from 'sequelize-typescript';
+import { Transaction } from 'sequelize/types';
 import Currencies from './Currencies.model';
 
 @Table({
@@ -36,4 +37,24 @@ export default class ExchangeRates extends Model {
 
   @Column({ allowNull: true, defaultValue: 1 })
   rate: number;
+}
+
+export async function getRatesForCurrenciesPairs(
+  pairs: {
+    baseCode: string;
+    quoteCode: string;
+  }[],
+  { transaction }: { transaction?: Transaction } = {},
+) {
+  return Promise.all(
+    pairs.map(pair => (
+      ExchangeRates.findOne({
+        where: {
+          baseCode: pair.baseCode,
+          quoteCode: pair.quoteCode,
+        },
+        transaction,
+      })
+    ))
+  )
 }
