@@ -86,6 +86,18 @@ module.exports = {
         { transaction },
       );
 
+      // Change old INTEGER format to FLOAT
+      await queryInterface.changeColumn(
+        'UsersCurrencies',
+        'exchangeRate',
+        {
+          type: Sequelize.FLOAT,
+          allowNull: true,
+          defaultValue: 1,
+        },
+        { transaction },
+      );
+
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
@@ -97,6 +109,17 @@ module.exports = {
 
     try {
       await queryInterface.dropTable(TABLE_NAME, { transaction });
+
+      await queryInterface.changeColumn(
+        'UsersCurrencies',
+        'exchangeRate',
+        {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          defaultValue: null,
+        },
+        { transaction },
+      );
 
       await transaction.commit();
     } catch (err) {
