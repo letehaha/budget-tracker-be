@@ -4,6 +4,7 @@ import {
   Model,
   ForeignKey,
 } from 'sequelize-typescript';
+import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
 import Currencies from './Currencies.model';
 
@@ -46,15 +47,15 @@ export async function getRatesForCurrenciesPairs(
   }[],
   { transaction }: { transaction?: Transaction } = {},
 ) {
-  return Promise.all(
-    pairs.map(pair => (
-      ExchangeRates.findOne({
-        where: {
-          baseCode: pair.baseCode,
-          quoteCode: pair.quoteCode,
-        },
-        transaction,
-      })
-    ))
-  )
+  return ExchangeRates.findAll({
+    where: {
+      [Op.or]: pairs.map(item => ({
+        [Op.and]: {
+          baseCode: item.baseCode,
+          quoteCode: item.quoteCode,
+        }
+      }))
+    },
+    transaction,
+  })
 }
