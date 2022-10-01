@@ -34,6 +34,7 @@ interface UpdateParams {
 interface UpdateTransferParams {
   destinationAmount?: number;
   destinationAccountId?: number;
+  isTransfer?: boolean;
 }
 
 /**
@@ -75,42 +76,41 @@ interface UpdateTransferParams {
 
     const updatedTransactions = []
 
-    const baseTransaction = await Transactions.updateTransactionById(
-      {
-        id,
-        amount,
-        refAmount: amount,
-        note,
-        time,
-        authorId,
-        // When transfer, base tx can only be "expense'
-        transactionType: isTransfer ? TRANSACTION_TYPES.expense : transactionType,
-        paymentType,
-        accountId,
-        categoryId,
-        isTransfer,
-      },
-      { transaction },
-    );
+    const isBaseTxAccountChanged = accountId && accountId !== previousAccountId
+
+    const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
+      id,
+      amount,
+      refAmount: amount,
+      note,
+      time,
+      authorId,
+      // When transfer, base tx can only be "expense'
+      transactionType: isTransfer ? TRANSACTION_TYPES.expense : transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      isTransfer,
+    }
 
     // If accountId was changed to a new one
-    if (accountId && accountId !== previousAccountId) {
+    if (isBaseTxAccountChanged) {
       // Since accountId is changed, we need to change currency too
       const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
         userId: authorId,
         id: accountId,
       });
 
-      await Transactions.updateTransactionById(
-        {
-          id,
-          authorId,
-          currencyId: baseTxCurrency.id,
-          currencyCode: baseTxCurrency.code,
-        },
-        { transaction },
-      );
+      baseTransactionUpdateParams.currencyId = baseTxCurrency.id
+      baseTransactionUpdateParams.currencyCode = baseTxCurrency.code
+    }
 
+    const baseTransaction = await Transactions.updateTransactionById(
+      baseTransactionUpdateParams,
+      { transaction },
+    );
+
+    if (isBaseTxAccountChanged) {
       // Make previous account's balance if like there was no transaction before
       await updateAccountBalance(
         {

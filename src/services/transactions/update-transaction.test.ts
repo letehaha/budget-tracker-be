@@ -218,7 +218,6 @@ describe('transactions.service', () => {
         newAccountId
       },
     ) => {
-      const isAccountChanged = previousAccountId !== newAccountId
       getAccountSpy.mockImplementation(({ id }) => {
         let balance = currentBalance;
 
@@ -252,7 +251,7 @@ describe('transactions.service', () => {
       });
 
       expect(commitMock).toBeCalled();
-      expect(updateTransactionByIdSpy).toBeCalledTimes(isAccountChanged ? 2 : 1);
+      expect(updateTransactionByIdSpy).toBeCalledTimes(1);
       expect(getAccountSpy).toBeCalled();
       expect(getTxSpy).toBeCalledWith(
         expect.objectContaining({

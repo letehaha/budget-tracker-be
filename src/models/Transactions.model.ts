@@ -342,6 +342,24 @@ export const createTransaction = async (
   );
 };
 
+export interface UpdateTransactionByIdParams {
+  id: number;
+  authorId: number;
+  amount?: number;
+  refAmount?: number;
+  note?: string;
+  time?: Date;
+  transactionType?: TRANSACTION_TYPES;
+  paymentType?: PAYMENT_TYPES;
+  accountId?: number;
+  categoryId?: number;
+  currencyId?: number;
+  currencyCode?: string;
+  refCurrencyCode?: string;
+  isTransfer?: boolean;
+  transferId?: string;
+}
+
 export const updateTransactionById = async (
   {
     id,
@@ -359,23 +377,7 @@ export const updateTransactionById = async (
     refCurrencyCode,
     isTransfer,
     transferId,
-  }: {
-    id: number;
-    authorId: number;
-    amount?: number;
-    refAmount?: number;
-    note?: string;
-    time?: Date;
-    transactionType?: TRANSACTION_TYPES;
-    paymentType?: PAYMENT_TYPES;
-    accountId?: number;
-    categoryId?: number;
-    currencyId?: number;
-    currencyCode?: string;
-    refCurrencyCode?: string;
-    isTransfer?: boolean;
-    transferId?: string;
-  },
+  }: UpdateTransactionByIdParams,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const where = { id, authorId };
