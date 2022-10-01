@@ -27,14 +27,14 @@ export const login = async (
     if (user) {
       const isPasswordValid = bcrypt.compareSync(
         password,
-        user.get('password'),
+        user.password,
       );
 
       if (isPasswordValid) {
         const token = jwt.sign(
           {
-            username: user.get('username'),
-            userId: user.get('id'),
+            username: user.username,
+            userId: user.id,
           },
           config.get('jwtSecret'),
           {
@@ -102,26 +102,25 @@ export const register = async (
       },
     );
 
-    // default categories
-    let categories = DEFAULT_CATEGORIES.main.map((item) => ({
+    const defaultCategories = DEFAULT_CATEGORIES.main.map((item) => ({
       ...item,
-      userId: user.get('id'),
+      userId: user.id,
     }));
 
     // Insert default categories
-    categories = await categoriesService.bulkCreate(
-      { data: categories },
+    const categories = await categoriesService.bulkCreate(
+      { data: defaultCategories },
       { transaction: registrationTransaction, returning: true },
-    )
+    );
 
     let subcats = [];
 
     // Loop through categories and make subcats as a raw array of categories
     // since DB expects that
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    categories.forEach((item: any) => {
+    categories.forEach(item => {
       const subcategories = DEFAULT_CATEGORIES.subcategories.find(
-        (subcat) => subcat.parentName === item.get('name'),
+        (subcat) => subcat.parentName === item.name,
       );
 
       if (subcategories) {
@@ -129,9 +128,9 @@ export const register = async (
           ...subcats,
           ...subcategories.values.map((subItem) => ({
             ...subItem,
-            parentId: item.get('id'),
-            color: item.get('color'),
-            userId: user.get('id'),
+            parentId: item.id,
+            color: item.color,
+            userId: user.id,
           })),
         ];
       }
@@ -144,9 +143,8 @@ export const register = async (
 
     // set defaultCategoryId so the undefined mcc codes will use it
     const defaultCategoryId = (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      categories.find((item: any) => item.get('name') === DEFAULT_CATEGORIES.names.other) as any
-    ).get('id');
+      categories.find(item => item.name === DEFAULT_CATEGORIES.names.other)
+    ).id;
 
     if (!defaultCategoryId) {
       // TODO: return UnexpectedError, but move descriptive message to logger, so users won't see this internal issue
@@ -158,7 +156,7 @@ export const register = async (
       user = await userService.updateUser(
         {
           defaultCategoryId,
-          id: user.get('id'),
+          id: user.id,
         },
         {
           transaction: registrationTransaction,

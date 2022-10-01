@@ -118,7 +118,7 @@ export const createCategory = async (
   return category;
 };
 
-export const bulkCreate = async (
+export const bulkCreate = (
   { data },
   {
     transaction,
@@ -130,11 +130,9 @@ export const bulkCreate = async (
     returning?: boolean;
   },
 ) => {
-  const result = await Categories.bulkCreate(data, {
+  return Categories.bulkCreate(data, {
     transaction,
     validate,
     returning,
   });
-
-  return result;
 }
