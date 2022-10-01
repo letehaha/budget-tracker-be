@@ -8,6 +8,7 @@ import { logger} from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
+import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { updateAccountBalance } from './helpers';
@@ -85,6 +86,16 @@ export interface CreateTransferTransactionParams {
     generalTxParams.currencyId = generalTxCurrency.id;
     generalTxParams.currencyCode = generalTxCurrency.code;
 
+    if (defaultUserCurrency.code !== generalTxCurrency.code) {
+      const { rate } = await userExchangeRateService.getExchangeRate({
+        userId: authorId,
+        baseCode: generalTxCurrency.code,
+        quoteCode: defaultUserCurrency.code,
+      })
+
+      generalTxParams.refAmount = Math.max(Math.floor(generalTxParams.amount * rate), 1)
+    }
+
     let mainTxParams = { ...generalTxParams }
     let transactionsParams = [mainTxParams]
 
@@ -117,6 +128,7 @@ export interface CreateTransferTransactionParams {
         id: destinationAccountId,
       });
 
+      destinationTxParams.refAmount = generalTxParams.refAmount
       destinationTxParams.currencyId = destinationTxCurrency.id;
       destinationTxParams.currencyCode = destinationTxCurrency.code;
 
