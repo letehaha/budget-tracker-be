@@ -7,6 +7,8 @@ import { logger} from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
 
 import { getTransactionById } from './get-by-id';
@@ -61,13 +63,20 @@ interface UpdateTransferParams {
 
     const {
       amount: previousAmount,
+      refAmount: previousRefAmount,
       accountId: previousAccountId,
       transactionType: previousTransactionType,
       isTransfer: previouslyItWasTransfer,
+      currencyCode: previousCurrencyCode,
       transferId,
     } = await getTransactionById(
       { id, authorId },
       { transaction },
+    );
+
+    const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
+      { userId: authorId, isDefaultCurrency: true },
+      { transaction }
     );
 
     if (isTransfer && transactionType !== TRANSACTION_TYPES.expense) {
@@ -80,8 +89,8 @@ interface UpdateTransferParams {
 
     const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
       id,
-      amount,
-      refAmount: amount,
+      amount: amount ?? previousAmount,
+      refAmount: amount ?? previousRefAmount,
       note,
       time,
       authorId,
@@ -91,9 +100,9 @@ interface UpdateTransferParams {
       accountId,
       categoryId,
       isTransfer,
+      currencyCode: previousCurrencyCode,
     }
 
-    // If accountId was changed to a new one
     if (isBaseTxAccountChanged) {
       // Since accountId is changed, we need to change currency too
       const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
@@ -103,6 +112,22 @@ interface UpdateTransferParams {
 
       baseTransactionUpdateParams.currencyId = baseTxCurrency.id
       baseTransactionUpdateParams.currencyCode = baseTxCurrency.code
+    }
+
+    if (
+      defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode &&
+      baseTransactionUpdateParams.amount !== previousAmount
+    ) {
+      const { rate } = await userExchangeRateService.getExchangeRate({
+        userId: authorId,
+        baseCode: baseTransactionUpdateParams.currencyCode,
+        quoteCode: defaultUserCurrency.code,
+      })
+
+      baseTransactionUpdateParams.refAmount = Math.max(
+        Math.floor(baseTransactionUpdateParams.amount * rate),
+        1,
+      )
     }
 
     const baseTransaction = await Transactions.updateTransactionById(
@@ -166,7 +191,7 @@ interface UpdateTransferParams {
             id: notBaseTransaction.id,
             authorId,
             amount: destinationAmount,
-            refAmount: destinationAmount,
+            refAmount: baseTransactionUpdateParams.refAmount,
             note,
             time,
             transactionType: TRANSACTION_TYPES.income,
