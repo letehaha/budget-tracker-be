@@ -9,7 +9,12 @@ const removeUndefinedKeys = (obj: Record<string, unknown>): Record<string, unkno
   return obj
 };
 
+const toSystemFiat = value => Math.floor(value * 100)
+const fromSystemFiat = value => value / 100
+
 export {
   isExist,
+  toSystemFiat,
+  fromSystemFiat,
   removeUndefinedKeys,
 };

@@ -46,6 +46,8 @@ export default class UsersCurrencies extends Model {
   @Column({ allowNull: false })
   currencyId: number;
 
+  // Since base currency is always the same, here we're setting exchange rate
+  // between currencyId to user's base currency
   @Column({
     allowNull: true,
     defaultValue: null,

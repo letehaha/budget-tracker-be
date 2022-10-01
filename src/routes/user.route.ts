@@ -4,7 +4,6 @@ import {
   getUserCurrencies,
   addUserCurrencies,
   editUserCurrency,
-  setDefaultUserCurrency,
   deleteUserCurrency,
   updateUser,
   deleteUser,
@@ -20,7 +19,8 @@ router.delete('/delete', authenticateJwt, deleteUser);
 router.get('/currencies', authenticateJwt, getUserCurrencies);
 router.post('/currencies', authenticateJwt, addUserCurrencies);
 router.put('/currency', authenticateJwt, editUserCurrency);
-router.put('/currency/default', authenticateJwt, setDefaultUserCurrency);
+// Temporary disabled
+// router.put('/currency/default', authenticateJwt, setDefaultUserCurrency);
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 
 export default router;

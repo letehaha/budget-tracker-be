@@ -112,7 +112,7 @@ module.exports = {
       throw err;
     }
   },
-  down: async (queryInterface) => {
+  down: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
