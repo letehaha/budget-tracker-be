@@ -1,7 +1,7 @@
 import config from 'config';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { RESPONSE_STATUS, ERROR_CODES } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
 
 import { connection } from '@models/index';
 import * as Currencies from '@models/Currencies.model';
@@ -84,7 +84,7 @@ export const register = async (
     let user = await userService.getUserByCredentials({ username });
     if (user) {
       throw new ConflictError(
-        RESPONSE_STATUS.error,
+        ERROR_CODES.userExists,
         'User already exists!',
       );
     }
