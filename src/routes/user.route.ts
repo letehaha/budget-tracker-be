@@ -23,8 +23,6 @@ router.get('/currencies/base', authenticateJwt, getUserBaseCurrency);
 router.post('/currencies', authenticateJwt, addUserCurrencies);
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
 router.put('/currency', authenticateJwt, editUserCurrency);
-// Temporary disabled
-// router.put('/currency/default', authenticateJwt, setDefaultUserCurrency);
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 
 export default router;
