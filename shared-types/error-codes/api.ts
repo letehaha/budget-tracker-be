@@ -9,6 +9,7 @@ export enum ERROR_CODES {
   // auth
   unauthorized = 'UNAUTHENTICATED',
   invalidCredentials = 'INVALID_CREDENTIALS',
+  userExists = 'USER_ALREADY_EXISTS',
 
   // monobank
   monobankUserNotPaired = 'MONOBANK_USER_NOT_PAIRED',

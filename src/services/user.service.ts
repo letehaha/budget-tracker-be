@@ -8,6 +8,7 @@ import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Currencies from '@models/Currencies.model';
+import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
 
 export const getUser = async (id: number) => {
@@ -145,6 +146,63 @@ export const getUserCurrencies = async ({ userId }: { userId: number }) => {
     throw err;
   }
 };
+
+export const getUserBaseCurrency = (
+  { userId }: { userId: number },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return UsersCurrencies.getBaseCurrency({ userId }, { transaction });
+};
+
+export const setBaseUserCurrency = async (
+  { userId, currencyId }: { userId: number; currencyId: number; },
+) => {
+  const transaction: Transaction = await connection.sequelize.transaction();
+
+  try {
+    const existingBaseCurrency = await getUserBaseCurrency({ userId });
+
+    if (existingBaseCurrency) {
+      throw new ValidationError({ message: 'Base currency already exists!' })
+    }
+
+    const [currency] = await Currencies.getCurrencies(
+      { ids: [currencyId] },
+      { transaction },
+    );
+
+    if (!currency) {
+      throw new ValidationError({ message: 'Currency with passed id does not exist.' })
+    }
+
+    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs(
+      [{ baseCode: currency.code, quoteCode: currency.code }],
+      { transaction }
+    );
+
+    await addUserCurrencies(
+      [{
+        userId,
+        currencyId,
+        exchangeRate: exchangeRate.rate,
+      }],
+      { transaction }
+    );
+
+    const result = await setDefaultUserCurrency(
+      { userId, currencyId },
+      { transaction },
+    );
+
+    await transaction.commit();
+
+    return result;
+  } catch (err) {
+    await transaction.rollback();
+
+    throw err;
+  }
+}
 
 export const addUserCurrencies = async (
   currencies: {

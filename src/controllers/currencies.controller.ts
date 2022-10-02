@@ -1,9 +1,9 @@
 import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
-import * as Currencies from '../models/Currencies.model';
+import { getAllSystemCurrencies } from '@services/system-currencies';
 
 export const getAllCurrencies = async (req, res: CustomResponse) => {
   try {
-    const data = await Currencies.getAllCurrencies();
+    const data = await getAllSystemCurrencies();
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getAllCurrencies } from '../controllers/currencies.controller';
-import validation from '../middlewares/validations';
+import { getAllCurrencies } from '@controllers/currencies.controller';
+import validation from '@middlewares/validations';
 
 const router = Router({});
 

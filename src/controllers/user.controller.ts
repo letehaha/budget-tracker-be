@@ -93,6 +93,42 @@ export const getUserCurrencies = async (req, res: CustomResponse) => {
   }
 };
 
+export const getUserBaseCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+
+  try {
+    const result = await userService.getUserBaseCurrency({
+      userId: Number(userId),
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+};
+
+export const setBaseUserCurrency = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { currencyId } = req.body;
+
+  try {
+    const result = await userService.setBaseUserCurrency({
+      userId: Number(userId),
+      currencyId: Number(currencyId),
+    });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+};
+
 export const addUserCurrencies = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
