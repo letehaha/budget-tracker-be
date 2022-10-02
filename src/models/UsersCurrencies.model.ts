@@ -80,6 +80,17 @@ export const getCurrencies = (
   });
 };
 
+export const getBaseCurrency = (
+  { userId }: { userId: number },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return UsersCurrencies.findOne({
+    where: { userId, isDefaultCurrency: true },
+    include: { model: Currencies },
+    transaction,
+  });
+};
+
 type getCurrencyOverload = {
   (
     { userId, currencyId }: { userId: number; currencyId: number; },

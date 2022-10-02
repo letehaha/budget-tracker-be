@@ -146,6 +146,10 @@ export const getUserCurrencies = async ({ userId }: { userId: number }) => {
   }
 };
 
+export const getUserBaseCurrency = ({ userId }: { userId: number }) => {
+  return UsersCurrencies.getBaseCurrency({ userId });
+};
+
 export const addUserCurrencies = async (
   currencies: {
     userId: number;
