@@ -159,14 +159,6 @@ export async function updateAccountBalanceForChangedTx (
   const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType)
   const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType)
 
-  // const newRefBalance = transactionType === TRANSACTION_TYPES.income
-  //   ? refCurrentBalance + refAmount
-  //   : refCurrentBalance - refAmount
-
-  // let newBalance = transactionType === TRANSACTION_TYPES.income
-  //   ? currentBalance + amount
-  //   : currentBalance - amount
-
   if (currencyId !== accountCurrencyId) {
     const { rate } = await userExchangeRateService.getExchangeRate({
       userId,
@@ -175,23 +167,7 @@ export async function updateAccountBalanceForChangedTx (
     }, { transaction });
 
     newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
-
-    // newBalance = transactionType === TRANSACTION_TYPES.income
-    //   ? currentBalance + (amount * rate)
-    //   : currentBalance - (amount * rate)
   }
-
-  // console.log('amount', amount)
-  // console.log('refAmount', refAmount)
-  // console.log('currentBalance', currentBalance)
-  // console.log('refCurrentBalance', refCurrentBalance)
-  // console.log('newRefBalance', newRefBalance)
-  // console.log('newBalance', newBalance)
-
-  // 1. Всегда обновлять refBalance по refAmount
-  // 2. По balance
-  // 2.1 Если валюты одинаковые, то balance = amount
-  // 2.2 Если валюты разные, то постучаться в exchangeRates и посчитать amount по exchangeRate
 
   await Accounts.updateAccountById({
     id: accountId,
