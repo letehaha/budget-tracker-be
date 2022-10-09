@@ -4,6 +4,9 @@ import { Transaction } from 'sequelize/types';
 import {
   Table,
   BeforeCreate,
+  AfterCreate,
+  AfterUpdate,
+  BeforeDestroy,
   BeforeUpdate,
   Column,
   Model,
@@ -12,11 +15,13 @@ import {
 } from 'sequelize-typescript';
 import { isExist } from '@js/helpers';
 import { ValidationError } from '@js/errors'
+import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
 import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 
+// TODO: replace with scopes
 const prepareTXInclude = (
   {
     includeUser,
@@ -86,7 +91,7 @@ export default class Transactions extends Model {
   paymentType: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
-  @Column
+  @Column({ allowNull: false })
   accountId: number;
 
   @ForeignKey(() => Categories)
@@ -133,6 +138,83 @@ export default class Transactions extends Model {
           message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
         });
       }
+    }
+  }
+
+  @AfterCreate
+  static async updateAccountBalanceAfterCreate(instance: Transactions, { transaction }) {
+    const { accountType, accountId, authorId, currencyId, refAmount, amount, transactionType } = instance;
+
+    if (accountType === ACCOUNT_TYPES.system) {
+      await updateAccountBalanceForChangedTx({
+        userId: authorId,
+        accountId,
+        amount,
+        refAmount,
+        transactionType,
+        currencyId,
+      }, { transaction });
+    }
+  }
+
+  @AfterUpdate
+  static async updateAccountBalanceAfterUpdate(instance: Transactions, { transaction }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newData: Transactions = (instance as any).dataValues;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prevData: Transactions = (instance as any)._previousDataValues;
+    const isAccountChanged = newData.accountId !== prevData.accountId;
+
+    if (newData.accountType === ACCOUNT_TYPES.system) {
+      if (isAccountChanged) {
+        // Update old tx
+        await updateAccountBalanceForChangedTx({
+          userId: prevData.authorId,
+          accountId: prevData.accountId,
+          prevAmount: prevData.amount,
+          prevRefAmount: prevData.refAmount,
+          transactionType: prevData.transactionType,
+          currencyId: prevData.currencyId,
+        }, { transaction });
+
+        // Update new tx
+        await updateAccountBalanceForChangedTx({
+          userId: newData.authorId,
+          accountId: newData.accountId,
+          amount: newData.amount,
+          refAmount: newData.refAmount,
+          transactionType: newData.transactionType,
+          currencyId: newData.currencyId,
+        }, { transaction });
+      } else {
+        await updateAccountBalanceForChangedTx({
+          userId: newData.authorId,
+          accountId: newData.accountId,
+          amount: newData.amount,
+          prevAmount: prevData.amount,
+          refAmount: newData.refAmount,
+          prevRefAmount: prevData.refAmount,
+          transactionType: newData.transactionType,
+          prevTransactionType: prevData.transactionType,
+          currencyId: newData.currencyId,
+        }, { transaction });
+      }
+    }
+  }
+
+  @BeforeDestroy
+  static async updateAccountBalanceBeforeDestroy(instance: Transactions, { transaction }) {
+    const { accountType, accountId, authorId, currencyId, refAmount, amount, transactionType } = instance;
+
+    if (accountType === ACCOUNT_TYPES.system) {
+      await updateAccountBalanceForChangedTx({
+        userId: authorId,
+        accountId,
+        prevAmount: amount,
+        prevRefAmount: refAmount,
+        transactionType,
+        currencyId,
+      }, { transaction });
     }
   }
 }
@@ -397,7 +479,11 @@ export const updateTransactionById = async (
       transferId,
       currencyId,
     },
-    { where, transaction },
+    {
+      where,
+      transaction,
+      individualHooks: true,
+    },
   );
 
   return getTransactionById({ id, authorId }, { transaction });
@@ -441,19 +527,22 @@ export const updateTransactions = (
       currencyId,
       refCurrencyCode,
     },
-    { where, transaction },
+    {
+      where,
+      transaction,
+      individualHooks: true,
+    },
   );
 };
 
 export const deleteTransactionById = (
-  {
-    id,
-    authorId,
-  }: {
-    id: number;
-    authorId: number;
-  },
+  { id, authorId }: { id: number; authorId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  return Transactions.destroy({ where: { id, authorId }, transaction });
+  return Transactions.destroy({
+    where: { id, authorId },
+    transaction,
+    // So that BeforeDestroy will be triggered
+    individualHooks: true,
+  });
 }

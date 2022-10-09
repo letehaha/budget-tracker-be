@@ -1,5 +1,3 @@
-import { TRANSACTION_TYPES } from 'shared-types'
-
 import { Transaction } from 'sequelize/types';
 
 import { connection } from '@models/index';
@@ -8,7 +6,6 @@ import { logger} from '@js/utils/logger';
 import * as Transactions from '@models/Transactions.model';
 
 import { getTransactionById } from './get-by-id';
-import { updateAccountBalance } from './helpers';
 
 export const deleteTransaction = async ({
   id,
@@ -22,31 +19,9 @@ export const deleteTransaction = async ({
   try {
     transaction = await connection.sequelize.transaction();
 
-    const {
-      amount: previousAmount,
-      accountId,
-      isTransfer,
-      transferId,
-      transactionType,
-    } = await getTransactionById({ id, authorId }, { transaction });
+    const { isTransfer, transferId } = await getTransactionById({ id, authorId }, { transaction });
 
     if (!isTransfer) {
-      // It might be the case that accountId is not specified in the tx
-      if (accountId !== null) {
-        await updateAccountBalance(
-          {
-            userId: authorId,
-            accountId,
-            // make new amount 0, so the balance won't depend on this tx anymore
-            amount: 0,
-            previousAmount: transactionType === TRANSACTION_TYPES.income
-              ? previousAmount
-              : previousAmount * -1,
-          },
-          { transaction },
-        );
-      }
-
       await Transactions.deleteTransactionById({ id, authorId }, { transaction });
     } else if (isTransfer && transferId) {
       const transferTransactions = await Transactions.getTransactionsByArrayOfField({
@@ -56,21 +31,8 @@ export const deleteTransaction = async ({
       });
 
       await Promise.all(
-        // For the each transaction with the same "transferId" update amount
-        // and then delete transaction itself.
+        // For the each transaction with the same "transferId" delete transaction
         transferTransactions.map(tx => Promise.all([
-          updateAccountBalance(
-            {
-              userId: tx.authorId,
-              accountId: tx.accountId,
-              // make new amount 0, so the balance won't depend on this tx anymore
-              amount: 0,
-              previousAmount: tx.transactionType === TRANSACTION_TYPES.income
-                ? tx.amount
-                : tx.amount * -1,
-            },
-            { transaction },
-          ),
           Transactions.deleteTransactionById({
             id: tx.id,
             authorId: tx.authorId

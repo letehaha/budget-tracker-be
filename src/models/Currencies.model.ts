@@ -65,10 +65,10 @@ export const getAllCurrencies = async () => {
   return currencies;
 };
 
-export async function getCurrency({ id }: { id: number })
-export async function getCurrency({ currency }: { currency: string })
-export async function getCurrency({ number }: { number: number })
-export async function getCurrency({ code }: { code: string })
+export async function getCurrency({ id }: { id: number }, { transaction }: { transaction: Transaction }): Promise<Currencies>
+export async function getCurrency({ currency }: { currency: string }, { transaction }: { transaction: Transaction }): Promise<Currencies>
+export async function getCurrency({ number }: { number: number }, { transaction }: { transaction: Transaction }): Promise<Currencies>
+export async function getCurrency({ code }: { code: string }, { transaction }: { transaction: Transaction }): Promise<Currencies>
 export async function getCurrency(
   { id, currency, number, code }:
   {
@@ -77,8 +77,8 @@ export async function getCurrency(
     number?: number;
     code?: string;
   },
-  { transaction }: { transaction?: Transaction } = {},
-) {
+  { transaction }: { transaction: Transaction },
+): Promise<Currencies> {
   return Currencies.findOne({
     where: removeUndefinedKeys({ id, currency, number, code }),
     include: [{ model: Users }],

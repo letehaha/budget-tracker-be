@@ -337,7 +337,7 @@ export const setDefaultUserCurrency = async (
       isDefaultCurrency: true,
     }, { transaction });
 
-    const currency = await Currencies.getCurrency({ id: currencyId })
+    const currency = await Currencies.getCurrency({ id: currencyId }, { transaction })
 
     await Transactions.updateTransactions(
       {

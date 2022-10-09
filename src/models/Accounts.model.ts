@@ -43,7 +43,19 @@ export default class Accounts extends Model {
     allowNull: false,
     defaultValue: 0,
   })
+  refCurrentBalance: number;
+
+  @Column({
+    allowNull: false,
+    defaultValue: 0,
+  })
   creditLimit: number;
+
+  @Column({
+    allowNull: false,
+    defaultValue: 0,
+  })
+  refCreditLimit: number;
 
   @Column({
     allowNull: false,
@@ -74,13 +86,7 @@ export const getAccounts = async (
 };
 
 export const getAccountById = async (
-  {
-    userId,
-    id,
-  }: {
-    userId: number;
-    id: number;
-  },
+  { userId, id }: { userId: number; id: number },
   { transaction }: { transaction?: Transaction } = {}
 ) => {
   const account = await Accounts.findOne({ where: { userId, id }, transaction });
@@ -133,6 +139,7 @@ export const updateAccountById = async (
     currencyId,
     name,
     currentBalance,
+    refCurrentBalance,
     creditLimit,
     userId,
   }: {
@@ -141,6 +148,7 @@ export const updateAccountById = async (
     currencyId?: number;
     name?: string;
     currentBalance?: number;
+    refCurrentBalance?: number;
     creditLimit?: number;
     userId: number;
   },
@@ -153,6 +161,8 @@ export const updateAccountById = async (
       currencyId,
       name,
       currentBalance,
+      // TODO: fix
+      refCurrentBalance: refCurrentBalance ?? currentBalance,
       creditLimit,
     },
     { where, transaction },
