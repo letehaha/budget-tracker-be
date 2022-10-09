@@ -11,8 +11,6 @@ import * as Accounts from '@models/Accounts.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
-import { updateAccountBalance } from './helpers';
-
 export interface CreateTransactionParams {
   authorId: number;
   amount: number;
@@ -50,6 +48,8 @@ export interface CreateTransferTransactionParams {
 }: CreateTransactionParams & CreateTransferTransactionParams) => {
   let transaction: Transaction = null;
 
+  console.log('categoryId', categoryId)
+
   transaction = await connection.sequelize.transaction();
 
   try {
@@ -73,7 +73,7 @@ export interface CreateTransferTransactionParams {
 
     const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
       { userId: authorId, isDefaultCurrency: true },
-      { transaction }
+      { transaction },
     );
 
     generalTxParams.refCurrencyCode = defaultUserCurrency.code;
@@ -81,7 +81,7 @@ export interface CreateTransferTransactionParams {
     const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
       userId: authorId,
       id: accountId,
-    });
+    }, { transaction });
 
     generalTxParams.currencyId = generalTxCurrency.id;
     generalTxParams.currencyCode = generalTxCurrency.code;
@@ -91,7 +91,7 @@ export interface CreateTransferTransactionParams {
         userId: authorId,
         baseCode: generalTxCurrency.code,
         quoteCode: defaultUserCurrency.code,
-      })
+      }, { transaction })
 
       generalTxParams.refAmount = Math.max(Math.floor(generalTxParams.amount * rate), 1)
     }
@@ -143,21 +143,6 @@ export interface CreateTransferTransactionParams {
         )
       ))
     );
-
-    await Promise.all(
-      transactions.map(tx => (
-        updateAccountBalance(
-          {
-            accountId: tx.accountId,
-            userId: tx.authorId,
-            amount: tx.transactionType === TRANSACTION_TYPES.income
-              ? tx.amount
-              : tx.amount * -1,
-          },
-          { transaction },
-        )
-      ))
-    )
 
     await transaction.commit();
 

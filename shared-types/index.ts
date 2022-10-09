@@ -36,6 +36,7 @@ export enum TRANSACTION_TYPES {
 
 export enum CATEGORY_TYPES {
   custom = 'custom',
+  // internal means that it cannot be deleted or edited
   internal = 'internal',
 }
 
