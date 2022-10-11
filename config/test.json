@@ -10,7 +10,7 @@
     "host": "127.0.0.1",
     "username": "letehaha",
     "password": "password",
-    "database": "budget-tracker",
+    "database": "budget-tracker_test",
     "port": "5432",
     "dialect": "postgres",
     "logging": false

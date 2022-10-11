@@ -30,9 +30,9 @@ import { supportedLocales } from './translations';
 
 import middlewarePassword from './middlewares/passport';
 
-const app = express();
+export const app = express();
 const apiPrefix = config.get('apiPrefix');
-const redisClient = createClient({
+export const redisClient = createClient({
   host: config.get('redis.host'),
 });
 
@@ -74,7 +74,7 @@ app.use(`${apiPrefix}/models/currencies`, modelsCurrenciesRoutes);
 app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
 app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 
-app.listen(app.get('port'), () => {
+export const serverInstance = app.listen(app.get('port'), () => {
   // eslint-disable-next-line no-console
   // eslint-disable-next-line no-undef
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);

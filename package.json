@@ -4,14 +4,15 @@
   "description": "",
   "scripts": {
     "start": "npm run dev",
-    "dev": "NODE_ENV=development nodemon",
-    "prod": "NODE_ENV=production nodemon",
+    "dev": "cross-env NODE_ENV=development nodemon",
+    "prod": "cross-env NODE_ENV=production nodemon",
     "migrate": "npx sequelize-cli db:migrate",
     "migrate-undo": "npx sequelize-cli db:migrate:undo",
     "seed": "npx sequelize-cli db:seed:all",
     "seed-undo": "npx sequelize-cli db:seed:undo:all",
-    "test": "npm run test:unit",
-    "test:unit": "jest --passWithNoTests",
+    "db:reset": "cross-env NODE_ENV=test npx sequelize-cli db:drop && npx sequelize-cli db:create && npx sequelize-cli db:migrate",
+    "pretest": "cross-env NODE_ENV=test npm run db:reset",
+    "test": "cross-env NODE_ENV=test jest --passWithNoTests --forceExit",
     "lint": "eslint .",
     "docker-build": "docker build . -t letehaha/budget-tracker-be",
     "docker-push": "docker push letehaha/budget-tracker-be",
@@ -40,6 +41,7 @@
     "@controllers": "src/controllers",
     "@models": "src/models",
     "@services": "src/services",
+    "@root": "src",
     "shared-types": "shared-types"
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
@@ -86,6 +88,7 @@
     "@types/validator": "^13.7.1",
     "@typescript-eslint/eslint-plugin": "^5.8.0",
     "@typescript-eslint/parser": "^5.8.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.31.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -94,6 +97,7 @@
     "jest": "^28.1.0",
     "module-alias": "^2.2.2",
     "nodemon": "^2.0.6",
+    "supertest": "^6.3.0",
     "ts-jest": "^28.0.4",
     "tslint": "^6.1.3"
   }
