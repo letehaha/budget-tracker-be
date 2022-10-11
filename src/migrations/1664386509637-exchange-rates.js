@@ -1,19 +1,28 @@
 const QueryTypes = require('sequelize').QueryTypes;
 const axios = require('axios');
+const fs = require('fs');
+
+const isTest = process.env.NODE_ENV === 'test'
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      const data = await axios({
-        method: 'get',
-        redirect: 'follow',
-        url: 'https://api.apilayer.com/exchangerates_data/latest?base=USD',
-        headers: {
-          apikey: process.env.API_LAYER_API_KEY,
-        },
-      });
+      let data = {}
+
+      if (isTest) {
+        data.data = JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json'));
+      } else {
+        data = await axios({
+          method: 'get',
+          redirect: 'follow',
+          url: 'https://api.apilayer.com/exchangerates_data/latest?base=USD',
+          headers: {
+            apikey: process.env.API_LAYER_API_KEY,
+          },
+        });
+      };
 
       const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', { type: QueryTypes.SELECT })
 
