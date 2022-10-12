@@ -6,7 +6,7 @@ import {
 
 import { CustomError } from '@js/errors'
 
-import * as transactionsService from '@services/transactions.service';
+import * as transactionsService from '@services/transactions';
 
 import { validateTransactionAmount } from './helpers';
 
