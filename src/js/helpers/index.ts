@@ -18,3 +18,5 @@ export {
   fromSystemFiat,
   removeUndefinedKeys,
 };
+
+export * from './sequelize';

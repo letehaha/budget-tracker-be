@@ -6,7 +6,7 @@ import {
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
-import Currencies from './Currencies.model';
+import Currencies, { getCurrencies } from './Currencies.model';
 import Users from './Users.model';
 import { ValidationError } from '@js/errors';
 
@@ -42,18 +42,18 @@ export default class UserExchangeRates extends Model {
   rate: number;
 }
 
-interface ExchangeRatePair {
+export interface ExchangeRatePair {
   baseCode: string;
   quoteCode: string;
 }
 export async function getRates(
   { userId, pair }: { userId: number; pair: ExchangeRatePair },
   { transaction }: { transaction?: Transaction },
-)
+);
 export async function getRates(
   { userId, pairs }: { userId: number; pairs: ExchangeRatePair[] },
   { transaction }: { transaction?: Transaction },
-)
+);
 export async function getRates(
   {
     userId,
@@ -95,6 +95,100 @@ export async function getRates(
 
   return UserExchangeRates.findAll({
     where,
+    transaction,
+  })
+}
+
+export interface UpdateExchangeRatePair {
+  baseCode: string;
+  quoteCode: string;
+  rate: number;
+}
+
+export async function updateRates(
+  { userId, pair }: { userId: number; pair: UpdateExchangeRatePair },
+  { transaction }: { transaction?: Transaction },
+): Promise<UserExchangeRates[]>;
+export async function updateRates(
+  { userId, pairs }: { userId: number; pairs: UpdateExchangeRatePair[] },
+  { transaction }: { transaction?: Transaction },
+): Promise<UserExchangeRates[]>;
+export async function updateRates(
+  { userId, pair, pairs }: {
+    userId: number;
+    pair?: UpdateExchangeRatePair;
+    pairs?: UpdateExchangeRatePair[]
+  },
+  { transaction }: { transaction?: Transaction },
+): Promise<UserExchangeRates[]> {
+  const iterations = pairs ?? [pair]
+  const returningValues = []
+
+  for (const pairItem of iterations) {
+    const foundItem = await UserExchangeRates.findOne({
+      where: { userId, baseCode: pairItem.baseCode, quoteCode: pairItem.quoteCode },
+      transaction,
+    });
+
+    if (foundItem) {
+      const [, updatedItems] = await UserExchangeRates.update(
+        {
+          rate: pairItem.rate,
+        },
+        {
+          where: { userId, baseCode: pairItem.baseCode, quoteCode: pairItem.quoteCode },
+          transaction,
+          returning: true,
+        },
+      );
+
+      returningValues.push(updatedItems[0]);
+    } else {
+      const currencies = await getCurrencies({
+        codes: [pairItem.baseCode, pairItem.quoteCode],
+      });
+      const baseCurrency = currencies.find(item => item.code === pairItem.baseCode);
+      const quoteCurrency = currencies.find(item => item.code === pairItem.quoteCode);
+
+      const res = await UserExchangeRates.create(
+        {
+          userId,
+          rate: pairItem.rate,
+          baseId: baseCurrency.id,
+          baseCode: baseCurrency.code,
+          quoteId: quoteCurrency.id,
+          quoteCode: quoteCurrency.code,
+        },
+        {
+          transaction,
+          returning: true,
+        },
+      );
+
+      returningValues.push(res);
+    }
+  }
+
+  return returningValues;
+}
+
+export async function removeRates(
+  { userId, pairs }: {
+    userId: number;
+    pairs: ExchangeRatePair[]
+  },
+  { transaction }: { transaction?: Transaction },
+): Promise<void> {
+  await UserExchangeRates.destroy({
+    where: {
+      [Op.or]: pairs.map(item => ({
+        [Op.and]: {
+          userId,
+          baseCode: item.baseCode,
+          quoteCode: item.quoteCode,
+        }
+      }))
+    },
     transaction,
   })
 }

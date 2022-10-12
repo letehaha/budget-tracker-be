@@ -13,7 +13,7 @@ import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
 
-import * as transactionsService from '@services/transactions.service';
+import * as transactionsService from '@services/transactions';
 
 const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',

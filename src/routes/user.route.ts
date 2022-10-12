@@ -7,8 +7,11 @@ import {
   editUserCurrency,
   deleteUserCurrency,
   setBaseUserCurrency,
+  getCurrenciesExchangeRates,
+  editUserCurrencyExchangeRate,
   updateUser,
   deleteUser,
+  removeUserCurrencyExchangeRate,
 } from '@controllers/user.controller';
 import { authenticateJwt } from '@middlewares/passport';
 
@@ -20,9 +23,15 @@ router.delete('/delete', authenticateJwt, deleteUser);
 
 router.get('/currencies', authenticateJwt, getUserCurrencies);
 router.get('/currencies/base', authenticateJwt, getUserBaseCurrency);
+router.get('/currencies/rates', authenticateJwt, getCurrenciesExchangeRates);
+
 router.post('/currencies', authenticateJwt, addUserCurrencies);
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
+
 router.put('/currency', authenticateJwt, editUserCurrency);
+router.put('/currency/rates', authenticateJwt, editUserCurrencyExchangeRate);
+
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
+router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate);
 
 export default router;
