@@ -1,5 +1,6 @@
 import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 import * as userService from '@services/user.service';
+import * as userExchangeRates from '@services/user-exchange-rate';
 import { errorHandler } from './helpers';
 
 export const getUser = async (req, res: CustomResponse) => {
@@ -222,6 +223,21 @@ export const deleteUserCurrency = async (req, res: CustomResponse) => {
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
+  try {
+    const { id: userId } = req.user;
+
+    const data = await userExchangeRates.getUserExchangeRates({ userId });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
     });
   } catch (err) {
     errorHandler(res, err);

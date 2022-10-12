@@ -49,11 +49,11 @@ interface ExchangeRatePair {
 export async function getRates(
   { userId, pair }: { userId: number; pair: ExchangeRatePair },
   { transaction }: { transaction?: Transaction },
-)
+);
 export async function getRates(
   { userId, pairs }: { userId: number; pairs: ExchangeRatePair[] },
   { transaction }: { transaction?: Transaction },
-)
+);
 export async function getRates(
   {
     userId,
