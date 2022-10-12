@@ -8,6 +8,7 @@ import {
   deleteUserCurrency,
   setBaseUserCurrency,
   getCurrenciesExchangeRates,
+  editUserCurrencyExchangeRate,
   updateUser,
   deleteUser,
 } from '@controllers/user.controller';
@@ -27,6 +28,7 @@ router.post('/currencies', authenticateJwt, addUserCurrencies);
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
 
 router.put('/currency', authenticateJwt, editUserCurrency);
+router.put('/currency/rate', authenticateJwt, editUserCurrencyExchangeRate);
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 

@@ -1,7 +1,9 @@
 import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
+import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
 import { errorHandler } from './helpers';
+import { ValidationError } from '@js/errors';
 
 export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
@@ -234,6 +236,40 @@ export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
     const { id: userId } = req.user;
 
     const data = await userExchangeRates.getUserExchangeRates({ userId });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
+      response: data,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
+  try {
+    const { id: userId } = req.user;
+    const { pairs }: { pairs: UpdateExchangeRatePair[] } = req.body;
+
+    if (!pairs) {
+      throw new ValidationError({ message: '"pairs" is required.' })
+    }
+
+    if (!Array.isArray(pairs)) {
+      throw new ValidationError({ message: '"pairs" should be an array.' })
+    }
+
+    if (pairs.some(item => item.baseCode === item.quoteCode)) {
+      throw new ValidationError({ message: 'You cannot edit pair with the same base and quote currency code.' })
+    }
+
+    pairs.forEach((pair) => {
+      if (!pairs.some(item => item.baseCode === pair.quoteCode)) {
+        throw new ValidationError({ message: 'When changing base-qoute pair rate, you need to also change apposite pair\' rate.' })
+      }
+    })
+
+    const data = await userExchangeRates.editUserExchangeRates({ userId, pairs });
 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
