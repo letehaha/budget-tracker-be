@@ -28,7 +28,7 @@ router.post('/currencies', authenticateJwt, addUserCurrencies);
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
 
 router.put('/currency', authenticateJwt, editUserCurrency);
-router.put('/currency/rate', authenticateJwt, editUserCurrencyExchangeRate);
+router.put('/currency/rates', authenticateJwt, editUserCurrencyExchangeRate);
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 

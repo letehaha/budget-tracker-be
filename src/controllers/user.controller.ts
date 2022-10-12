@@ -265,7 +265,7 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
 
     pairs.forEach((pair) => {
       if (!pairs.some(item => item.baseCode === pair.quoteCode)) {
-        throw new ValidationError({ message: 'When changing base-qoute pair rate, you need to also change apposite pair\' rate.' })
+        throw new ValidationError({ message: 'When changing base-qoute pair rate, you need to also change opposite pair\'s rate.' })
       }
     })
 
