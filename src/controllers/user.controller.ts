@@ -1,7 +1,7 @@
 import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
-import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
+import { UpdateExchangeRatePair, ExchangeRatePair } from '@models/UserExchangeRates.model';
 import { errorHandler } from './helpers';
 import { ValidationError } from '@js/errors';
 
@@ -274,6 +274,35 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
     return res.status(200).json({
       status: RESPONSE_STATUS.success,
       response: data,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
+  try {
+    const { id: userId } = req.user;
+    const { pairs }: { pairs: ExchangeRatePair[] } = req.body;
+
+    if (!pairs) {
+      throw new ValidationError({ message: '"pairs" is required.' })
+    }
+
+    if (!Array.isArray(pairs)) {
+      throw new ValidationError({ message: '"pairs" should be an array.' })
+    }
+
+    pairs.forEach((pair) => {
+      if (!pairs.some(item => item.baseCode === pair.quoteCode)) {
+        throw new ValidationError({ message: 'When removing base-qoute pair rate, you need to also remove opposite pair\'s rate.' })
+      }
+    })
+
+    await userExchangeRates.removeUserExchangeRates({ userId, pairs });
+
+    return res.status(200).json({
+      status: RESPONSE_STATUS.success,
     });
   } catch (err) {
     errorHandler(res, err);

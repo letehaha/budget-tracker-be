@@ -11,6 +11,7 @@ import {
   editUserCurrencyExchangeRate,
   updateUser,
   deleteUser,
+  removeUserCurrencyExchangeRate,
 } from '@controllers/user.controller';
 import { authenticateJwt } from '@middlewares/passport';
 
@@ -31,5 +32,6 @@ router.put('/currency', authenticateJwt, editUserCurrency);
 router.put('/currency/rates', authenticateJwt, editUserCurrencyExchangeRate);
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
+router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate);
 
 export default router;

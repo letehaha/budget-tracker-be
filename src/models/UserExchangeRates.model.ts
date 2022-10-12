@@ -42,7 +42,7 @@ export default class UserExchangeRates extends Model {
   rate: number;
 }
 
-interface ExchangeRatePair {
+export interface ExchangeRatePair {
   baseCode: string;
   quoteCode: string;
 }
@@ -170,4 +170,25 @@ export async function updateRates(
   }
 
   return returningValues;
+}
+
+export async function removeRates(
+  { userId, pairs }: {
+    userId: number;
+    pairs: ExchangeRatePair[]
+  },
+  { transaction }: { transaction?: Transaction },
+): Promise<void> {
+  await UserExchangeRates.destroy({
+    where: {
+      [Op.or]: pairs.map(item => ({
+        [Op.and]: {
+          userId,
+          baseCode: item.baseCode,
+          quoteCode: item.quoteCode,
+        }
+      }))
+    },
+    transaction,
+  })
 }
