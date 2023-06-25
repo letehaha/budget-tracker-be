@@ -96,7 +96,7 @@
     "husky": "^4.3.0",
     "jest": "^28.1.0",
     "module-alias": "^2.2.2",
-    "nodemon": "^2.0.6",
+    "nodemon": "^2.0.20",
     "supertest": "^6.3.0",
     "ts-jest": "^28.0.4",
     "tslint": "^6.1.3"
