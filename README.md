@@ -1,14 +1,16 @@
 # budget-tracker-be
 Budget tracker back-end
 
-### Run instruction
+### First run instructions
+
+Required stack (WIP): Postgres v11, Node version specified in `.nvmrc`
 
 1. Install dependencies
 ```sh
 npm i
 ```
 
-2. Fill config with required data (like DB name, user, pass, and e.g.) for dev/prod environments
+2. Fill configs in `./config` directory with required data (like DB name, user, pass, and e.g.) for dev/prod environments
 
 3. Run migrations
 ```sh
@@ -26,6 +28,12 @@ npm run seed
 ```sh
 npm run dev
 ```
+
+### If you didn't work on it for long time
+
+1. Make sure Postres v11 is running
+2. Run `nvm use`
+3. That's it!
 
 ### Current DB schema
 
