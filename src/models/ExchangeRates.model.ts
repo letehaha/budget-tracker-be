@@ -8,6 +8,11 @@ import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
 import Currencies from './Currencies.model';
 
+interface ModelOptions {
+  transaction?: Transaction,
+  raw?: boolean,
+}
+
 @Table({
   timestamps: true,
   createdAt: 'date',
@@ -45,7 +50,7 @@ export async function getRatesForCurrenciesPairs(
     baseCode: string;
     quoteCode: string;
   }[],
-  { transaction }: { transaction?: Transaction } = {},
+  modelOptions: ModelOptions,
 ) {
   return ExchangeRates.findAll({
     where: {
@@ -56,6 +61,6 @@ export async function getRatesForCurrenciesPairs(
         }
       }))
     },
-    transaction,
+    ...modelOptions,
   })
 }
