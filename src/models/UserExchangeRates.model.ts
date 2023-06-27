@@ -10,6 +10,11 @@ import Currencies, { getCurrencies } from './Currencies.model';
 import Users from './Users.model';
 import { ValidationError } from '@js/errors';
 
+interface ModelOptions {
+  transaction?: Transaction,
+  raw?: boolean,
+}
+
 @Table({ timestamps: true })
 export default class UserExchangeRates extends Model {
   @Column({
@@ -48,11 +53,11 @@ export interface ExchangeRatePair {
 }
 export async function getRates(
   { userId, pair }: { userId: number; pair: ExchangeRatePair },
-  { transaction }: { transaction?: Transaction },
+  modelOptions: ModelOptions,
 );
 export async function getRates(
   { userId, pairs }: { userId: number; pairs: ExchangeRatePair[] },
-  { transaction }: { transaction?: Transaction },
+  modelOptions: ModelOptions,
 );
 export async function getRates(
   {
@@ -64,7 +69,7 @@ export async function getRates(
     pair?: ExchangeRatePair,
     pairs?: ExchangeRatePair[],
   },
-  { transaction }: { transaction?: Transaction } = {},
+  modelOptions: ModelOptions,
 ) {
   const where: Record<string|symbol, unknown> = {
     userId,
@@ -95,7 +100,8 @@ export async function getRates(
 
   return UserExchangeRates.findAll({
     where,
-    transaction,
+    attributes: { exclude: ['userId'] },
+    ...modelOptions,
   })
 }
 

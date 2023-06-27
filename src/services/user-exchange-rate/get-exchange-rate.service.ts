@@ -43,13 +43,16 @@ export async function getExchangeRate(
     const [userExchangeRate] = await UserExchangeRates.getRates({
       userId,
       pair,
-    }, { transaction });
+    }, { transaction, raw: true });
 
-    if (userExchangeRate) return userExchangeRate
+    if (userExchangeRate) {
+      // Add `custom` so client can understand which rate is custom
+      return { ...userExchangeRate, custom: true }
+    }
 
     const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs(
       [pair],
-      { transaction },
+      { transaction, raw: true },
     );
 
     return exchangeRate;
