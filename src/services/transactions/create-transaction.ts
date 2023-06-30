@@ -48,8 +48,6 @@ export interface CreateTransferTransactionParams {
 }: CreateTransactionParams & CreateTransferTransactionParams) => {
   let transaction: Transaction = null;
 
-  console.log('categoryId', categoryId)
-
   transaction = await connection.sequelize.transaction();
 
   try {

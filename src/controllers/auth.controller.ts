@@ -32,3 +32,11 @@ export const register = async (req, res: CustomResponse) => {
     errorHandler(res, err);
   }
 }
+
+export const validateToken = async (req, res: CustomResponse) => {
+  try {
+    return res.status(200).json({ status: RESPONSE_STATUS.success });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}

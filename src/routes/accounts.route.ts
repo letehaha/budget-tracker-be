@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { authenticateJwt } from '../middlewares/passport';
+import { authenticateJwt } from '@middlewares/passport';
 import {
   getAccounts,
   getAccountById,
   createAccount,
   updateAccount,
   deleteAccount,
-} from '../controllers/accounts.controller';
+} from '@controllers/accounts.controller';
 
 const router = Router({});
 
