@@ -1,4 +1,5 @@
-import { RESPONSE_STATUS, ERROR_CODES } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { RESPONSE_STATUS } from '@common/types';
 import { CustomError } from '@js/errors';
 import { logger} from '@js/utils/logger';
 

@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 
 import * as accountsService from '../services/accounts.service';
 

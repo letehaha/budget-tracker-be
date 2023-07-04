@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 import { errorHandler } from './helpers';
 
 import * as authService from '@services/auth.service';

@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 import { validationResult } from 'express-validator/check';
 
 export default (req, res: CustomResponse, next) => {

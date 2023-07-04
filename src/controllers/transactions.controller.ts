@@ -1,9 +1,5 @@
-import {
-  CustomResponse,
-  ERROR_CODES,
-  ACCOUNT_TYPES,
-  RESPONSE_STATUS,
-} from 'shared-types';
+import { ERROR_CODES, ACCOUNT_TYPES } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 

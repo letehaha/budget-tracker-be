@@ -1,4 +1,4 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import { UpdateExchangeRatePair, ExchangeRatePair } from '@models/UserExchangeRates.model';

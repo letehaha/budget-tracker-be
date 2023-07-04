@@ -1,5 +1,6 @@
 import request from 'supertest';
-import { RESPONSE_STATUS, ERROR_CODES } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { RESPONSE_STATUS } from '@common/types';
 import { app, serverInstance, redisClient } from '@root/app';
 
 describe('Login service', () => {

@@ -1,4 +1,5 @@
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 
 import { getUsers as getUsersModel } from '../models/Users.model';
 

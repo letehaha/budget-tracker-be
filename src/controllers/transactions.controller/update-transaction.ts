@@ -1,8 +1,5 @@
-import {
-  CustomResponse,
-  ERROR_CODES,
-  RESPONSE_STATUS,
-} from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 
 import { CustomError } from '@js/errors'
 

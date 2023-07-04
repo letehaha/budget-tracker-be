@@ -1,7 +1,8 @@
 import config from 'config';
 import passport from 'passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { ERROR_CODES, RESPONSE_STATUS } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { RESPONSE_STATUS } from '@common/types';
 import Users from '../models/Users.model';
 
 const options = {

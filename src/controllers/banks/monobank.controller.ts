@@ -7,7 +7,8 @@ import {
   startOfMonth,
   differenceInCalendarMonths,
 } from 'date-fns';
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES, TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types';
+import { ERROR_CODES, TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 
 import * as MonobankUsers from '../../models/banks/monobank/Users.model';
 import * as MonobankAccounts from '../../models/banks/monobank/Accounts.model';

@@ -2,7 +2,8 @@ import axios from 'axios';
 // const CryptoJS = require('crypto-js');
 import crypto from 'crypto';
 
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES } from 'shared-types';
+import { ERROR_CODES } from 'shared-types';
+import { CustomResponse, RESPONSE_STATUS } from '@common/types';
 
 import * as BinanceUserSettings from '../../models/binance/UserSettings.model';
 
