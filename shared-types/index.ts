@@ -25,3 +25,4 @@ export enum CATEGORY_TYPES {
 }
 
 export * from './error-codes';
+export * from './response';
