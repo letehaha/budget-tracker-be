@@ -24,5 +24,5 @@ export enum CATEGORY_TYPES {
   internal = 'internal',
 }
 
-export * from './error-codes';
+export * from './api';
 export * from './response';

@@ -1,6 +1,5 @@
 import request from 'supertest';
-import { ERROR_CODES } from 'shared-types';
-import { RESPONSE_STATUS } from '@common/types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
 import { app, serverInstance, redisClient } from '@root/app';
 
 describe('Login service', () => {
@@ -18,7 +17,7 @@ describe('Login service', () => {
       });
 
     expect(res.statusCode).toEqual(404);
-    expect(res.body.status).toEqual(RESPONSE_STATUS.error);
-    expect(res.body.response.code).toEqual(ERROR_CODES.notFound);
+    expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
+    expect(res.body.response.code).toEqual(API_ERROR_CODES.notFound);
   })
 })

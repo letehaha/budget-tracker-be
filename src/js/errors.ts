@@ -1,4 +1,4 @@
-import { ERROR_CODES } from 'shared-types';
+import { API_ERROR_CODES } from 'shared-types';
 
 export class CustomError extends Error {
   public httpCode: number;
@@ -39,7 +39,7 @@ export class ConflictError extends CustomError {
 
 export class ValidationError extends CustomError {
   constructor(
-    { code = ERROR_CODES.validationError, message, details }:
+    { code = API_ERROR_CODES.validationError, message, details }:
     { code?: string; message: string, details?: Record<string, unknown> }
   ) {
     super(422, code, message, details);

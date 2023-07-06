@@ -1,4 +1,5 @@
-import { CustomResponse, RESPONSE_STATUS } from '@common/types';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 
 import * as accountsService from '../services/accounts.service';
 
@@ -11,7 +12,7 @@ export const getAccounts = async (req, res: CustomResponse, next) => {
     const accounts = await Accounts.getAccounts({ userId });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: accounts,
     });
   } catch (err) {
@@ -27,7 +28,7 @@ export const getAccountById = async (req, res: CustomResponse, next) => {
     const accounts = await Accounts.getAccountById({ userId, id });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: accounts,
     });
   } catch (err) {
@@ -56,7 +57,7 @@ export const createAccount = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
@@ -88,7 +89,7 @@ export const updateAccount = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
@@ -102,7 +103,7 @@ export const deleteAccount = async (req, res, next) => {
   try {
     await Accounts.deleteAccountById({ id });
 
-    return res.status(200).json({ status: RESPONSE_STATUS.success });
+    return res.status(200).json({ status: API_RESPONSE_STATUS.success });
   } catch (err) {
     return next(err);
   }

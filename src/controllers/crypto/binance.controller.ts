@@ -2,8 +2,8 @@ import axios from 'axios';
 // const CryptoJS = require('crypto-js');
 import crypto from 'crypto';
 
-import { ERROR_CODES } from 'shared-types';
-import { CustomResponse, RESPONSE_STATUS } from '@common/types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 
 import * as BinanceUserSettings from '../../models/binance/UserSettings.model';
 
@@ -43,15 +43,15 @@ export const setSettings = async (req, res: CustomResponse) => {
     }
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: settings,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -72,10 +72,10 @@ export const getAccountData = async (req, res: CustomResponse) => {
       return res
         .status(403)
         .json({
-          status: RESPONSE_STATUS.error,
+          status: API_RESPONSE_STATUS.error,
           response: {
             message: 'Secret and public keys do not exist!',
-            code: ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
+            code: API_ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
           },
         });
     }
@@ -83,10 +83,10 @@ export const getAccountData = async (req, res: CustomResponse) => {
       return res
         .status(403)
         .json({
-          status: RESPONSE_STATUS.error,
+          status: API_RESPONSE_STATUS.error,
           response: {
             message: 'Api key does not exist!',
-            code: ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
+            code: API_ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
           },
         });
     }
@@ -94,10 +94,10 @@ export const getAccountData = async (req, res: CustomResponse) => {
       return res
         .status(403)
         .json({
-          status: RESPONSE_STATUS.error,
+          status: API_RESPONSE_STATUS.error,
           response: {
             message: 'Secret key does not exist!',
-            code: ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
+            code: API_ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
           },
         });
     }
@@ -148,20 +148,20 @@ export const getAccountData = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: response.data,
     });
   } catch (err) {
     if (err.response.data.code === -2014) {
       return res.status(400).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: err.response.data.msg,
         }
       });
     }
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         code: 1,
         message: 'Unexpected server error!',

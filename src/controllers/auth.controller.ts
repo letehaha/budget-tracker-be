@@ -1,4 +1,5 @@
-import { CustomResponse, RESPONSE_STATUS } from '@common/types';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 import { errorHandler } from './helpers';
 
 import * as authService from '@services/auth.service';
@@ -10,7 +11,7 @@ export const login = async (req, res: CustomResponse) => {
     const token = await authService.login({ username, password })
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: token,
     });
   } catch (err) {
@@ -25,7 +26,7 @@ export const register = async (req, res: CustomResponse) => {
     const user = await authService.register({ username, password })
 
     return res.status(201).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: { user },
     });
   } catch (err) {
@@ -35,7 +36,7 @@ export const register = async (req, res: CustomResponse) => {
 
 export const validateToken = async (req, res: CustomResponse) => {
   try {
-    return res.status(200).json({ status: RESPONSE_STATUS.success });
+    return res.status(200).json({ status: API_RESPONSE_STATUS.success });
   } catch (err) {
     errorHandler(res, err);
   }

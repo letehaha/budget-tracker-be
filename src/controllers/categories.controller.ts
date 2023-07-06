@@ -1,5 +1,5 @@
-import { ERROR_CODES } from 'shared-types';
-import { CustomResponse, RESPONSE_STATUS } from '@common/types';
+import { API_RESPONSE_STATUS, API_ERROR_CODES } from 'shared-types';
+import { CustomResponse } from '@common/types';
 import * as Categories from '../models/Categories.model';
 
 export const getCategories = async (req, res: CustomResponse) => {
@@ -11,7 +11,7 @@ export const getCategories = async (req, res: CustomResponse) => {
 
     if (rawCategories !== undefined) {
       return res.status(200).json({
-        status: RESPONSE_STATUS.success,
+        status: API_RESPONSE_STATUS.success,
         response: data,
       });
     }
@@ -42,15 +42,15 @@ export const getCategories = async (req, res: CustomResponse) => {
     };
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: objectGraph(data),
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -77,24 +77,24 @@ export const createCategory = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
-    if (err.code === ERROR_CODES.validationError) {
+    if (err.code === API_ERROR_CODES.validationError) {
       return res.status(500).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: err.message,
-          code: ERROR_CODES.validationError,
+          code: API_ERROR_CODES.validationError,
         },
       });
     }
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }

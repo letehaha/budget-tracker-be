@@ -1,7 +1,7 @@
 import config from 'config';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { ERROR_CODES } from 'shared-types';
+import { API_ERROR_CODES } from 'shared-types';
 
 import { connection } from '@models/index';
 import * as userService from '@services/user.service';
@@ -44,13 +44,13 @@ export const login = async (
       }
 
       throw new Unauthorized(
-        ERROR_CODES.invalidCredentials,
+        API_ERROR_CODES.invalidCredentials,
         'User email and/or password are invalid!'
       )
     }
 
     throw new NotFoundError(
-      ERROR_CODES.notFound,
+      API_ERROR_CODES.notFound,
       'User not found!'
     )
   } catch (err) {
@@ -81,7 +81,7 @@ export const register = async (
     let user = await userService.getUserByCredentials({ username });
     if (user) {
       throw new ConflictError(
-        ERROR_CODES.userExists,
+        API_ERROR_CODES.userExists,
         'User already exists!',
       );
     }
@@ -146,7 +146,7 @@ export const register = async (
     if (!defaultCategoryId) {
       // TODO: return UnexpectedError, but move descriptive message to logger, so users won't see this internal issue
       throw new UnexpectedError(
-        ERROR_CODES.unexpected,
+        API_ERROR_CODES.unexpected,
         "Cannot find 'defaultCategoryId' in the previously create categories.",
       )
     } else {

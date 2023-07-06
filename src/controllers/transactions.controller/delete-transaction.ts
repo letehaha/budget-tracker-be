@@ -1,5 +1,5 @@
-import { ERROR_CODES } from 'shared-types';
-import { CustomResponse, RESPONSE_STATUS } from '@common/types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 
 import { CustomError } from '@js/errors'
 
@@ -16,13 +16,13 @@ export const deleteTransaction = async (req, res: CustomResponse) => {
     })
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: {},
     });
   } catch (err) {
     if (err instanceof CustomError) {
       return res.status(err.httpCode).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: err.message,
           code: err.code,
@@ -31,10 +31,10 @@ export const deleteTransaction = async (req, res: CustomResponse) => {
     }
 
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }

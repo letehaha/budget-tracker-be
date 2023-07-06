@@ -1,9 +1,8 @@
 import config from 'config';
 import passport from 'passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { ERROR_CODES } from 'shared-types';
-import { RESPONSE_STATUS } from '@common/types';
-import Users from '../models/Users.model';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import Users from '@models/Users.model';
 
 const options = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -40,10 +39,10 @@ export const authenticateJwt = (req, res, next) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({
-          status: RESPONSE_STATUS.error,
+          status: API_RESPONSE_STATUS.error,
           response: {
             message: 'Unauthorized',
-            code: ERROR_CODES.unauthorized,
+            code: API_ERROR_CODES.unauthorized,
           },
         });
       }
