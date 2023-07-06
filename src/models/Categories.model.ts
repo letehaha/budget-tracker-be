@@ -58,7 +58,7 @@ export default class Categories extends Model {
 }
 
 export const getCategories = async ({ id }) => {
-  const categories = await Categories.findAll({ where: { userId: id } });
+  const categories = await Categories.findAll({ where: { userId: id }, raw: true });
 
   return categories;
 };
