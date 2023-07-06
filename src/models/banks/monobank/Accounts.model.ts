@@ -5,6 +5,7 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import Currencies from '../../Currencies.model';
 import MonobankUsers from './Users.model';
 import AccountTypes from '../../AccountTypes.model';
@@ -74,25 +75,13 @@ export default class MonobankAccounts extends Model {
   accountTypeId: number;
 }
 
-export const createAccount = async ({
-  monoUserId,
-  currencyId,
-  accountTypeId,
-  accountId,
-  balance,
-  creditLimit,
-  cashbackType,
-  maskedPan,
-  type,
-  iban,
-  isEnabled,
-}: {
-  // TODO: investigate why in `MonobankAccounts.createAccount` it is enought to
-  // pass only two args src/controllers/banks/monobank.controller.ts
+// TODO: investigate why in `MonobankAccounts.createAccount` it is enought to
+// pass only two args src/controllers/banks/monobank.controller.ts
+export type MonoAccountCreationPayload = {
   monoUserId: number;
   currencyId?: number;
   accountTypeId?: number;
-  accountId?: string;
+  accountId: string;
   balance?: number;
   creditLimit?: number;
   cashbackType?: string;
@@ -100,68 +89,54 @@ export const createAccount = async ({
   type?: string;
   iban?: string;
   isEnabled?: boolean;
-}) => {
-  const account = await MonobankAccounts.create({
-    accountId,
-    balance,
-    creditLimit,
-    currencyId,
-    cashbackType,
-    maskedPan,
-    type,
-    iban,
-    monoUserId,
-    accountTypeId,
-    isEnabled,
-  });
+}
+
+export const createAccount = async (
+  payload: MonoAccountCreationPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const account = await MonobankAccounts.create(payload, attributes);
 
   return account;
 };
 
-export const getAccountsByUserId = async ({
-  monoUserId,
-}) => {
+export const getAccountsByUserId = async (
+  { monoUserId },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const accounts = await MonobankAccounts.findAll({
     where: { monoUserId },
+    ...attributes,
   });
 
   return accounts;
 };
 
-export const getByAccountId = async ({
-  accountId,
-  monoUserId,
-}) => {
+export const getByAccountId = async (
+  { accountId, monoUserId },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const account = await MonobankAccounts.findOne({
+    ...attributes,
     where: { accountId, monoUserId },
   });
 
   return account;
 };
 
-export const getAccountsById = async ({
-  accountId,
-}) => {
+export const getAccountsById = async (
+  { accountId },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const account = await MonobankAccounts.findAll({
+    ...attributes,
     where: { accountId },
   });
 
   return account;
 };
 
-export const updateById = async ({
-  accountId,
-  name,
-  isEnabled,
-  currencyCode,
-  cashbackType,
-  balance,
-  creditLimit,
-  maskedPan,
-  type,
-  iban,
-  monoUserId,
-}: {
+export interface MonoAccountUpdatePayload {
   accountId: number;
   name?: string;
   isEnabled?: boolean;
@@ -173,7 +148,11 @@ export const updateById = async ({
   type?: string;
   iban?: string;
   monoUserId?: number;
-}) => {
+}
+export const updateById = async (
+  { accountId, monoUserId, ...toUpdate }: MonoAccountUpdatePayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const where: {
     accountId: number;
     monoUserId?: number;
@@ -183,20 +162,7 @@ export const updateById = async ({
     where.monoUserId = monoUserId;
   }
 
-  await MonobankAccounts.update(
-    {
-      isEnabled,
-      name,
-      currencyCode,
-      cashbackType,
-      balance,
-      creditLimit,
-      maskedPan,
-      type,
-      iban,
-    },
-    { where },
-  );
+  await MonobankAccounts.update(toUpdate, { ...attributes, where });
 
   const account = await MonobankAccounts.findOne({ where });
 

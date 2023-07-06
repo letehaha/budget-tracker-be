@@ -56,9 +56,9 @@ export const addCode = async ({
   name = 'Unknown',
   description,
 }: {
-  code: string;
-  name?: string;
-  description?: string;
+  code: MerchantCategoryCodes['code'];
+  name?: MerchantCategoryCodes['name'];
+  description?: MerchantCategoryCodes['description'];
 }) => {
   const mcc = await MerchantCategoryCodes.create({
     code,

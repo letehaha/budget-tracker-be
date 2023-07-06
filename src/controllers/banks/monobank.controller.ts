@@ -7,16 +7,28 @@ import {
   startOfMonth,
   differenceInCalendarMonths,
 } from 'date-fns';
-import { API_ERROR_CODES, API_RESPONSE_STATUS, TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types';
-import { CustomResponse } from '@common/types';
+import {
+  API_ERROR_CODES,
+  API_RESPONSE_STATUS,
+  TRANSACTION_TYPES,
+  PAYMENT_TYPES,
+  MonobankAccountModel,
+  MonobankUserModel,
+} from 'shared-types';
+import {
+  CustomResponse,
+  MonobankClientInfoResponse,
+  MonobankTransactionResponse,
+} from '@common/types';
 
-import * as MonobankUsers from '../../models/banks/monobank/Users.model';
-import * as MonobankAccounts from '../../models/banks/monobank/Accounts.model';
-import * as MonobankTransactions from '../../models/banks/monobank/Transactions.model';
-import * as Currencies from '../../models/Currencies.model';
-import * as MerchantCategoryCodes from '../../models/MerchantCategoryCodes.model';
-import * as UserMerchantCategoryCodes from '../../models/UserMerchantCategoryCodes.model';
-import * as Users from '../../models/Users.model';
+import * as monobankAccountsService from '@services/banks/monobank/accounts';
+import * as monobankUsersService from '@services/banks/monobank/users';
+
+import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
+import * as Currencies from '@models/Currencies.model';
+import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
+import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
+import * as Users from '@models/Users.model';
 
 import { logger} from '@js/utils/logger';
 
@@ -66,7 +78,10 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
   });
 }
 
-async function createMonoTransaction({ data, account, userId }) {
+async function createMonoTransaction(
+  { data, account, userId }:
+  { data: MonobankTransactionResponse, account: MonobankAccountModel, userId: number }
+) {
   const existTx = await MonobankTransactions.getTransactionByOriginalId({
     originalId: data.id,
     userId,
@@ -77,8 +92,8 @@ async function createMonoTransaction({ data, account, userId }) {
     return;
   }
 
-  const userData = await MonobankUsers.getById({
-    id: account.get('monoUserId'),
+  const userData = await monobankUsersService.getUserById({
+    id: account.monoUserId,
   });
 
   let mccId = await MerchantCategoryCodes.getByCode({
@@ -92,7 +107,7 @@ async function createMonoTransaction({ data, account, userId }) {
 
   const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
     mccId: mccId.get('id'),
-    userId: userData.get('systemUserId'),
+    userId: userData.systemUserId,
   });
 
   let categoryId;
@@ -102,13 +117,13 @@ async function createMonoTransaction({ data, account, userId }) {
   } else {
     categoryId = (
       await Users.getUserDefaultCategory({
-        id: userData.get('systemUserId'),
+        id: userData.systemUserId,
       })
     ).get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
-      userId: userData.get('systemUserId'),
+      userId: userData.systemUserId,
       categoryId,
     });
   }
@@ -124,13 +139,13 @@ async function createMonoTransaction({ data, account, userId }) {
     receiptId: data.receiptId,
     balance: data.balance,
     hold: data.hold,
-    monoAccountId: account.get('id'),
-    userId: userData.get('systemUserId'),
+    // TODO: CHECK HOW IT WORKS
+    monoAccountId: account.id,
+    userId: userData.systemUserId,
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
-    currencyId: account.get('currencyId'),
-    accountType: ACCOUNT_TYPES.monobank,
+    currencyId: account.currencyId,
   });
 
   // eslint-disable-next-line no-console
@@ -142,15 +157,16 @@ export const pairAccount = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
-    let user = await MonobankUsers.getUserByToken({ token, userId: id });
+    let user = await monobankUsersService.getUserByToken({ token, userId: id });
 
     if (!user) {
-      let response = await req.redisClient.get(token);
+      const response: string = await req.redisClient.get(token);
+      let clientInfo: MonobankClientInfoResponse;
 
       if (!response) {
         await updateWebhookAxios({ userToken: token });
 
-        response = (await axios({
+        clientInfo = (await axios({
           method: 'GET',
           url: `${hostname}/personal/client-info`,
           responseType: 'json',
@@ -162,19 +178,19 @@ export const pairAccount = async (req, res: CustomResponse) => {
         await req.redisClient.set(token, JSON.stringify(response));
         await req.redisClient.expire(token, 60);
       } else {
-        response = JSON.parse(response);
+        clientInfo = JSON.parse(response);
       }
 
-      user = await MonobankUsers.createUser({
+      user = await monobankUsersService.createUser({
         userId: id,
         token,
-        clientId: response.clientId,
-        name: response.name,
-        webHookUrl: response.webHookUrl,
+        clientId: clientInfo.clientId,
+        name: clientInfo.name,
+        webHookUrl: clientInfo.webHookUrl,
       });
 
       // TODO: wrap createCurrency and createAccount into single transactions
-      const currencyCodes = [...new Set(response.accounts.map((i) => i.currencyCode))];
+      const currencyCodes = [...new Set(clientInfo.accounts.map((i) => i.currencyCode))];
 
       const currencies = await Promise.all(
         currencyCodes.map((code) => Currencies.createCurrency({ code })),
@@ -186,8 +202,8 @@ export const pairAccount = async (req, res: CustomResponse) => {
       });
 
       await Promise.all(
-        response.accounts.map((account) => MonobankAccounts.createAccount({
-          monoUserId: user.get('id'),
+        clientInfo.accounts.map((account) => monobankAccountsService.createAccount({
+          monoUserId: user.id,
           currencyId: accountCurrencyCodes[account.currencyCode],
           accountTypeId: 4,
           accountId: account.id,
@@ -201,7 +217,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
         })),
       );
 
-      user.setDataValue('accounts', response.accounts);
+      (user as MonobankUserModel & { accounts: MonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
 
       return res.status(200).json({
         status: API_RESPONSE_STATUS.success,
@@ -231,8 +247,8 @@ export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
-    const user = await MonobankUsers.getUser({
-      systemUserId: id,
+    const user = await monobankUsersService.getUserBySystemId({
+      systemUserId: Number(id),
     });
 
     if (!user) {
@@ -265,7 +281,7 @@ export const updateUser = async (req, res: CustomResponse) => {
   const { apiToken, name } = req.body;
 
   try {
-    const user = await MonobankUsers.updateUser({
+    const user = await monobankUsersService.updateUser({
       systemUserId,
       apiToken,
       name,
@@ -338,11 +354,15 @@ export const getTransactions = async (req, res: CustomResponse) => {
 };
 
 export const updateTransaction = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
+  const { id: userId }: { id: number } = req.user;
   const {
     id,
     categoryId,
     note,
+  }: {
+    id: number;
+    categoryId?: number;
+    note?: string;
   } = req.body;
 
   try {
@@ -372,7 +392,7 @@ export const getAccounts = async (req, res) => {
   const { id } = req.user;
 
   try {
-    const monoUser = await MonobankUsers.getUser({ systemUserId: id });
+    const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId: id });
 
     if (!monoUser) {
       return res.status(404).json({
@@ -384,8 +404,8 @@ export const getAccounts = async (req, res) => {
       });
     }
 
-    const accounts = await MonobankAccounts.getAccountsByUserId({
-      monoUserId: monoUser.get('id'),
+    const accounts = await monobankAccountsService.getAccountsByUserId({
+      monoUserId: monoUser.id,
     });
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -411,7 +431,7 @@ export const updateAccount = async (req, res: CustomResponse) => {
 
   try {
     // TODO: check user is correct. Check account is exist
-    const account = await MonobankAccounts.updateById({
+    const account = await monobankAccountsService.updateById({
       accountId,
       name,
       isEnabled,
@@ -462,7 +482,7 @@ export const createAccounts = async (req, res: CustomResponse) => {
     }
 
     accountsIds.forEach((id) => {
-      MonobankAccounts.createAccount({
+      monobankAccountsService.createAccount({
         monoUserId: userId,
         accountId: id,
       });
@@ -487,7 +507,7 @@ export const monobankWebhook = async (req, res: CustomResponse) => {
   const { data } = req.body;
 
   try {
-    const monobankAccounts = await MonobankAccounts.getAccountsById({
+    const monobankAccounts = await monobankAccountsService.getAccountsById({
       accountId: data.account,
     });
     if (!monobankAccounts.length) {
@@ -498,15 +518,14 @@ export const monobankWebhook = async (req, res: CustomResponse) => {
         },
       });
     }
-    // eslint-disable-next-line no-restricted-syntax
+
     for (const account of monobankAccounts) {
-      // eslint-disable-next-line no-await-in-loop
-      const user = await MonobankUsers.getById({ id: account.get('monoUserId') });
-      // eslint-disable-next-line no-await-in-loop
+      const user = await monobankUsersService.getUserById({ id: account.monoUserId });
+
       await createMonoTransaction({
         data: data.statementItem,
         account,
-        userId: user.get('systemUserId'),
+        userId: user.systemUserId,
       });
     }
 
@@ -533,7 +552,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
-      await MonobankUsers.updateWebhook({
+      await monobankUsersService.updateUser({
         systemUserId: id,
         clientId,
         webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
@@ -583,7 +602,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       });
     }
 
-    const monobankUser = await MonobankUsers.getUser({
+    const monobankUser = await monobankUsersService.getUserBySystemId({
       systemUserId,
     });
 
@@ -598,9 +617,9 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     }
 
     // Check mono account exist
-    const monobankAccount = await MonobankAccounts.getByAccountId({
+    const monobankAccount = await monobankAccountsService.getByAccountId({
       accountId,
-      monoUserId: monobankUser.get('id'),
+      monoUserId: monobankUser.id,
     });
 
     if (!monobankAccount) {
@@ -648,18 +667,16 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       // eslint-disable-next-line no-await-in-loop, no-console
       queue.add(async () => {
         try {
-          const { data } = await axios({
+          const { data }: { data: MonobankTransactionResponse[] } = await axios({
             method: 'GET',
             url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
             responseType: 'json',
             headers: {
-              'X-Token': monobankUser.get('apiToken'),
+              'X-Token': monobankUser.apiToken,
             },
           });
 
-          // eslint-disable-next-line no-restricted-syntax
           for (const item of data) {
-            // eslint-disable-next-line no-await-in-loop
             await createMonoTransaction({
               data: item,
               account: monobankAccount,
@@ -716,7 +733,7 @@ export const refreshAccounts = async (req, res) => {
   const { id: systemUserId } = req.user;
 
   try {
-    const monoUser = await MonobankUsers.getUser({ systemUserId });
+    const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId });
 
     if (!monoUser) {
       return res.status(404).json({
@@ -739,7 +756,7 @@ export const refreshAccounts = async (req, res) => {
           url: `${hostname}/personal/client-info`,
           responseType: 'json',
           headers: {
-            'X-Token': monoUser.get('apiToken'),
+            'X-Token': monoUser.apiToken,
           },
         })).data;
       } catch (e) {
@@ -748,7 +765,7 @@ export const refreshAccounts = async (req, res) => {
             // Set user token to empty, since it is already invalid. In that way
             // we can let BE/FE know that last token was invalid and now it
             // needs to be updated
-            await MonobankUsers.updateUser({ systemUserId, apiToken: '' });
+            await monobankUsersService.updateUser({ systemUserId, apiToken: '' });
 
             return res.status(403).json({
               status: API_RESPONSE_STATUS.error,
@@ -771,7 +788,7 @@ export const refreshAccounts = async (req, res) => {
       await req.redisClient.expire(token, 60);
 
       await Promise.all(
-        clientInfo.accounts.map((item) => MonobankAccounts.updateById({
+        clientInfo.accounts.map((item) => monobankAccountsService.updateById({
           accountId: item.id,
           currencyCode: item.currencyCode,
           cashbackType: item.cashbackType,
@@ -780,12 +797,12 @@ export const refreshAccounts = async (req, res) => {
           maskedPan: JSON.stringify(item.maskedPan),
           type: item.type,
           iban: item.iban,
-          monoUserId: monoUser.get('id'),
+          monoUserId: monoUser.id,
         })),
       );
 
-      const accounts = await MonobankAccounts.getAccountsByUserId({
-        monoUserId: monoUser.get('id'),
+      const accounts = await monobankAccountsService.getAccountsByUserId({
+        monoUserId: monoUser.id,
       });
 
       return res.status(200).json({

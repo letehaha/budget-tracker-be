@@ -1,15 +1,28 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, AccountModel, ACCOUNT_TYPES } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
 
+const normalizeAccount = (account: Accounts.default): AccountModel => ({ ...account, systemType: ACCOUNT_TYPES.system })
+
+export const getAccounts = async (
+  { userId }: { userId: number },
+  { transaction }: { transaction?: Transaction } = {},
+): Promise<AccountModel[]> => {
+  const accounts = await Accounts.getAccounts({ userId }, { transaction });
+
+  const normalizedAccounts: AccountModel[] = accounts.map(normalizeAccount)
+
+  return normalizedAccounts;
+}
+
 export const getAccountById = async (
   { id, userId }: { id: number; userId: number },
   { transaction }: { transaction?: Transaction } = {},
-) => {
-  const accounts = await Accounts.getAccountById({ userId, id }, { transaction });
+): Promise<AccountModel> => {
+  const account = await Accounts.getAccountById({ userId, id }, { transaction });
 
-  return accounts;
+  return normalizeAccount(account);
 };
 
 export const createAccount = async (
@@ -31,7 +44,8 @@ export const createAccount = async (
     internal?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {}
-) => {
+): Promise<AccountModel> => {
+
   const account = await Accounts.createAccount({
     accountTypeId,
     currencyId,
@@ -42,7 +56,7 @@ export const createAccount = async (
     internal,
   }, { transaction });
 
-  return account;
+  return normalizeAccount(account);
 }
 
 export const updateAccount = async (
@@ -64,7 +78,7 @@ export const updateAccount = async (
     creditLimit?: number;
   },
   { transaction }: { transaction?: Transaction } = {},
-) => {
+): Promise<AccountModel> => {
   const data = await Accounts.updateAccountById({
     id,
     accountTypeId,
@@ -75,7 +89,7 @@ export const updateAccount = async (
     userId,
   }, { transaction });
 
-  return data;
+  return normalizeAccount(data);
 };
 
 const calculateNewBalance = (
@@ -176,3 +190,10 @@ export async function updateAccountBalanceForChangedTx (
     refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
   }, { transaction });
 }
+
+export const deleteAccountById = async (
+  { id }: { id: number },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return Accounts.deleteAccountById({ id }, { transaction });
+};

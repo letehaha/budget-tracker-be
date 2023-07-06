@@ -1,6 +1,6 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import * as AccountTypes from '../models/AccountTypes.model';
+import * as AccountTypes from '@models/AccountTypes.model';
 
 export const getAccountTypes = async (req, res: CustomResponse) => {
   try {

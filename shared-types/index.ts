@@ -25,4 +25,4 @@ export enum CATEGORY_TYPES {
 }
 
 export * from './api';
-export * from './response';
+export * from './models';

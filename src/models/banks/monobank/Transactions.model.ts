@@ -7,6 +7,7 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
+import { MonobankTransactionResponse } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Categories from '@models/Categories.model';
@@ -16,6 +17,16 @@ import { isExist } from '@js/helpers';
 
 import { logger} from '@js/utils/logger';
 
+interface TxIncludeOptions {
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
+}
+
+type MonoTxOriginalId = MonobankTransactionResponse['id']
+
 const prepareTXInclude = (
   {
     includeUser,
@@ -23,7 +34,7 @@ const prepareTXInclude = (
     includeCategory,
     includeAll,
     nestedInclude,
-  },
+  }: TxIncludeOptions,
 ) => {
   let include = null;
 
@@ -53,7 +64,7 @@ export default class MonobankTransactions extends Model {
   id: number;
 
   @Column({ allowNull: false })
-  originalId: string;
+  originalId: MonoTxOriginalId;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true })
@@ -159,24 +170,16 @@ export const getTransactions = async ({
   return transactions;
 };
 
-export const getTransactionsByArrayOfField = async ({
-  fieldValues,
-  fieldName,
-  systemUserId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-  isRaw = false,
-}) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
+export const getTransactionsByArrayOfField = async (
+  { fieldValues, fieldName, systemUserId, isRaw = false, ...includeOptions }:
+  {
+    fieldValues: unknown,
+    fieldName: keyof MonobankTransactionResponse,
+    systemUserId: number,
+    isRaw?: boolean,
+  } & TxIncludeOptions
+) => {
+  const include = prepareTXInclude(includeOptions);
 
   const transactions = await MonobankTransactions.findAll({
     where: {
@@ -192,65 +195,28 @@ export const getTransactionsByArrayOfField = async ({
   return transactions;
 };
 
-export const getTransactionById = async ({
-  id,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}: {
-  id: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
+export const getTransactionById = async (
+  { id, ...includeOptions }: { id: number } & TxIncludeOptions
+) => {
+  const include = prepareTXInclude(includeOptions);
 
   const transactions = await MonobankTransactions.findOne({ where: { id }, include });
 
   return transactions;
 };
 
-export const getTransactionByOriginalId = async ({
-  originalId,
-  userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}: {
-  originalId: number;
-  userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
+export const getTransactionByOriginalId = async (
+  { originalId, userId, ...includeOptions }:
+  { originalId: MonoTxOriginalId; userId: number } & TxIncludeOptions
+) => {
   const where: {
-    originalId: number;
+    originalId: MonoTxOriginalId;
     userId?: number;
   } = { originalId };
 
-  if (userId) { where.userId = userId; }
+  if (userId) where.userId = userId;
 
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
+  const include = prepareTXInclude(includeOptions);
 
   const transactions = await MonobankTransactions.findOne({
     where,
@@ -260,43 +226,25 @@ export const getTransactionByOriginalId = async ({
   return transactions;
 };
 
+type CreateTxParamsFromMono = Pick<
+  MonobankTransactionResponse,
+  'amount' | 'description' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
+>
+
 export const createTransaction = async ({
   originalId,
-  description,
-  amount,
-  time,
-  operationAmount,
-  commissionRate,
-  cashbackAmount,
-  balance,
-  hold,
   userId,
-  transactionType,
-  paymentType,
-  monoAccountId,
-  categoryId,
-  receiptId,
-  currencyId,
-  accountType,
+  ...payload
 }: {
-  originalId: number;
-  description: string;
-  amount: number;
-  time: Date;
-  operationAmount: number;
-  commissionRate: number;
-  cashbackAmount: number;
-  balance: number;
-  hold: number;
-  userId: number;
-  transactionType: TRANSACTION_TYPES;
-  paymentType: PAYMENT_TYPES;
-  monoAccountId: number;
-  categoryId: number;
-  receiptId: number;
-  currencyId: number;
-  accountType: ACCOUNT_TYPES;
-}) => {
+  originalId: MonoTxOriginalId;
+  time: Date,
+  userId: MonobankTransactions['userId'];
+  transactionType: MonobankTransactions['transactionType'];
+  paymentType: MonobankTransactions['paymentType'];
+  monoAccountId: MonobankTransactions['monoAccountId'];
+  categoryId: MonobankTransactions['categoryId'];
+  currencyId: MonobankTransactions['currencyId'];
+} & CreateTxParamsFromMono) => {
   const tx = await getTransactionByOriginalId({ originalId, userId });
 
   if (tx) {
@@ -304,88 +252,42 @@ export const createTransaction = async ({
     return undefined;
   }
 
-  const response = await MonobankTransactions.create({
+  const result = await MonobankTransactions.create({
     originalId,
-    description,
-    amount,
-    time,
-    operationAmount,
-    commissionRate,
-    cashbackAmount,
-    balance,
-    hold,
     userId,
-    transactionType,
-    paymentType,
-    monoAccountId,
-    categoryId,
-    receiptId,
-    currencyId,
-    accountType,
+    ...payload,
+    accountType: ACCOUNT_TYPES.monobank,
   });
 
-  const transaction = await getTransactionById({ id: response.get('id') });
+  const transaction = await getTransactionById({ id: result.get('id') });
 
   return transaction;
 };
 
+type UpdateTxParamsFromMono = Partial<Pick<
+  MonobankTransactionResponse,
+  'amount' | 'description' | 'time' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
+>>
+
 export const updateTransactionById = async ({
   id,
-  description,
-  amount,
-  time,
-  operationAmount,
-  commissionRate,
-  cashbackAmount,
-  balance,
-  hold,
   userId,
-  transactionType,
-  paymentType,
-  monoAccountId,
-  categoryId,
-  receiptId,
-  currencyId,
-  note,
+  ...payload
 }: {
-  userId: number;
   id: number;
-  description?: string;
-  amount?: number;
-  time?: Date;
-  operationAmount?: number;
-  commissionRate?: number;
-  cashbackAmount?: number;
-  balance?: number;
-  hold?: boolean;
+  userId: number;
+
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
   monoAccountId?: number;
   categoryId?: number;
-  receiptId?: number;
   currencyId?: number;
   note?: string;
-}) => {
+} & UpdateTxParamsFromMono) => {
   const where = { id, userId };
+
   await MonobankTransactions.update(
-    {
-      description,
-      amount,
-      time,
-      operationAmount,
-      commissionRate,
-      cashbackAmount,
-      balance,
-      hold,
-      userId,
-      transactionType,
-      paymentType,
-      monoAccountId,
-      categoryId,
-      receiptId,
-      currencyId,
-      note,
-    },
+    { userId, ...payload },
     { where },
   );
 
