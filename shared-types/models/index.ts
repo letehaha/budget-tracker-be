@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, CATEGORY_TYPES } from 'shared-types';
+import {
+  ACCOUNT_TYPES,
+  CATEGORY_TYPES,
+  TRANSACTION_TYPES,
+  PAYMENT_TYPES,
+} from 'shared-types';
+import { MonobankTransactionResponse } from '@common/types';
 
 export interface UserModel {
 	id: number;
@@ -64,4 +70,25 @@ export interface MonobankUserModel {
   webHookUrl?: string
   systemUserId: number;
   apiToken: string;
+}
+
+export interface MonobankTrasnactionModel {
+  id: number;
+  originalId: MonobankTransactionResponse['id'];
+  description: MonobankTransactionResponse['description'];
+  amount: MonobankTransactionResponse['amount'];
+  time: Date;
+  operationAmount: MonobankTransactionResponse['operationAmount'];
+  commissionRate: MonobankTransactionResponse['commissionRate'];
+  cashbackAmount: MonobankTransactionResponse['cashbackAmount'];
+  balance: MonobankTransactionResponse['balance'];
+  hold: MonobankTransactionResponse['hold'];
+  userId: number;
+  categoryId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  monoAccountId: number;
+  currencyId: number;
+  accountType: ACCOUNT_TYPES;
+  note: string;
 }

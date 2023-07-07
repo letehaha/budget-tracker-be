@@ -7,7 +7,10 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
-import { MonobankTransactionResponse } from '@common/types';
+import {
+  MonobankTransactionResponse,
+  GenericSequelizeModelAttributes,
+} from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Categories from '@models/Categories.model';
@@ -126,18 +129,7 @@ export default class MonobankTransactions extends Model {
   accountType: ACCOUNT_TYPES;
 }
 
-export const getTransactions = async ({
-  systemUserId,
-  sortDirection,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-  from,
-  limit,
-  isRaw = false,
-}: {
+export interface GetTransactionsPayload extends TxIncludeOptions {
   systemUserId: number;
   sortDirection: string;
   includeUser?: boolean;
@@ -148,17 +140,15 @@ export const getTransactions = async ({
   from?: number;
   limit?: number;
   isRaw?: boolean;
-
-}) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
+}
+export const getTransactions = async (
+  { systemUserId, sortDirection, from, limit, isRaw = false, ...includeOptions }: GetTransactionsPayload,
+  attributes: GenericSequelizeModelAttributes = {}
+) => {
+  const include = prepareTXInclude(includeOptions);
 
   const transactions = await MonobankTransactions.findAll({
+    ...attributes,
     include,
     where: { userId: systemUserId },
     limit,
@@ -196,18 +186,23 @@ export const getTransactionsByArrayOfField = async (
 };
 
 export const getTransactionById = async (
-  { id, ...includeOptions }: { id: number } & TxIncludeOptions
+  { id, ...includeOptions }: { id: number } & TxIncludeOptions,
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const include = prepareTXInclude(includeOptions);
 
-  const transactions = await MonobankTransactions.findOne({ where: { id }, include });
+  const transactions = await MonobankTransactions.findOne({ ...attributes, where: { id }, include });
 
   return transactions;
 };
 
+export interface GetTransactionByOriginalIdPayload extends TxIncludeOptions {
+  originalId: MonoTxOriginalId;
+  userId: number;
+}
 export const getTransactionByOriginalId = async (
-  { originalId, userId, ...includeOptions }:
-  { originalId: MonoTxOriginalId; userId: number } & TxIncludeOptions
+  { originalId, userId, ...includeOptions }: GetTransactionByOriginalIdPayload,
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const where: {
     originalId: MonoTxOriginalId;
@@ -219,6 +214,7 @@ export const getTransactionByOriginalId = async (
   const include = prepareTXInclude(includeOptions);
 
   const transactions = await MonobankTransactions.findOne({
+    ...attributes,
     where,
     include,
   });
@@ -231,11 +227,7 @@ type CreateTxParamsFromMono = Pick<
   'amount' | 'description' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
 >
 
-export const createTransaction = async ({
-  originalId,
-  userId,
-  ...payload
-}: {
+export interface CreateTransactionPayload extends CreateTxParamsFromMono {
   originalId: MonoTxOriginalId;
   time: Date,
   userId: MonobankTransactions['userId'];
@@ -244,7 +236,11 @@ export const createTransaction = async ({
   monoAccountId: MonobankTransactions['monoAccountId'];
   categoryId: MonobankTransactions['categoryId'];
   currencyId: MonobankTransactions['currencyId'];
-} & CreateTxParamsFromMono) => {
+}
+export const createTransaction = async (
+  { originalId, userId, ...payload }: CreateTransactionPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const tx = await getTransactionByOriginalId({ originalId, userId });
 
   if (tx) {
@@ -253,13 +249,16 @@ export const createTransaction = async ({
   }
 
   const result = await MonobankTransactions.create({
+    ...payload,
     originalId,
     userId,
-    ...payload,
     accountType: ACCOUNT_TYPES.monobank,
-  });
+  }, attributes);
 
-  const transaction = await getTransactionById({ id: result.get('id') });
+  const transaction = await getTransactionById(
+    { id: result.get('id') },
+    { transaction: attributes.transaction },
+  );
 
   return transaction;
 };
@@ -269,11 +268,7 @@ type UpdateTxParamsFromMono = Partial<Pick<
   'amount' | 'description' | 'time' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
 >>
 
-export const updateTransactionById = async ({
-  id,
-  userId,
-  ...payload
-}: {
+export interface UpdateTransactionByIdPayload extends UpdateTxParamsFromMono {
   id: number;
   userId: number;
 
@@ -283,19 +278,30 @@ export const updateTransactionById = async ({
   categoryId?: number;
   currencyId?: number;
   note?: string;
-} & UpdateTxParamsFromMono) => {
+}
+export const updateTransactionById = async (
+  { id, userId, ...payload }: UpdateTransactionByIdPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const where = { id, userId };
 
   await MonobankTransactions.update(
     { userId, ...payload },
-    { where },
+    { ...attributes, where },
   );
 
-  const transaction = await getTransactionById({ id });
+  const transaction = await getTransactionById(
+    { id },
+    { transaction: attributes.transaction },
+  );
 
   return transaction;
 };
 
-export const deleteTransactionById = ({ id }) => {
-  MonobankTransactions.destroy({ where: { id } });
-};
+export interface DeleteTransactionByIdPayload {
+  id: number;
+}
+export const deleteTransactionById = (
+  { id }: DeleteTransactionByIdPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => MonobankTransactions.destroy({ ...attributes, where: { id } });

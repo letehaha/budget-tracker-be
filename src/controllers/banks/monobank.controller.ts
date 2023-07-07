@@ -23,8 +23,8 @@ import {
 
 import * as monobankAccountsService from '@services/banks/monobank/accounts';
 import * as monobankUsersService from '@services/banks/monobank/users';
+import * as monobankTransactionsService from '@services/banks/monobank/transactions';
 
-import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
 import * as Currencies from '@models/Currencies.model';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
 import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
@@ -82,7 +82,7 @@ async function createMonoTransaction(
   { data, account, userId }:
   { data: MonobankTransactionResponse, account: MonobankAccountModel, userId: number }
 ) {
-  const existTx = await MonobankTransactions.getTransactionByOriginalId({
+  const existTx = await monobankTransactionsService.getTransactionByOriginalId({
     originalId: data.id,
     userId,
   });
@@ -128,7 +128,7 @@ async function createMonoTransaction(
     });
   }
 
-  await MonobankTransactions.createTransaction({
+  await monobankTransactionsService.createTransaction({
     originalId: data.id,
     description: data.description,
     amount: data.amount,
@@ -326,7 +326,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
   }
 
   try {
-    const transactions = await MonobankTransactions.getTransactions({
+    const transactions = await monobankTransactionsService.getTransactions({
       systemUserId: id,
       sortDirection: sort,
       includeUser,
@@ -366,7 +366,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
   } = req.body;
 
   try {
-    const transaction = await MonobankTransactions.updateTransactionById({
+    const transaction = await monobankTransactionsService.updateTransactionById({
       id,
       userId,
       categoryId,
