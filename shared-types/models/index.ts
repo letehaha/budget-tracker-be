@@ -51,7 +51,7 @@ export interface MonobankAccountModel {
   balance: number;
   creditLimit: number;
   cashbackType: string;
-  maskedPan: string;
+  maskedPan: string[];
   type: string;
   iban: string;
   isEnabled: boolean;

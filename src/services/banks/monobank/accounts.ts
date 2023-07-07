@@ -3,7 +3,11 @@ import * as MonobankAccounts from '@models/banks/monobank/Accounts.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
 
 const normalizeAccount = (account: MonobankAccounts.default): MonobankAccountModel =>
-  ({ ...account, systemType: ACCOUNT_TYPES.monobank })
+  ({
+    ...account,
+    maskedPan: JSON.parse(account.maskedPan),
+    systemType: ACCOUNT_TYPES.monobank,
+  })
 
 export const createAccount = async (
   payload: MonobankAccounts.MonoAccountCreationPayload,
