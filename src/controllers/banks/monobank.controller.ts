@@ -14,6 +14,7 @@ import {
   PAYMENT_TYPES,
   MonobankAccountModel,
   MonobankUserModel,
+  endpointsPayloadTypes,
 } from 'shared-types';
 import {
   CustomResponse,
@@ -359,11 +360,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     id,
     categoryId,
     note,
-  }: {
-    id: number;
-    categoryId?: number;
-    note?: string;
-  } = req.body;
+  }: endpointsPayloadTypes.UpdateMonobankTransactionBody = req.body;
 
   try {
     const transaction = await monobankTransactionsService.updateTransactionById({
