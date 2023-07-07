@@ -106,6 +106,7 @@ export const getAccountsByUserId = async (
 ) => {
   const accounts = await MonobankAccounts.findAll({
     where: { monoUserId },
+    raw: true,
     ...attributes,
   });
 
@@ -118,6 +119,7 @@ export const getByAccountId = async (
 ) => {
   const account = await MonobankAccounts.findOne({
     ...attributes,
+    raw: true,
     where: { accountId, monoUserId },
   });
 
@@ -130,6 +132,7 @@ export const getAccountsById = async (
 ) => {
   const account = await MonobankAccounts.findAll({
     ...attributes,
+    raw: true,
     where: { accountId },
   });
 
@@ -164,7 +167,7 @@ export const updateById = async (
 
   await MonobankAccounts.update(toUpdate, { ...attributes, where });
 
-  const account = await MonobankAccounts.findOne({ where });
+  const account = await MonobankAccounts.findOne({ where, raw: true });
 
   return account;
 };
