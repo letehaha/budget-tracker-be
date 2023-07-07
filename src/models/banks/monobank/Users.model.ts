@@ -5,6 +5,7 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
+import { endpointsTypes } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '../../Users.model';
 
@@ -63,20 +64,16 @@ export const getUserBySystemId = async (
   return user;
 };
 
-export interface MonoUserUpdatePayload {
+export interface MonoUserUpdatePayload extends endpointsTypes.UpdateMonobankUserBody {
   systemUserId: number;
-  clientId?: string;
-  apiToken?: string;
-  name?: string;
-  webHookUrl?: string;
 }
 export const updateUser = async (
   { systemUserId, clientId, ...payload }: MonoUserUpdatePayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const where: {
-    systemUserId: number
-    clientId?: string
+    systemUserId: MonoUserUpdatePayload['systemUserId'];
+    clientId?: MonoUserUpdatePayload['clientId'];
   } = { systemUserId }
 
   if (clientId) {

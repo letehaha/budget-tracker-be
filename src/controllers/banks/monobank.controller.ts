@@ -14,7 +14,7 @@ import {
   PAYMENT_TYPES,
   MonobankAccountModel,
   MonobankUserModel,
-  endpointsPayloadTypes,
+  endpointsTypes,
 } from 'shared-types';
 import {
   CustomResponse,
@@ -154,7 +154,7 @@ async function createMonoTransaction(
 }
 
 export const pairAccount = async (req, res: CustomResponse) => {
-  const { token } = req.body;
+  const { token }: endpointsTypes.PairMonobankAccountBody = req.body;
   const { id } = req.user;
 
   try {
@@ -279,13 +279,15 @@ export const getUser = async (req, res: CustomResponse) => {
 
 export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
-  const { apiToken, name } = req.body;
+  const { apiToken, name, webHookUrl, clientId }: endpointsTypes.UpdateMonobankUserBody = req.body;
 
   try {
     const user = await monobankUsersService.updateUser({
       systemUserId,
       apiToken,
       name,
+      webHookUrl,
+      clientId,
     });
 
     return res.status(200).json({
@@ -360,7 +362,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     id,
     categoryId,
     note,
-  }: endpointsPayloadTypes.UpdateMonobankTransactionBody = req.body;
+  }: endpointsTypes.UpdateMonobankTransactionBody = req.body;
 
   try {
     const transaction = await monobankTransactionsService.updateTransactionById({

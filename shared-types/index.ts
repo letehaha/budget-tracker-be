@@ -26,4 +26,4 @@ export enum CATEGORY_TYPES {
 
 export * from './api';
 export * from './models';
-export * as endpointsPayloadTypes from './routes';
+export * as endpointsTypes from './routes';
