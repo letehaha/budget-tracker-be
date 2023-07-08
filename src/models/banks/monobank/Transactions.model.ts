@@ -1,4 +1,9 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
+import {
+  ACCOUNT_TYPES,
+  PAYMENT_TYPES,
+  TRANSACTION_TYPES,
+  ExternalMonobankTransactionResponse,
+} from 'shared-types';
 import { Op } from 'sequelize';
 import {
   Table,
@@ -7,10 +12,7 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
-import {
-  MonobankTransactionResponse,
-  GenericSequelizeModelAttributes,
-} from '@common/types';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Categories from '@models/Categories.model';
@@ -28,7 +30,7 @@ interface TxIncludeOptions {
   nestedInclude?: boolean;
 }
 
-type MonoTxOriginalId = MonobankTransactionResponse['id']
+type MonoTxOriginalId = ExternalMonobankTransactionResponse['id']
 
 const prepareTXInclude = (
   {
@@ -164,7 +166,7 @@ export const getTransactionsByArrayOfField = async (
   { fieldValues, fieldName, systemUserId, isRaw = false, ...includeOptions }:
   {
     fieldValues: unknown,
-    fieldName: keyof MonobankTransactionResponse,
+    fieldName: keyof ExternalMonobankTransactionResponse,
     systemUserId: number,
     isRaw?: boolean,
   } & TxIncludeOptions
@@ -223,7 +225,7 @@ export const getTransactionByOriginalId = async (
 };
 
 type CreateTxParamsFromMono = Pick<
-  MonobankTransactionResponse,
+  ExternalMonobankTransactionResponse,
   'amount' | 'description' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
 >
 
@@ -264,7 +266,7 @@ export const createTransaction = async (
 };
 
 type UpdateTxParamsFromMono = Partial<Pick<
-  MonobankTransactionResponse,
+  ExternalMonobankTransactionResponse,
   'amount' | 'description' | 'time' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
 >>
 

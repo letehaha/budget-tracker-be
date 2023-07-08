@@ -15,12 +15,10 @@ import {
   MonobankAccountModel,
   MonobankUserModel,
   endpointsTypes,
+  ExternalMonobankClientInfoResponse,
+  ExternalMonobankTransactionResponse,
 } from 'shared-types';
-import {
-  CustomResponse,
-  MonobankClientInfoResponse,
-  MonobankTransactionResponse,
-} from '@common/types';
+import { CustomResponse } from '@common/types';
 
 import * as monobankAccountsService from '@services/banks/monobank/accounts';
 import * as monobankUsersService from '@services/banks/monobank/users';
@@ -81,7 +79,7 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
 
 async function createMonoTransaction(
   { data, account, userId }:
-  { data: MonobankTransactionResponse, account: MonobankAccountModel, userId: number }
+  { data: ExternalMonobankTransactionResponse, account: MonobankAccountModel, userId: number }
 ) {
   const existTx = await monobankTransactionsService.getTransactionByOriginalId({
     originalId: data.id,
@@ -162,7 +160,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
 
     if (!user) {
       const response: string = await req.redisClient.get(token);
-      let clientInfo: MonobankClientInfoResponse;
+      let clientInfo: ExternalMonobankClientInfoResponse;
 
       if (!response) {
         await updateWebhookAxios({ userToken: token });
@@ -218,7 +216,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
         })),
       );
 
-      (user as MonobankUserModel & { accounts: MonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
+      (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
 
       return res.status(200).json({
         status: API_RESPONSE_STATUS.success,
@@ -666,7 +664,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       // eslint-disable-next-line no-await-in-loop, no-console
       queue.add(async () => {
         try {
-          const { data }: { data: MonobankTransactionResponse[] } = await axios({
+          const { data }: { data: ExternalMonobankTransactionResponse[] } = await axios({
             method: 'GET',
             url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
             responseType: 'json',

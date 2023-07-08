@@ -4,7 +4,8 @@ import {
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
 } from 'shared-types';
-import { MonobankTransactionResponse } from '@common/types';
+import { ExternalMonobankTransactionResponse } from './external-services';
+export * from './external-services';
 
 export interface UserModel {
 	id: number;
@@ -74,15 +75,15 @@ export interface MonobankUserModel {
 
 export interface MonobankTrasnactionModel {
   id: number;
-  originalId: MonobankTransactionResponse['id'];
-  description: MonobankTransactionResponse['description'];
-  amount: MonobankTransactionResponse['amount'];
+  originalId: ExternalMonobankTransactionResponse['id'];
+  description: ExternalMonobankTransactionResponse['description'];
+  amount: ExternalMonobankTransactionResponse['amount'];
   time: Date;
-  operationAmount: MonobankTransactionResponse['operationAmount'];
-  commissionRate: MonobankTransactionResponse['commissionRate'];
-  cashbackAmount: MonobankTransactionResponse['cashbackAmount'];
-  balance: MonobankTransactionResponse['balance'];
-  hold: MonobankTransactionResponse['hold'];
+  operationAmount: ExternalMonobankTransactionResponse['operationAmount'];
+  commissionRate: ExternalMonobankTransactionResponse['commissionRate'];
+  cashbackAmount: ExternalMonobankTransactionResponse['cashbackAmount'];
+  balance: ExternalMonobankTransactionResponse['balance'];
+  hold: ExternalMonobankTransactionResponse['hold'];
   userId: number;
   categoryId: number;
   transactionType: TRANSACTION_TYPES;
