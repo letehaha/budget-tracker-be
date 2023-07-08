@@ -5,7 +5,7 @@ import {
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
-import { Transaction } from 'sequelize/types';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
@@ -78,18 +78,22 @@ export default class Accounts extends Model {
 
 export const getAccounts = async (
   { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const accounts = await Accounts.findAll({ where: { userId }, transaction });
+  const accounts = await Accounts.findAll({
+    where: { userId },
+    raw: true,
+    ...attributes,
+  });
 
   return accounts;
 };
 
 export const getAccountById = async (
   { userId, id }: { userId: number; id: number },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const account = await Accounts.findOne({ where: { userId, id }, transaction });
+  const account = await Accounts.findOne({ where: { userId, id }, ...attributes });
 
   return account;
 };
@@ -112,7 +116,7 @@ export const createAccount = async (
     userId: number;
     internal?: boolean;
   },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
     accountTypeId,
@@ -122,12 +126,12 @@ export const createAccount = async (
     creditLimit,
     userId,
     internal: internal ?? false,
-  }, { transaction });
+  }, attributes);
 
   const account = await getAccountById({
     id: response.get('id'),
     userId,
-  }, { transaction });
+  }, attributes);
 
   return account;
 };
@@ -152,7 +156,7 @@ export const updateAccountById = async (
     creditLimit?: number;
     userId: number;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const where = { id, userId };
   await Accounts.update(
@@ -165,19 +169,19 @@ export const updateAccountById = async (
       refCurrentBalance: refCurrentBalance ?? currentBalance,
       creditLimit,
     },
-    { where, transaction },
+    { where, ...attributes },
   );
 
-  const account = await getAccountById(where, { transaction });
+  const account = await getAccountById(where, { ...attributes });
 
   return account;
 };
 
 export const deleteAccountById = (
   { id }: { id: number },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  return Accounts.destroy({ where: { id }, transaction });
+  return Accounts.destroy({ where: { id }, ...attributes });
 };
 
 export const getAccountCurrency = async (
@@ -188,11 +192,11 @@ export const getAccountCurrency = async (
     userId: number;
     id: number;
   },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const account = await Accounts.findOne({
     where: { userId, id },
-    transaction,
+    ...attributes,
     include: {
       model: Currencies,
     },
@@ -203,10 +207,10 @@ export const getAccountCurrency = async (
 
 export const getAccountsByCurrency = (
   { userId, currencyId }: { userId: number; currencyId: number },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   return Accounts.findAll({
     where: { userId, currencyId },
-    transaction,
+    ...attributes,
   })
 }

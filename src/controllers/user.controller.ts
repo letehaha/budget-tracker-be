@@ -1,4 +1,5 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import { UpdateExchangeRatePair, ExchangeRatePair } from '@models/UserExchangeRates.model';
@@ -12,7 +13,7 @@ export const getUser = async (req, res: CustomResponse) => {
     const user = await userService.getUser(Number(id));
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: user,
     });
   } catch (err) {
@@ -56,7 +57,7 @@ export const updateUser = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: user,
     });
   } catch (err) {
@@ -71,7 +72,7 @@ export const deleteUser = async (req, res: CustomResponse) => {
     await userService.deleteUser(Number(id));
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: {},
     });
   } catch (err) {
@@ -88,7 +89,7 @@ export const getUserCurrencies = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -105,7 +106,7 @@ export const getUserBaseCurrency = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -124,7 +125,7 @@ export const setBaseUserCurrency = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -151,7 +152,7 @@ export const addUserCurrencies = async (req, res: CustomResponse) => {
     );
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -183,7 +184,7 @@ export const editUserCurrency = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -204,7 +205,7 @@ export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: result,
     });
   } catch (err) {
@@ -224,7 +225,7 @@ export const deleteUserCurrency = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
     });
   } catch (err) {
     errorHandler(res, err);
@@ -238,7 +239,7 @@ export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
     const data = await userExchangeRates.getUserExchangeRates({ userId });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
@@ -272,7 +273,7 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
     const data = await userExchangeRates.editUserExchangeRates({ userId, pairs });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
@@ -302,7 +303,7 @@ export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) =
     await userExchangeRates.removeUserExchangeRates({ userId, pairs });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
     });
   } catch (err) {
     errorHandler(res, err);

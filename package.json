@@ -38,6 +38,7 @@
     "@js": "src/js",
     "@routes": "src/routes",
     "@middlewares": "src/middlewares",
+    "@common": "src/common",
     "@controllers": "src/controllers",
     "@models": "src/models",
     "@services": "src/services",

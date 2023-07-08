@@ -1,17 +1,15 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
-
-import * as accountsService from '../services/accounts.service';
-
-import * as Accounts from '../models/Accounts.model';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
+import * as accountsService from '@services/accounts.service';
 
 export const getAccounts = async (req, res: CustomResponse, next) => {
   const { id: userId } = req.user;
 
   try {
-    const accounts = await Accounts.getAccounts({ userId });
+    const accounts = await accountsService.getAccounts({ userId });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: accounts,
     });
   } catch (err) {
@@ -24,11 +22,11 @@ export const getAccountById = async (req, res: CustomResponse, next) => {
   const { id: userId } = req.user;
 
   try {
-    const accounts = await Accounts.getAccountById({ userId, id });
+    const account = await accountsService.getAccountById({ userId, id });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: accounts,
+      status: API_RESPONSE_STATUS.success,
+      response: account,
     });
   } catch (err) {
     return next(err);
@@ -46,7 +44,7 @@ export const createAccount = async (req, res, next) => {
   const { id: userId } = req.user;
 
   try {
-    const data = await Accounts.createAccount({
+    const account = await accountsService.createAccount({
       accountTypeId,
       currencyId,
       name,
@@ -56,8 +54,8 @@ export const createAccount = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: data,
+      status: API_RESPONSE_STATUS.success,
+      response: account,
     });
   } catch (err) {
     return next(err);
@@ -76,7 +74,7 @@ export const updateAccount = async (req, res, next) => {
   } = req.body;
 
   try {
-    const data = await accountsService.updateAccount({
+    const account = await accountsService.updateAccount({
       id,
       userId,
 
@@ -88,8 +86,8 @@ export const updateAccount = async (req, res, next) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
-      response: data,
+      status: API_RESPONSE_STATUS.success,
+      response: account,
     });
   } catch (err) {
     return next(err);
@@ -100,9 +98,9 @@ export const deleteAccount = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    await Accounts.deleteAccountById({ id });
+    await accountsService.deleteAccountById({ id });
 
-    return res.status(200).json({ status: RESPONSE_STATUS.success });
+    return res.status(200).json({ status: API_RESPONSE_STATUS.success });
   } catch (err) {
     return next(err);
   }

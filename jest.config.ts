@@ -13,6 +13,7 @@ export default {
     'shared-types': '<rootDir>/shared-types',
     '@routes/(.*)': '<rootDir>/src/routes/$1',
     '@middlewares/(.*)': '<rootDir>/src/middlewares/$1',
+    '@common/(.*)': '<rootDir>/src/common/$1',
     '@controllers/(.*)': '<rootDir>/src/controllers/$1',
     '@models/(.*)': '<rootDir>/src/models/$1',
     '@js/(.*)': '<rootDir>/src/js/$1',

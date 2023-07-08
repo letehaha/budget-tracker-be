@@ -1,3 +1,4 @@
+import { UserModel } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import {
   Table,
@@ -85,7 +86,7 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserById = async ({ id }: { id: number }) => {
+export const getUserById = async ({ id }: { id: number }): Promise<UserModel> => {
   const user = await Users.findOne({ where: { id } });
 
   return user;
@@ -122,7 +123,7 @@ export const getUserByCredentials = async ({
 }: {
   username?: string;
   email?: string;
-}) => {
+}): Promise<UserModel> => {
   const where: Record<string, unknown> = {};
   if (username) where.username = username;
   if (email) where.email = email;
@@ -152,7 +153,7 @@ export const createUser = async (
     totalBalance?: number,
   },
   { transaction }: { transaction?: Transaction } = {},
-) => {
+): Promise<UserModel> => {
   const user = await Users.create(
     {
       username,
@@ -197,7 +198,7 @@ export const updateUserById = async (
     defaultCategoryId?: number;
   },
   { transaction }: { transaction?: Transaction } = {},
-) => {
+): Promise<UserModel> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};
 

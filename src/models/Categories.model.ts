@@ -1,5 +1,5 @@
 import { Transaction } from 'sequelize/types';
-import { ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
+import { API_ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
 import {
   Table,
   Column,
@@ -58,7 +58,7 @@ export default class Categories extends Model {
 }
 
 export const getCategories = async ({ id }) => {
-  const categories = await Categories.findAll({ where: { userId: id } });
+  const categories = await Categories.findAll({ where: { userId: id }, raw: true });
 
   return categories;
 };
@@ -84,7 +84,7 @@ export const createCategory = async (
   if (parentId) {
     if (!color) {
       throw ({
-        code: ERROR_CODES.validationError,
+        code: API_ERROR_CODES.validationError,
         message: '"color" is required for subcategories. Use the parent color, or define a custom one',
       })
     }
@@ -97,7 +97,7 @@ export const createCategory = async (
 
     if (!parent) {
       throw ({
-        code: ERROR_CODES.validationError,
+        code: API_ERROR_CODES.validationError,
         message: "Category with such parentId doesn't exist.",
       })
     }

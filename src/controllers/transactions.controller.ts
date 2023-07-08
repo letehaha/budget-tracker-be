@@ -1,9 +1,5 @@
-import {
-  CustomResponse,
-  ERROR_CODES,
-  ACCOUNT_TYPES,
-  RESPONSE_STATUS,
-} from 'shared-types';
+import { API_ERROR_CODES, ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 import { QueryTypes } from 'sequelize';
 import { compareDesc } from 'date-fns';
 
@@ -79,7 +75,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
         .sort((a, b) => compareDesc(new Date(a.time), new Date(b.time)));
 
       return res.status(200).json({
-        status: RESPONSE_STATUS.success,
+        status: API_RESPONSE_STATUS.success,
         response: sortedResult,
       });
     }
@@ -106,15 +102,15 @@ export const getTransactions = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: [...transactions, ...monoTransactions],
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -145,15 +141,15 @@ export const getTransactionById = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -184,15 +180,15 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: data,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }

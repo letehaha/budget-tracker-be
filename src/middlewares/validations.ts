@@ -1,4 +1,5 @@
-import { RESPONSE_STATUS, CustomResponse } from 'shared-types';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
 import { validationResult } from 'express-validator/check';
 
 export default (req, res: CustomResponse, next) => {
@@ -10,7 +11,7 @@ export default (req, res: CustomResponse, next) => {
     }));
 
     return res.status(422).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         errors: resultErrors,
       },

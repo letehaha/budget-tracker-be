@@ -1,19 +1,3 @@
-import type { Response } from 'express';
-
-export enum RESPONSE_STATUS {
-  error = 'error',
-  success = 'success',
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Send<ResBody = any, T = Response<ResBody>> = (body?: ResBody) => T;
-export interface CustomResponse extends Response {
-  json: Send<{
-    status: RESPONSE_STATUS,
-    response?: unknown,
-  }, this>
-}
-
 export enum ACCOUNT_TYPES {
   system = 'system',
   monobank = 'monobank',
@@ -40,4 +24,6 @@ export enum CATEGORY_TYPES {
   internal = 'internal',
 }
 
-export * from './error-codes';
+export * from './api';
+export * from './models';
+export * as endpointsTypes from './routes';

@@ -7,15 +7,27 @@ import {
   startOfMonth,
   differenceInCalendarMonths,
 } from 'date-fns';
-import { RESPONSE_STATUS, CustomResponse, ERROR_CODES, TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types';
+import {
+  API_ERROR_CODES,
+  API_RESPONSE_STATUS,
+  TRANSACTION_TYPES,
+  PAYMENT_TYPES,
+  MonobankAccountModel,
+  MonobankUserModel,
+  endpointsTypes,
+  ExternalMonobankClientInfoResponse,
+  ExternalMonobankTransactionResponse,
+} from 'shared-types';
+import { CustomResponse } from '@common/types';
 
-import * as MonobankUsers from '../../models/banks/monobank/Users.model';
-import * as MonobankAccounts from '../../models/banks/monobank/Accounts.model';
-import * as MonobankTransactions from '../../models/banks/monobank/Transactions.model';
-import * as Currencies from '../../models/Currencies.model';
-import * as MerchantCategoryCodes from '../../models/MerchantCategoryCodes.model';
-import * as UserMerchantCategoryCodes from '../../models/UserMerchantCategoryCodes.model';
-import * as Users from '../../models/Users.model';
+import * as monobankAccountsService from '@services/banks/monobank/accounts';
+import * as monobankUsersService from '@services/banks/monobank/users';
+import * as monobankTransactionsService from '@services/banks/monobank/transactions';
+
+import * as Currencies from '@models/Currencies.model';
+import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
+import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
+import * as Users from '@models/Users.model';
 
 import { logger} from '@js/utils/logger';
 
@@ -65,8 +77,11 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
   });
 }
 
-async function createMonoTransaction({ data, account, userId }) {
-  const existTx = await MonobankTransactions.getTransactionByOriginalId({
+async function createMonoTransaction(
+  { data, account, userId }:
+  { data: ExternalMonobankTransactionResponse, account: MonobankAccountModel, userId: number }
+) {
+  const existTx = await monobankTransactionsService.getTransactionByOriginalId({
     originalId: data.id,
     userId,
   });
@@ -76,8 +91,8 @@ async function createMonoTransaction({ data, account, userId }) {
     return;
   }
 
-  const userData = await MonobankUsers.getById({
-    id: account.get('monoUserId'),
+  const userData = await monobankUsersService.getUserById({
+    id: account.monoUserId,
   });
 
   let mccId = await MerchantCategoryCodes.getByCode({
@@ -91,7 +106,7 @@ async function createMonoTransaction({ data, account, userId }) {
 
   const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
     mccId: mccId.get('id'),
-    userId: userData.get('systemUserId'),
+    userId: userData.systemUserId,
   });
 
   let categoryId;
@@ -101,18 +116,18 @@ async function createMonoTransaction({ data, account, userId }) {
   } else {
     categoryId = (
       await Users.getUserDefaultCategory({
-        id: userData.get('systemUserId'),
+        id: userData.systemUserId,
       })
     ).get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
-      userId: userData.get('systemUserId'),
+      userId: userData.systemUserId,
       categoryId,
     });
   }
 
-  await MonobankTransactions.createTransaction({
+  await monobankTransactionsService.createTransaction({
     originalId: data.id,
     description: data.description,
     amount: data.amount,
@@ -123,13 +138,13 @@ async function createMonoTransaction({ data, account, userId }) {
     receiptId: data.receiptId,
     balance: data.balance,
     hold: data.hold,
-    monoAccountId: account.get('id'),
-    userId: userData.get('systemUserId'),
+    // TODO: CHECK HOW IT WORKS
+    monoAccountId: account.id,
+    userId: userData.systemUserId,
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
-    currencyId: account.get('currencyId'),
-    accountType: ACCOUNT_TYPES.monobank,
+    currencyId: account.currencyId,
   });
 
   // eslint-disable-next-line no-console
@@ -137,19 +152,20 @@ async function createMonoTransaction({ data, account, userId }) {
 }
 
 export const pairAccount = async (req, res: CustomResponse) => {
-  const { token } = req.body;
+  const { token }: endpointsTypes.PairMonobankAccountBody = req.body;
   const { id } = req.user;
 
   try {
-    let user = await MonobankUsers.getUserByToken({ token, userId: id });
+    let user = await monobankUsersService.getUserByToken({ token, userId: id });
 
     if (!user) {
-      let response = await req.redisClient.get(token);
+      const response: string = await req.redisClient.get(token);
+      let clientInfo: ExternalMonobankClientInfoResponse;
 
       if (!response) {
         await updateWebhookAxios({ userToken: token });
 
-        response = (await axios({
+        clientInfo = (await axios({
           method: 'GET',
           url: `${hostname}/personal/client-info`,
           responseType: 'json',
@@ -161,19 +177,19 @@ export const pairAccount = async (req, res: CustomResponse) => {
         await req.redisClient.set(token, JSON.stringify(response));
         await req.redisClient.expire(token, 60);
       } else {
-        response = JSON.parse(response);
+        clientInfo = JSON.parse(response);
       }
 
-      user = await MonobankUsers.createUser({
+      user = await monobankUsersService.createUser({
         userId: id,
         token,
-        clientId: response.clientId,
-        name: response.name,
-        webHookUrl: response.webHookUrl,
+        clientId: clientInfo.clientId,
+        name: clientInfo.name,
+        webHookUrl: clientInfo.webHookUrl,
       });
 
       // TODO: wrap createCurrency and createAccount into single transactions
-      const currencyCodes = [...new Set(response.accounts.map((i) => i.currencyCode))];
+      const currencyCodes = [...new Set(clientInfo.accounts.map((i) => i.currencyCode))];
 
       const currencies = await Promise.all(
         currencyCodes.map((code) => Currencies.createCurrency({ code })),
@@ -185,8 +201,8 @@ export const pairAccount = async (req, res: CustomResponse) => {
       });
 
       await Promise.all(
-        response.accounts.map((account) => MonobankAccounts.createAccount({
-          monoUserId: user.get('id'),
+        clientInfo.accounts.map((account) => monobankAccountsService.createAccount({
+          monoUserId: user.id,
           currencyId: accountCurrencyCodes[account.currencyCode],
           accountTypeId: 4,
           accountId: account.id,
@@ -200,27 +216,27 @@ export const pairAccount = async (req, res: CustomResponse) => {
         })),
       );
 
-      user.setDataValue('accounts', response.accounts);
+      (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
 
       return res.status(200).json({
-        status: RESPONSE_STATUS.success,
+        status: API_RESPONSE_STATUS.success,
         response: user,
       });
     }
 
     return res.status(404).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Account already connected',
-        code: ERROR_CODES.monobankUserAlreadyConnected,
+        code: API_ERROR_CODES.monobankUserAlreadyConnected,
       },
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -230,30 +246,30 @@ export const getUser = async (req, res: CustomResponse) => {
   const { id } = req.user;
 
   try {
-    const user = await MonobankUsers.getUser({
-      systemUserId: id,
+    const user = await monobankUsersService.getUserBySystemId({
+      systemUserId: Number(id),
     });
 
     if (!user) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Current user does not have any paired monobank user.',
-          code: ERROR_CODES.monobankUserNotPaired,
+          code: API_ERROR_CODES.monobankUserNotPaired,
         },
       });
     }
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: user,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -261,25 +277,27 @@ export const getUser = async (req, res: CustomResponse) => {
 
 export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
-  const { apiToken, name } = req.body;
+  const { apiToken, name, webHookUrl, clientId }: endpointsTypes.UpdateMonobankUserBody = req.body;
 
   try {
-    const user = await MonobankUsers.updateUser({
+    const user = await monobankUsersService.updateUser({
       systemUserId,
       apiToken,
       name,
+      webHookUrl,
+      clientId,
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: user,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -300,16 +318,16 @@ export const getTransactions = async (req, res: CustomResponse) => {
 
   if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
     return res.status(400).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: `Validation error. Sort direction is invalid! Should be one of [${Object.values(SORT_DIRECTIONS)}]`,
-        code: ERROR_CODES.validationError,
+        code: API_ERROR_CODES.validationError,
       },
     });
   }
 
   try {
-    const transactions = await MonobankTransactions.getTransactions({
+    const transactions = await monobankTransactionsService.getTransactions({
       systemUserId: id,
       sortDirection: sort,
       includeUser,
@@ -322,30 +340,30 @@ export const getTransactions = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: transactions,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
 };
 
 export const updateTransaction = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
+  const { id: userId }: { id: number } = req.user;
   const {
     id,
     categoryId,
     note,
-  } = req.body;
+  }: endpointsTypes.UpdateMonobankTransactionBody = req.body;
 
   try {
-    const transaction = await MonobankTransactions.updateTransactionById({
+    const transaction = await monobankTransactionsService.updateTransactionById({
       id,
       userId,
       categoryId,
@@ -353,15 +371,15 @@ export const updateTransaction = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: transaction,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -371,31 +389,31 @@ export const getAccounts = async (req, res) => {
   const { id } = req.user;
 
   try {
-    const monoUser = await MonobankUsers.getUser({ systemUserId: id });
+    const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId: id });
 
     if (!monoUser) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Current user does not have any paired monobank user.',
-          code: ERROR_CODES.monobankUserNotPaired,
+          code: API_ERROR_CODES.monobankUserNotPaired,
         },
       });
     }
 
-    const accounts = await MonobankAccounts.getAccountsByUserId({
-      monoUserId: monoUser.get('id'),
+    const accounts = await monobankAccountsService.getAccountsByUserId({
+      monoUserId: monoUser.id,
     });
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: accounts,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -410,21 +428,21 @@ export const updateAccount = async (req, res: CustomResponse) => {
 
   try {
     // TODO: check user is correct. Check account is exist
-    const account = await MonobankAccounts.updateById({
+    const account = await monobankAccountsService.updateById({
       accountId,
       name,
       isEnabled,
     });
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: account,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -461,22 +479,22 @@ export const createAccounts = async (req, res: CustomResponse) => {
     }
 
     accountsIds.forEach((id) => {
-      MonobankAccounts.createAccount({
+      monobankAccountsService.createAccount({
         monoUserId: userId,
         accountId: id,
       });
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: [],
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -486,38 +504,37 @@ export const monobankWebhook = async (req, res: CustomResponse) => {
   const { data } = req.body;
 
   try {
-    const monobankAccounts = await MonobankAccounts.getAccountsById({
+    const monobankAccounts = await monobankAccountsService.getAccountsById({
       accountId: data.account,
     });
     if (!monobankAccounts.length) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Monobank account does not exist!',
         },
       });
     }
-    // eslint-disable-next-line no-restricted-syntax
+
     for (const account of monobankAccounts) {
-      // eslint-disable-next-line no-await-in-loop
-      const user = await MonobankUsers.getById({ id: account.get('monoUserId') });
-      // eslint-disable-next-line no-await-in-loop
+      const user = await monobankUsersService.getUserById({ id: account.monoUserId });
+
       await createMonoTransaction({
         data: data.statementItem,
         account,
-        userId: user.get('systemUserId'),
+        userId: user.systemUserId,
       });
     }
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -532,7 +549,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
-      await MonobankUsers.updateWebhook({
+      await monobankUsersService.updateUser({
         systemUserId: id,
         clientId,
         webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
@@ -544,21 +561,21 @@ export const updateWebhook = async (req, res: CustomResponse) => {
       await req.redisClient.set(token, true);
       await req.redisClient.expire(token, 60);
 
-      return res.status(200).json({ status: RESPONSE_STATUS.success });
+      return res.status(200).json({ status: API_RESPONSE_STATUS.success });
     }
 
     return res.status(429).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -574,40 +591,40 @@ export const loadTransactions = async (req, res: CustomResponse) => {
 
     if (tempRedisToken) {
       return res.status(403).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'There were too many requests earlier. Please wait at least one minute from when you first saw this message.',
-          code: ERROR_CODES.forbidden,
+          code: API_ERROR_CODES.forbidden,
         },
       });
     }
 
-    const monobankUser = await MonobankUsers.getUser({
+    const monobankUser = await monobankUsersService.getUserBySystemId({
       systemUserId,
     });
 
     if (!monobankUser) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Monobank user does not exist.',
-          code: ERROR_CODES.notFound,
+          code: API_ERROR_CODES.notFound,
         },
       });
     }
 
     // Check mono account exist
-    const monobankAccount = await MonobankAccounts.getByAccountId({
+    const monobankAccount = await monobankAccountsService.getByAccountId({
       accountId,
-      monoUserId: monobankUser.get('id'),
+      monoUserId: monobankUser.id,
     });
 
     if (!monobankAccount) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Monobank account does not exist.',
-          code: ERROR_CODES.notFound,
+          code: API_ERROR_CODES.notFound,
         },
       });
     }
@@ -619,7 +636,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       logger.error('[Monobank controller]: Query already exists');
 
       return res.status(429).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: `
             Query already exist and should be fulfilled first. Number of left
@@ -627,7 +644,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
             (approximately in ${existQuery.size} minutes, since each request
             will take about 60 seconds)
           `,
-          code: ERROR_CODES.tooManyRequests,
+          code: API_ERROR_CODES.tooManyRequests,
         },
       });
     }
@@ -647,18 +664,16 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       // eslint-disable-next-line no-await-in-loop, no-console
       queue.add(async () => {
         try {
-          const { data } = await axios({
+          const { data }: { data: ExternalMonobankTransactionResponse[] } = await axios({
             method: 'GET',
             url: `${hostname}/personal/statement/${accountId}/${month.start}/${month.end}`,
             responseType: 'json',
             headers: {
-              'X-Token': monobankUser.get('apiToken'),
+              'X-Token': monobankUser.apiToken,
             },
           });
 
-          // eslint-disable-next-line no-restricted-syntax
           for (const item of data) {
-            // eslint-disable-next-line no-await-in-loop
             await createMonoTransaction({
               data: item,
               account: monobankAccount,
@@ -671,10 +686,10 @@ export const loadTransactions = async (req, res: CustomResponse) => {
             await req.redisClient.expire(redisToken, 60);
 
             return res.status(429).json({
-              status: RESPONSE_STATUS.error,
+              status: API_RESPONSE_STATUS.error,
               response: {
                 message: 'Monobank connection error. Too many requests!',
-                code: ERROR_CODES.tooManyRequests,
+                code: API_ERROR_CODES.tooManyRequests,
               },
             });
           }
@@ -695,17 +710,17 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     });
 
     return res.status(200).json({
-      status: RESPONSE_STATUS.success,
+      status: API_RESPONSE_STATUS.success,
       response: {
         minutesToFinish: months.length - 1,
       },
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
@@ -715,14 +730,14 @@ export const refreshAccounts = async (req, res) => {
   const { id: systemUserId } = req.user;
 
   try {
-    const monoUser = await MonobankUsers.getUser({ systemUserId });
+    const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId });
 
     if (!monoUser) {
       return res.status(404).json({
-        status: RESPONSE_STATUS.error,
+        status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Current user does not have any paired monobank user.',
-          code: ERROR_CODES.monobankUserNotPaired,
+          code: API_ERROR_CODES.monobankUserNotPaired,
         },
       });
     }
@@ -738,7 +753,7 @@ export const refreshAccounts = async (req, res) => {
           url: `${hostname}/personal/client-info`,
           responseType: 'json',
           headers: {
-            'X-Token': monoUser.get('apiToken'),
+            'X-Token': monoUser.apiToken,
           },
         })).data;
       } catch (e) {
@@ -747,19 +762,19 @@ export const refreshAccounts = async (req, res) => {
             // Set user token to empty, since it is already invalid. In that way
             // we can let BE/FE know that last token was invalid and now it
             // needs to be updated
-            await MonobankUsers.updateUser({ systemUserId, apiToken: '' });
+            await monobankUsersService.updateUser({ systemUserId, apiToken: '' });
 
             return res.status(403).json({
-              status: RESPONSE_STATUS.error,
+              status: API_RESPONSE_STATUS.error,
               response: {
-                code: ERROR_CODES.monobankTokenInvalid,
+                code: API_ERROR_CODES.monobankTokenInvalid,
                 message: "User's token is invalid!",
               },
             });
           }
         }
         return res.status(500).json({
-          status: RESPONSE_STATUS.error,
+          status: API_RESPONSE_STATUS.error,
           response: {
             message: 'Something bad happened while trying to contact Monobank!',
           },
@@ -770,7 +785,7 @@ export const refreshAccounts = async (req, res) => {
       await req.redisClient.expire(token, 60);
 
       await Promise.all(
-        clientInfo.accounts.map((item) => MonobankAccounts.updateById({
+        clientInfo.accounts.map((item) => monobankAccountsService.updateById({
           accountId: item.id,
           currencyCode: item.currencyCode,
           cashbackType: item.cashbackType,
@@ -779,33 +794,33 @@ export const refreshAccounts = async (req, res) => {
           maskedPan: JSON.stringify(item.maskedPan),
           type: item.type,
           iban: item.iban,
-          monoUserId: monoUser.get('id'),
+          monoUserId: monoUser.id,
         })),
       );
 
-      const accounts = await MonobankAccounts.getAccountsByUserId({
-        monoUserId: monoUser.get('id'),
+      const accounts = await monobankAccountsService.getAccountsByUserId({
+        monoUserId: monoUser.id,
       });
 
       return res.status(200).json({
-        status: RESPONSE_STATUS.success,
+        status: API_RESPONSE_STATUS.success,
         response: accounts,
       });
     }
 
     return res.status(429).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
-        code: ERROR_CODES.tooManyRequests,
+        code: API_ERROR_CODES.tooManyRequests,
         message: 'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {
     return res.status(500).json({
-      status: RESPONSE_STATUS.error,
+      status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Unexpected error.',
-        code: ERROR_CODES.unexpected,
+        code: API_ERROR_CODES.unexpected,
       },
     });
   }
