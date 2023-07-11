@@ -1,24 +1,24 @@
-import { MonobankUserModel, MonobankAccountModel } from 'shared-types';
+import { MonobankTrasnactionModel, MonobankUserModel, MonobankAccountModel } from 'shared-types';
 import { BodyPayload, QueryPayload } from './index'
 
-export interface UpdateMonobankTransactionBody extends BodyPayload{
+export interface UpdateMonobankTransactionBody extends BodyPayload {
   id: number;
   categoryId?: number;
   note?: string;
 }
 
-export interface PairMonobankAccountBody extends BodyPayload{
+export interface PairMonobankAccountBody extends BodyPayload {
   token: MonobankUserModel['apiToken']
 }
 
-export interface UpdateMonobankUserBody extends BodyPayload{
+export interface UpdateMonobankUserBody extends BodyPayload {
   apiToken?: string;
   name?: string;
   webHookUrl?: string;
   clientId?: string;
 }
 
-export interface UpdateMonobankAccountByIdBody extends BodyPayload{
+export interface UpdateMonobankAccountByIdBody extends BodyPayload {
   accountId: string;
   name?: MonobankAccountModel['name'];
   isEnabled?: boolean;
@@ -33,7 +33,7 @@ export interface UpdateMonobankAccountByIdBody extends BodyPayload{
 
 export type GetMonobankAccountsResponse = MonobankAccountModel[]
 
-export interface LoadMonoTransactionsQuery extends QueryPayload{
+export interface LoadMonoTransactionsQuery extends QueryPayload {
   from: string;
   to: string;
   accountId: string;
@@ -41,3 +41,15 @@ export interface LoadMonoTransactionsQuery extends QueryPayload{
 export interface LoadMonoTransactionsResponse {
   minutesToFinish: number;
 }
+
+export interface GetMonobankTransactionsQuery extends QueryPayload {
+  sort?: 'asc' | 'desc';
+  includeUser?: string;
+  includeAccount?: string;
+  includeCategory?: string;
+  includeAll?: string;
+  nestedInclude?: string;
+  from?: string;
+  limit?: string;
+}
+export type GetMonobankTransactionsResponse = MonobankTrasnactionModel[]

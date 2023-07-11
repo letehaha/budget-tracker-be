@@ -19,6 +19,7 @@ import {
   ExternalMonobankTransactionResponse,
 } from 'shared-types';
 import { CustomResponse } from '@common/types';
+import { getQueryBooleanValue } from '@common/helpers';
 
 import * as monobankAccountsService from '@services/banks/monobank/accounts';
 import * as monobankUsersService from '@services/banks/monobank/users';
@@ -309,7 +310,7 @@ export const updateUser = async (req, res: CustomResponse) => {
 export const getTransactions = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
-    sort = SORT_DIRECTIONS.desc,
+    sort = SORT_DIRECTIONS.desc as 'desc',
     includeUser,
     includeAccount,
     includeCategory,
@@ -317,7 +318,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
     nestedInclude,
     from,
     limit,
-  } = req.query;
+  }: endpointsTypes.GetMonobankTransactionsQuery = req.query;
 
   if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
     return res.status(400).json({
@@ -333,16 +334,16 @@ export const getTransactions = async (req, res: CustomResponse) => {
     const transactions = await monobankTransactionsService.getTransactions({
       systemUserId: id,
       sortDirection: sort,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-      from,
-      limit,
+      includeUser: getQueryBooleanValue(includeUser),
+      includeAccount: getQueryBooleanValue(includeAccount),
+      includeCategory: getQueryBooleanValue(includeCategory),
+      includeAll: getQueryBooleanValue(includeAll),
+      nestedInclude: getQueryBooleanValue(nestedInclude),
+      from: Number(from),
+      limit: Number(limit),
     });
 
-    return res.status(200).json({
+    return res.status(200).json<endpointsTypes.GetMonobankTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: transactions,
     });
