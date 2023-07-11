@@ -12,10 +12,10 @@ export interface PairMonobankAccountBody extends BodyPayload {
 }
 
 export interface UpdateMonobankUserBody extends BodyPayload {
-  apiToken?: string;
-  name?: string;
-  webHookUrl?: string;
-  clientId?: string;
+  apiToken?: MonobankUserModel['apiToken'];
+  name?: MonobankUserModel['name'];
+  webHookUrl?: MonobankUserModel['webHookUrl'];
+  clientId?: MonobankUserModel['clientId'];
 }
 
 export interface UpdateMonobankAccountByIdBody extends BodyPayload {
@@ -53,3 +53,7 @@ export interface GetMonobankTransactionsQuery extends QueryPayload {
   limit?: string;
 }
 export type GetMonobankTransactionsResponse = MonobankTrasnactionModel[]
+
+export interface UpdateWebhookBody extends BodyPayload {
+  clientId: string;
+}

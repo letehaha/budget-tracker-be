@@ -549,7 +549,7 @@ export const monobankWebhook = async (req, res: CustomResponse) => {
 
 export const updateWebhook = async (req, res: CustomResponse) => {
   try {
-    const { clientId } = req.body;
+    const { clientId }: endpointsTypes.UpdateWebhookBody = req.body;
     const { id } = req.user;
 
     const token = `monobank-${id}-update-webhook`;
