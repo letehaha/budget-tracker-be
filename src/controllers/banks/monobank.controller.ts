@@ -42,23 +42,26 @@ const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
-function dateRange({ from, to }) {
+function dateRange(
+  { from, to }: { from: number; to: number; }
+): { start: number; end: number }[] {
   const difference = differenceInCalendarMonths(
-    new Date(Number(to)),
-    new Date(Number(from)),
+    new Date(to),
+    new Date(from),
   );
   const dates = [];
 
-  // eslint-disable-next-line no-plusplus
   for (let i = 0; i <= difference; i++) {
-    const start = startOfMonth(addMonths(new Date(Number(from)), i));
-    const end = endOfMonth(addMonths(new Date(Number(from)), i));
+    const start = startOfMonth(addMonths(new Date(from), i));
+    const end = endOfMonth(addMonths(new Date(from), i));
 
     dates.push({
       start: Number((new Date(start).getTime() / 1000).toFixed(0)),
       end: Number((new Date(end).getTime() / 1000).toFixed(0)),
     });
   }
+
+  console.log('dates', dates)
 
   return dates;
 }
@@ -586,7 +589,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 
 export const loadTransactions = async (req, res: CustomResponse) => {
   try {
-    const { from, to, accountId } = req.query;
+    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
     const { id: systemUserId } = req.user;
 
     const redisToken = `monobank-${systemUserId}-load-transactions`;
@@ -658,7 +661,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       interval: 60000,
       intervalCap: 1,
     });
-    const months = dateRange({ from, to });
+    const months = dateRange({ from: Number(from), to: Number(to) });
 
     usersQuery.set(`query-${systemUserId}`, queue);
 

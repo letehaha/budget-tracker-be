@@ -1,24 +1,24 @@
 import { MonobankUserModel, MonobankAccountModel } from 'shared-types';
-import { BodyPayload } from './index'
+import { BodyPayload, QueryPayload } from './index'
 
-export interface UpdateMonobankTransactionBody extends BodyPayload<{
+export interface UpdateMonobankTransactionBody extends BodyPayload{
   id: number;
   categoryId?: number;
   note?: string;
-}> {}
+}
 
-export interface PairMonobankAccountBody extends BodyPayload<{
+export interface PairMonobankAccountBody extends BodyPayload{
   token: MonobankUserModel['apiToken']
-}> {}
+}
 
-export interface UpdateMonobankUserBody extends BodyPayload<{
+export interface UpdateMonobankUserBody extends BodyPayload{
   apiToken?: string;
   name?: string;
   webHookUrl?: string;
   clientId?: string;
-}> {}
+}
 
-export interface UpdateMonobankAccountByIdBody extends BodyPayload<{
+export interface UpdateMonobankAccountByIdBody extends BodyPayload{
   accountId: string;
   name?: MonobankAccountModel['name'];
   isEnabled?: boolean;
@@ -29,6 +29,12 @@ export interface UpdateMonobankAccountByIdBody extends BodyPayload<{
   balance?: MonobankAccountModel['balance'];
   creditLimit?: MonobankAccountModel['creditLimit'];
   currencyId?: number;
-}> {}
+}
 
 export type GetMonobankAccountsResponse = MonobankAccountModel[]
+
+export interface LoadMonoTransactionsQuery extends QueryPayload{
+  from: string;
+  to: string;
+  accountId: string;
+}
