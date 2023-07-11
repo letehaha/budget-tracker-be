@@ -715,7 +715,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
     });
 
-    return res.status(200).json({
+    return res.status(200).json<endpointsTypes.LoadMonoTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: {
         minutesToFinish: months.length - 1,

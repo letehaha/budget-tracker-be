@@ -38,3 +38,6 @@ export interface LoadMonoTransactionsQuery extends QueryPayload{
   to: string;
   accountId: string;
 }
+export interface LoadMonoTransactionsResponse {
+  minutesToFinish: number;
+}

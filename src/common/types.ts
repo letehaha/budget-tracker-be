@@ -2,13 +2,16 @@ import type { Response } from 'express';
 import { Transaction } from 'sequelize/types';
 import { API_RESPONSE_STATUS } from 'shared-types';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Send<ResBody = any, T = Response<ResBody>> = (body?: ResBody) => T;
-export interface CustomResponse extends Response {
-  json: Send<{
+// Enforce res.json(object) to always have `status` field and optional `response`
+// with ability to pass `response` type using res.json<Type>()
+type Send<T = Response> = {
+  <ResBody>(body: {
+    response?: ResBody,
     status: API_RESPONSE_STATUS,
-    response?: unknown,
-  }, this>
+  }): T;
+};
+export interface CustomResponse extends Response {
+  json: Send<this>;
 }
 
 
