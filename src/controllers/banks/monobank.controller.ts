@@ -401,7 +401,7 @@ export const getAccounts = async (req, res) => {
       });
     }
 
-    const accounts = await monobankAccountsService.getAccountsByUserId({
+    const accounts: endpointsTypes.GetMonobankAccountsResponse = await monobankAccountsService.getAccountsByUserId({
       monoUserId: monoUser.id,
     });
     return res.status(200).json({
@@ -420,11 +420,13 @@ export const getAccounts = async (req, res) => {
 };
 
 export const updateAccount = async (req, res: CustomResponse) => {
+  const { id } = req.user;
+
   const {
     accountId,
     name,
     isEnabled,
-  } = req.body;
+  }: endpointsTypes.UpdateMonobankAccountByIdBody = req.body;
 
   try {
     // TODO: check user is correct. Check account is exist
@@ -432,6 +434,7 @@ export const updateAccount = async (req, res: CustomResponse) => {
       accountId,
       name,
       isEnabled,
+      monoUserId: id,
     });
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -746,7 +749,7 @@ export const refreshAccounts = async (req, res) => {
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
-      let clientInfo;
+      let clientInfo: ExternalMonobankClientInfoResponse;
       try {
         clientInfo = (await axios({
           method: 'GET',
@@ -787,8 +790,9 @@ export const refreshAccounts = async (req, res) => {
       await Promise.all(
         clientInfo.accounts.map((item) => monobankAccountsService.updateById({
           accountId: item.id,
-          currencyCode: item.currencyCode,
-          cashbackType: item.cashbackType,
+          // We need to pass currencyId based on currencyCode
+          // currencyCode: item.currencyCode,
+          // cashbackType: item.cashbackType,
           balance: item.balance,
           creditLimit: item.creditLimit,
           maskedPan: JSON.stringify(item.maskedPan),

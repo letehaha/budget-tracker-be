@@ -1,4 +1,4 @@
-import { MonobankUserModel } from 'shared-types';
+import { MonobankUserModel, MonobankAccountModel } from 'shared-types';
 import { BodyPayload } from './index'
 
 export interface UpdateMonobankTransactionBody extends BodyPayload<{
@@ -17,3 +17,18 @@ export interface UpdateMonobankUserBody extends BodyPayload<{
   webHookUrl?: string;
   clientId?: string;
 }> {}
+
+export interface UpdateMonobankAccountByIdBody extends BodyPayload<{
+  accountId: string;
+  name?: MonobankAccountModel['name'];
+  isEnabled?: boolean;
+  // We store array of pans as a string
+  maskedPan?: string;
+  type?: MonobankAccountModel['type'];
+  iban?: MonobankAccountModel['iban'];
+  balance?: MonobankAccountModel['balance'];
+  creditLimit?: MonobankAccountModel['creditLimit'];
+  currencyId?: number;
+}> {}
+
+export type GetMonobankAccountsResponse = MonobankAccountModel[]
