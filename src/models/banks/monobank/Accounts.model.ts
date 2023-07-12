@@ -5,6 +5,7 @@ import {
   ForeignKey,
   Length,
 } from 'sequelize-typescript';
+import { endpointsTypes } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Currencies from '../../Currencies.model';
 import MonobankUsers from './Users.model';
@@ -139,26 +140,16 @@ export const getAccountsById = async (
   return account;
 };
 
-export interface MonoAccountUpdatePayload {
-  accountId: number;
-  name?: string;
-  isEnabled?: boolean;
-  currencyCode?: number;
-  cashbackType?: string;
-  balance?: number;
-  creditLimit?: number;
-  maskedPan?: string;
-  type?: string;
-  iban?: string;
-  monoUserId?: number;
+export interface MonoAccountUpdatePayload extends endpointsTypes.UpdateMonobankAccountByIdBody {
+  monoUserId: number;
 }
 export const updateById = async (
   { accountId, monoUserId, ...toUpdate }: MonoAccountUpdatePayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const where: {
-    accountId: number;
-    monoUserId?: number;
+    accountId: MonoAccountUpdatePayload['accountId'];
+    monoUserId?: MonoAccountUpdatePayload['monoUserId'];
   } = { accountId };
 
   if (monoUserId) {

@@ -19,6 +19,7 @@ import {
   ExternalMonobankTransactionResponse,
 } from 'shared-types';
 import { CustomResponse } from '@common/types';
+import { getQueryBooleanValue } from '@common/helpers';
 
 import * as monobankAccountsService from '@services/banks/monobank/accounts';
 import * as monobankUsersService from '@services/banks/monobank/users';
@@ -42,23 +43,26 @@ const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
-function dateRange({ from, to }) {
+function dateRange(
+  { from, to }: { from: number; to: number; }
+): { start: number; end: number }[] {
   const difference = differenceInCalendarMonths(
-    new Date(Number(to)),
-    new Date(Number(from)),
+    new Date(to),
+    new Date(from),
   );
   const dates = [];
 
-  // eslint-disable-next-line no-plusplus
   for (let i = 0; i <= difference; i++) {
-    const start = startOfMonth(addMonths(new Date(Number(from)), i));
-    const end = endOfMonth(addMonths(new Date(Number(from)), i));
+    const start = startOfMonth(addMonths(new Date(from), i));
+    const end = endOfMonth(addMonths(new Date(from), i));
 
     dates.push({
       start: Number((new Date(start).getTime() / 1000).toFixed(0)),
       end: Number((new Date(end).getTime() / 1000).toFixed(0)),
     });
   }
+
+  console.log('dates', dates)
 
   return dates;
 }
@@ -306,7 +310,7 @@ export const updateUser = async (req, res: CustomResponse) => {
 export const getTransactions = async (req, res: CustomResponse) => {
   const { id } = req.user;
   const {
-    sort = SORT_DIRECTIONS.desc,
+    sort = SORT_DIRECTIONS.desc as 'desc',
     includeUser,
     includeAccount,
     includeCategory,
@@ -314,7 +318,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
     nestedInclude,
     from,
     limit,
-  } = req.query;
+  }: endpointsTypes.GetMonobankTransactionsQuery = req.query;
 
   if (!Object.values(SORT_DIRECTIONS).includes(sort)) {
     return res.status(400).json({
@@ -330,16 +334,16 @@ export const getTransactions = async (req, res: CustomResponse) => {
     const transactions = await monobankTransactionsService.getTransactions({
       systemUserId: id,
       sortDirection: sort,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-      from,
-      limit,
+      includeUser: getQueryBooleanValue(includeUser),
+      includeAccount: getQueryBooleanValue(includeAccount),
+      includeCategory: getQueryBooleanValue(includeCategory),
+      includeAll: getQueryBooleanValue(includeAll),
+      nestedInclude: getQueryBooleanValue(nestedInclude),
+      from: Number(from),
+      limit: Number(limit),
     });
 
-    return res.status(200).json({
+    return res.status(200).json<endpointsTypes.GetMonobankTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: transactions,
     });
@@ -401,7 +405,7 @@ export const getAccounts = async (req, res) => {
       });
     }
 
-    const accounts = await monobankAccountsService.getAccountsByUserId({
+    const accounts: endpointsTypes.GetMonobankAccountsResponse = await monobankAccountsService.getAccountsByUserId({
       monoUserId: monoUser.id,
     });
     return res.status(200).json({
@@ -420,11 +424,13 @@ export const getAccounts = async (req, res) => {
 };
 
 export const updateAccount = async (req, res: CustomResponse) => {
+  const { id } = req.user;
+
   const {
     accountId,
     name,
     isEnabled,
-  } = req.body;
+  }: endpointsTypes.UpdateMonobankAccountByIdBody = req.body;
 
   try {
     // TODO: check user is correct. Check account is exist
@@ -432,6 +438,7 @@ export const updateAccount = async (req, res: CustomResponse) => {
       accountId,
       name,
       isEnabled,
+      monoUserId: id,
     });
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -542,7 +549,7 @@ export const monobankWebhook = async (req, res: CustomResponse) => {
 
 export const updateWebhook = async (req, res: CustomResponse) => {
   try {
-    const { clientId } = req.body;
+    const { clientId }: endpointsTypes.UpdateWebhookBody = req.body;
     const { id } = req.user;
 
     const token = `monobank-${id}-update-webhook`;
@@ -583,7 +590,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 
 export const loadTransactions = async (req, res: CustomResponse) => {
   try {
-    const { from, to, accountId } = req.query;
+    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
     const { id: systemUserId } = req.user;
 
     const redisToken = `monobank-${systemUserId}-load-transactions`;
@@ -655,7 +662,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       interval: 60000,
       intervalCap: 1,
     });
-    const months = dateRange({ from, to });
+    const months = dateRange({ from: Number(from), to: Number(to) });
 
     usersQuery.set(`query-${systemUserId}`, queue);
 
@@ -709,7 +716,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
     });
 
-    return res.status(200).json({
+    return res.status(200).json<endpointsTypes.LoadMonoTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: {
         minutesToFinish: months.length - 1,
@@ -746,7 +753,7 @@ export const refreshAccounts = async (req, res) => {
     const tempToken = await req.redisClient.get(token);
 
     if (!tempToken) {
-      let clientInfo;
+      let clientInfo: ExternalMonobankClientInfoResponse;
       try {
         clientInfo = (await axios({
           method: 'GET',
@@ -787,8 +794,9 @@ export const refreshAccounts = async (req, res) => {
       await Promise.all(
         clientInfo.accounts.map((item) => monobankAccountsService.updateById({
           accountId: item.id,
-          currencyCode: item.currencyCode,
-          cashbackType: item.cashbackType,
+          // We need to pass currencyId based on currencyCode
+          // currencyCode: item.currencyCode,
+          // cashbackType: item.cashbackType,
           balance: item.balance,
           creditLimit: item.creditLimit,
           maskedPan: JSON.stringify(item.maskedPan),

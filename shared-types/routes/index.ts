@@ -1,4 +1,9 @@
 export * from './monobank';
+export * from './auth';
 
-export type BodyPayload<T> = T
-export type QueryPayload<T> = T
+export type BodyPayload = {
+  [key: string | number]: string | number | boolean;
+}
+export type QueryPayload = {
+  [key: string]: string;
+}
