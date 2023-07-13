@@ -3,7 +3,10 @@ import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
 
-const normalizeAccount = (account: Accounts.default): AccountModel => ({ ...account, systemType: ACCOUNT_TYPES.system })
+const normalizeAccount = (account: Accounts.default): AccountModel => ({
+  ...(account.dataValues || account),
+  systemType: ACCOUNT_TYPES.system,
+})
 
 export const getAccounts = async (
   { userId }: { userId: number },
@@ -26,15 +29,7 @@ export const getAccountById = async (
 };
 
 export const createAccount = async (
-  {
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
-    userId,
-    internal,
-  }: {
+  payload: {
     accountTypeId: number;
     currencyId: number;
     name: string;
@@ -45,30 +40,13 @@ export const createAccount = async (
   },
   { transaction }: { transaction?: Transaction } = {}
 ): Promise<AccountModel> => {
-
-  const account = await Accounts.createAccount({
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
-    userId,
-    internal,
-  }, { transaction });
+  const account = await Accounts.createAccount(payload, { transaction });
 
   return normalizeAccount(account);
 }
 
 export const updateAccount = async (
-  {
-    id,
-    userId,
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
-  }: {
+  payload: {
     id: number;
     userId: number;
     accountTypeId?: number;
@@ -79,15 +57,7 @@ export const updateAccount = async (
   },
   { transaction }: { transaction?: Transaction } = {},
 ): Promise<AccountModel> => {
-  const data = await Accounts.updateAccountById({
-    id,
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
-    userId,
-  }, { transaction });
+  const data = await Accounts.updateAccountById(payload, { transaction });
 
   return normalizeAccount(data);
 };
