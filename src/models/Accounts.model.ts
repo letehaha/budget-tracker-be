@@ -4,11 +4,13 @@ import {
   Model,
   ForeignKey,
   BelongsTo,
+  AfterCreate,
 } from 'sequelize-typescript';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
+import Balances from '@models/Balances.model';
 
 @Table({
   timestamps: false,
@@ -74,6 +76,11 @@ export default class Accounts extends Model {
   @ForeignKey(() => Users)
   @Column
   userId: number;
+
+  @AfterCreate
+  static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
+    await Balances.handleAccountCreation(instance, { transaction });
+  }
 }
 
 export const getAccounts = async (
