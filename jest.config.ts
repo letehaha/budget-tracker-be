@@ -4,10 +4,10 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/?(*.)+(unit|spec|e2e).[jt]s?(x)'],
-  globals: {
-    'ts-jest': {
+  transform: {
+    '^.+\\.ts?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
-    }
+    }],
   },
   moduleNameMapper: {
     'shared-types': '<rootDir>/shared-types',
