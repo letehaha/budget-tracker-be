@@ -51,26 +51,6 @@ module.exports = {
         allowNull: true,
       },
     });
-
-    if (process.env.NODE_ENV === 'test') {
-      await queryInterface.bulkInsert('Users', [
-        {
-          username: 'test1',
-          password: bcrypt.hashSync('test1', salt),
-        },
-        {
-          username: 'test2',
-          password: bcrypt.hashSync('test2', salt),
-        },
-      ]);
-      console.log(`Inserted users:
-        username: test1;
-        password: test1;
-        &
-        username: test2;
-        password: test2
-      `)
-    }
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable('Users');

@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Balances from './Balances.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
+import { serverInstance, redisClient } from '@root/app';
 import Transactions from './Transactions.model';
 
 describe('Balances model', () => {
+  afterAll(() => {
+    redisClient.quit();
+    serverInstance.close();
+  });
+
   beforeEach(() => {
     jest.resetAllMocks();
   });

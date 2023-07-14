@@ -40,7 +40,10 @@ export const createAccount = async (
   },
   { transaction }: { transaction?: Transaction } = {}
 ): Promise<AccountModel> => {
-  const account = await Accounts.createAccount(payload, { transaction });
+  const account = await Accounts.createAccount({
+    initialBalance: payload.currentBalance,
+    ...payload,
+  }, { transaction });
 
   return normalizeAccount(account);
 }
