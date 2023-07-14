@@ -15,6 +15,7 @@ export default {
     '@middlewares/(.*)': '<rootDir>/src/middlewares/$1',
     '@common/(.*)': '<rootDir>/src/common/$1',
     '@controllers/(.*)': '<rootDir>/src/controllers/$1',
+    '@migrations/(.*)': '<rootDir>/src/migrations/$1',
     '@models/(.*)': '<rootDir>/src/models/$1',
     '@js/(.*)': '<rootDir>/src/js/$1',
     '@services/(.*)': '<rootDir>/src/services/$1',
