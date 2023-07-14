@@ -107,13 +107,9 @@ export const getAccountById = async (
 
 export const createAccount = async (
   {
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
     userId,
-    internal,
+    internal = false,
+    ...rest
   }: {
     accountTypeId: number;
     currencyId: number;
@@ -126,13 +122,9 @@ export const createAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
     userId,
-    internal: internal ?? false,
+    internal,
+    ...rest
   }, attributes);
 
   const account = await getAccountById({
