@@ -1,1 +1,1 @@
-export * from './get-account-balance-history';
+export * from './get-balance-history';

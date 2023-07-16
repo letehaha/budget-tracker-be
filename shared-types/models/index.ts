@@ -93,3 +93,11 @@ export interface MonobankTrasnactionModel {
   accountType: ACCOUNT_TYPES;
   note: string;
 }
+
+export interface BalanceModel {
+  id: number;
+  date: Date;
+  amount: number;
+  accountId: number;
+  account: Omit<AccountModel, 'systemType'>;
+}

@@ -30,6 +30,13 @@ const umzug = new Umzug({
 });
 
 const extractResponse = response => response.body.response;
+const callGetBalanceHistory = async (accountId, token, raw = false) => {
+  const result = await request(app)
+    .get(`/api/v1/stats/balance-history?accountId=${accountId}`)
+    .set('Authorization', token)
+
+  return raw ? extractResponse(result) : result
+}
 
 describe('Balances model', () => {
   afterAll(() => {
@@ -95,9 +102,7 @@ describe('Balances model', () => {
       .set('Authorization', token)
       .send(buildAccountPayload())
 
-    const balancesHistory = await request(app)
-      .get(`/api/v1/stats/account-balance/${extractResponse(accountResult).id}`)
-      .set('Authorization', token);
+    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
 
     const result = extractResponse(balancesHistory)
 
@@ -120,9 +125,7 @@ describe('Balances model', () => {
         accountId: extractResponse(accountResult).id,
         type: TRANSACTION_TYPES.income
       })
-      const initialBalancesHistory = await request(app)
-        .get(`/api/v1/stats/account-balance/${extractResponse(accountResult).id}`)
-        .set('Authorization', token);
+      const initialBalancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(initialBalancesHistory).length).toEqual(1);
@@ -153,9 +156,7 @@ describe('Balances model', () => {
           .send(type);
       }
 
-      const finalBalancesHistory = await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token);
+      const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
 
       expect(finalBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(finalBalancesHistory).length).toEqual(1);
@@ -175,9 +176,7 @@ describe('Balances model', () => {
           .send(type);
       }
 
-      const finalBalancesHistory = await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token);
+      const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
 
       expect(finalBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(finalBalancesHistory).length).toEqual(1);
@@ -203,9 +202,7 @@ describe('Balances model', () => {
           time: startOfDay(addDays(new Date(), 1))
         });
 
-      const afterBalance = extractResponse(await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token));
+      const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
 
       expect(afterBalance.length).toBe(2);
       expect(afterBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -220,9 +217,7 @@ describe('Balances model', () => {
           time: startOfDay(subDays(new Date(), 1))
         });
 
-      const beforeBalance = extractResponse(await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token));
+      const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -257,9 +252,7 @@ describe('Balances model', () => {
           time: startOfDay(new Date())
         });
 
-      const afterBalance = extractResponse(await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token));
+      const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
 
       expect(afterBalance.length).toBe(2);
       expect(afterBalance.at(0).amount).toBe(accountData.initialBalance + income.amount);
@@ -274,9 +267,7 @@ describe('Balances model', () => {
           time: startOfDay(subDays(new Date(), 1))
         });
 
-      const beforeBalance = extractResponse(await request(app)
-        .get(`/api/v1/stats/account-balance/${accountData.id}`)
-        .set('Authorization', token));
+      const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -313,11 +304,7 @@ describe('Balances model', () => {
           .set('Authorization', token)
       }
 
-      const finalBalanceHistory: Balances[] = extractResponse(
-        await request(app)
-          .get(`/api/v1/stats/account-balance/${accountData.id}`)
-          .set('Authorization', token)
-      );
+      const finalBalanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
 
       // Since we added transaction prior account creation, we will have +1 transaction
       expect(finalBalanceHistory.length).toBe(4);

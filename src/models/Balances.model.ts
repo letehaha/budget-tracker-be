@@ -1,17 +1,10 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, BalanceModel } from 'shared-types';
 import { subDays } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Accounts from './Accounts.model';
 import Transactions from './Transactions.model';
-
-interface BalanceAttributes {
-  id: number;
-  date: Date;
-  amount: number;
-  accountId: number;
-}
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -20,7 +13,7 @@ interface GetTotalBalanceHistoryPayload {
 }
 
 @Table({ timestamps: true })
-export default class Balances extends Model<BalanceAttributes> {
+export default class Balances extends Model<BalanceModel> {
   @Column({
     allowNull: false,
     primaryKey: true,
@@ -63,25 +56,11 @@ export default class Balances extends Model<BalanceAttributes> {
     return result || 0;
   }
 
-  // Method to get all balances
-  static async getBalances(
-    { userId }: { userId: number },
-    attributes: GenericSequelizeModelAttributes = {},
-  ): Promise<BalanceAttributes[]> {
-    return Balances.findAll({
-      include: [{
-        model: Accounts,
-        where: { userId }
-      }],
-      ...attributes,
-    });
-  }
-
   // Method to retrieve total balance history for specified dates and accounts
   static async getTotalBalanceHistory(
     payload: GetTotalBalanceHistoryPayload,
     attributes: GenericSequelizeModelAttributes = {},
-  ): Promise<BalanceAttributes[]> {
+  ): Promise<BalanceModel[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
       where: {
@@ -268,12 +247,56 @@ export default class Balances extends Model<BalanceAttributes> {
   }
 }
 
+export interface DateQuery {
+  // dd-mm-yyyy
+  from?: string;
+  // dd-mm-yyyy
+  to?: string
+}
+
+const getWhereConditionForTime = ({ from, to }: DateQuery) => {
+  const where: { date?: Record<symbol, Date[] | Date> } = {}
+
+  if (from && to) {
+    where.date = {
+      [Op.between]: [new Date(from), new Date(to)],
+    };
+  } else if (from) {
+    where.date = {
+      [Op.gte]: new Date(from),
+    };
+  } else if (to) {
+    where.date = {
+      [Op.lte]: new Date(to),
+    };
+  }
+
+  return where;
+};
+
+// Method to get all balances
+export const getBalances = async (
+  { userId, from, to }: { userId: number } & DateQuery,
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<BalanceModel[]> => {
+  return Balances.findAll({
+    where: getWhereConditionForTime({ from, to }),
+    include: [{
+      model: Accounts,
+      where: { userId },
+      attributes: [],
+    }],
+    ...attributes,
+  });
+}
+
 // Method to get the balance for a specific account
 export const getAccountBalanceHistory = async (
-  { accountId, userId }: { accountId: number; userId: number; },
+  { accountId, userId, from, to }: { accountId: number; userId: number; } & DateQuery,
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<Balances[]> => {
   return Balances.findAll({
+    where: getWhereConditionForTime({ from, to }),
     include: [{
       model: Accounts,
       where: { userId, id: accountId },

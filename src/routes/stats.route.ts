@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getAccountBalanceHistory } from '@controllers/stats.controller';
+import { getBalanceHistory } from '@controllers/stats.controller';
 import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
 
-router.get('/account-balance/:id', authenticateJwt, getAccountBalanceHistory);
+router.get('/balance-history', authenticateJwt, getBalanceHistory);
 
 export default router;

@@ -3,10 +3,12 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
 import * as Balances from '@models/Balances.model';
 
-export const getAccountBalanceHistory = async (
-  payload: {
+export const getBalanceHistory = async (
+  { userId, accountId, ...rest }: {
     userId: number;
-    accountId: number;
+    accountId?: number;
+    from?: string;
+    to?: string;
   },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
@@ -14,10 +16,15 @@ export const getAccountBalanceHistory = async (
   const transaction = attributes.transaction ?? await connection.sequelize.transaction();
 
   try {
-    const data = await Balances.getAccountBalanceHistory(payload, {
-      ...attributes,
-      transaction,
-    });
+    let data
+    if (accountId) {
+      data = await Balances.getAccountBalanceHistory({ userId, accountId, ...rest }, {
+        ...attributes,
+        transaction,
+      });
+    } else {
+      data = await Balances.getBalances({ userId, ...rest }, { ...attributes, transaction })
+    }
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
