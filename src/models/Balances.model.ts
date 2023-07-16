@@ -286,6 +286,7 @@ export const getBalances = async (
       where: { userId },
       attributes: [],
     }],
+    attributes: ['date', 'amount', 'accountId'],
     ...attributes,
   });
 }
@@ -302,6 +303,7 @@ export const getAccountBalanceHistory = async (
       where: { userId, id: accountId },
       attributes: [],
     }],
+    attributes: ['date', 'amount'],
     ...attributes,
   });
 }
