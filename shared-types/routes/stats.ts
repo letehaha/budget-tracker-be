@@ -3,8 +3,8 @@ import { QueryPayload } from './index'
 
 export interface GetBalanceHistoryPayload extends QueryPayload {
   accountId?: AccountModel['id'];
-  // dd-mm-yyyy
+  // yyyy-mm-dd
   from?: string;
-  // dd-mm-yyyy
+  // yyyy-mm-dd
   to?: string;
 }

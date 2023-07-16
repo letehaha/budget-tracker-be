@@ -35,6 +35,6 @@ export const getBalanceHistory = async (
     if (!isTxPassedFromAbove) {
       await transaction.rollback();
     }
-    throw new err;
+    throw err;
   }
 };

@@ -248,9 +248,9 @@ export default class Balances extends Model<BalanceModel> {
 }
 
 export interface DateQuery {
-  // dd-mm-yyyy
+  // yyyy-mm-dd
   from?: string;
-  // dd-mm-yyyy
+  // yyyy-mm-dd
   to?: string
 }
 
