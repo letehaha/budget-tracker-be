@@ -3,7 +3,7 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/?(*.)+(spec|test|e2e).[jt]s?(x)'],
+  testMatch: ['**/?(*.)+(unit|spec|e2e).[jt]s?(x)'],
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json',
