@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import 'module-alias/register';
 
-dotenv.config();
+dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 import config from 'config';
 import express, { Request } from 'express';
 import cors from 'cors';

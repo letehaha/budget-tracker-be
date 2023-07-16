@@ -15,7 +15,7 @@ const sequelize = new Sequelize({
   models: [__dirname + '/**/*.model.ts'],
 });
 
-if (process.env.NODE_ENV === 'development') {
+if (['development', 'test'].includes(process.env.NODE_ENV)) {
   console.log('DBConfig', DBConfig);
 }
 

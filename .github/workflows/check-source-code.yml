@@ -32,6 +32,7 @@ jobs:
     name: Unit and e2e testing
     needs: prepare-dependencies
     runs-on: ubuntu-latest
+    environment: test
     services:
       postgres:
         image: postgres:11.12-stretch
@@ -54,14 +55,45 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/prepare-local-env
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_APPLICATION_HOST: ${{ secrets.APPLICATION_HOST }}
+          envkey_APPLICATION_PORT: ${{ secrets.APPLICATION_PORT }}
+          envkey_APPLICATION_JWT_SECRET: ${{ secrets.APPLICATION_JWT_SECRET }}
+          envkey_APPLICATION_DB_HOST: ${{ secrets.APPLICATION_DB_HOST }}
+          envkey_APPLICATION_DB_USERNAME: ${{ secrets.APPLICATION_DB_USERNAME }}
+          envkey_APPLICATION_DB_PASSWORD: ${{ secrets.APPLICATION_DB_PASSWORD }}
+          envkey_APPLICATION_DB_DATABASE: ${{ secrets.APPLICATION_DB_DATABASE }}
+          envkey_APPLICATION_DB_PORT: ${{ secrets.APPLICATION_DB_PORT }}
+          envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
+          envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
+          directory: ./
+          file_name: .env.test
       - name: Unit and e2e testing
         run: npm run test
 
   docker-build:
     name: Build source code using Docker
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v2
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_APPLICATION_HOST: ${{ secrets.APPLICATION_HOST }}
+          envkey_APPLICATION_PORT: ${{ secrets.APPLICATION_PORT }}
+          envkey_APPLICATION_JWT_SECRET: ${{ secrets.APPLICATION_JWT_SECRET }}
+          envkey_APPLICATION_DB_HOST: ${{ secrets.APPLICATION_DB_HOST }}
+          envkey_APPLICATION_DB_USERNAME: ${{ secrets.APPLICATION_DB_USERNAME }}
+          envkey_APPLICATION_DB_PASSWORD: ${{ secrets.APPLICATION_DB_PASSWORD }}
+          envkey_APPLICATION_DB_DATABASE: ${{ secrets.APPLICATION_DB_DATABASE }}
+          envkey_APPLICATION_DB_PORT: ${{ secrets.APPLICATION_DB_PORT }}
+          envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
+          envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
+          directory: ./
+          file_name: .env.production
       - uses: ./.github/actions/docker-build
         with:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
