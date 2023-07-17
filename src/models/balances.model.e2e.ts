@@ -5,7 +5,7 @@ import path from 'path';
 import { TRANSACTION_TYPES } from 'shared-types';
 import { app, serverInstance, redisClient } from '@root/app';
 import { connection } from '@models/index';
-import { addDays, subDays, startOfDay } from 'date-fns';
+import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Accounts from '@models/Accounts.model';
@@ -100,15 +100,14 @@ describe('Balances model', () => {
     const accountResult = await request(app)
       .post('/api/v1/accounts')
       .set('Authorization', token)
-      .send(buildAccountPayload())
+      .send(buildAccountPayload());
 
-    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
+      const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
 
     const result = extractResponse(balancesHistory)
 
     expect(balancesHistory.statusCode).toEqual(200);
-    expect(result[0].accountId).toEqual(extractResponse(accountResult).id);
-    expect(result[0].amount).toEqual(extractResponse(accountResult).currentBalance);
+    expect(result[0].amount).toEqual(extractResponse(accountResult).initialBalance);
   })
 
   describe('the balances table correctly updated when:', () => {
@@ -310,6 +309,86 @@ describe('Balances model', () => {
       expect(finalBalanceHistory.length).toBe(4);
       // Check that after removing all the transactions, the initial balance is set to correct
       expect(finalBalanceHistory.every(record => record.amount === accountData.initialBalance)).toBe(true);
+    })
+
+    const mockBalanceHistory = async () => {
+      const { accountData, expense, income } = await buildAccount({ accountInitialBalance: 1000 })
+
+      // Add record for account creation date, 2 days after and 2 days before
+      const transactionsPayloads = [
+        { ...expense, amount: 50, time: startOfDay(subDays(new Date(), 2)) },
+        { ...income, amount: 200, time: startOfDay(subDays(new Date(), 1)) },
+        { ...expense, amount: 100, time: startOfDay(addDays(new Date(), 1)) },
+        { ...expense, amount: 50, time: startOfDay(addDays(new Date(), 2)) },
+        { ...income, amount: 150, time: new Date() },
+      ]
+      const transactionResults = []
+
+      for (const tx of transactionsPayloads) {
+        const response = await request(app)
+          .post('/api/v1/transactions')
+          .set('Authorization', token)
+          .send(tx)
+
+        transactionResults.push(...extractResponse(response));
+      }
+
+      const balanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+
+      expect(balanceHistory).toStrictEqual([
+        // Since we added transaction BEFORE account creation, we will always
+        // have +1 record to represent initialBalance
+        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: accountData.initialBalance },
+        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 950 },
+        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1300 },
+        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1200 },
+        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1150 },
+      ])
+
+      return {
+        accountData,
+        balanceHistory,
+        transactionResults,
+      }
+    }
+
+    it('updating transaction amount [expense & income]', async () => {
+      const { accountData, transactionResults } = await mockBalanceHistory()
+
+      // Update expense transaction
+      await request(app)
+          .put(`/api/v1/transactions/${transactionResults[0].id}`)
+          .set('Authorization', token)
+          .send({ amount: 150 })
+
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+
+      expect(newBalanceHistory1).toStrictEqual([
+        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: accountData.initialBalance },
+        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 850 },
+        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1050 },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1200 },
+        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1100 },
+        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1050 },
+      ])
+
+      // Update income transaction
+      await request(app)
+          .put(`/api/v1/transactions/${transactionResults[1].id}`)
+          .set('Authorization', token)
+          .send({ amount: 350 })
+
+      const newBalanceHistory2: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+
+      expect(newBalanceHistory2).toStrictEqual([
+        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: accountData.initialBalance },
+        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 850 },
+        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1200 },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1350 },
+        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1250 },
+        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1200 },
+      ])
     })
   })
 })

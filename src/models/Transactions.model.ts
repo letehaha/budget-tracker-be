@@ -207,7 +207,10 @@ export default class Transactions extends Model {
     const originalData = {
       accountId: prevData.accountId,
       amount: prevData.amount,
+      refAmount: prevData.refAmount,
       time: prevData.time,
+      transactionType: prevData.transactionType,
+      currencyId: prevData.currencyId,
     } as Transactions;
 
     await Balances.handleTransactionChange({ data: newData, prevData: originalData }, { transaction });

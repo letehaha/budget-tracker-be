@@ -96,6 +96,17 @@ export default class Balances extends Model<BalanceModel> {
 
   // ### Account deletion will be handled by `cascade` deletion
 
+  // ### Monobank account creation
+  // 1. Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
+
+  // ### Monobank transaction creation
+  // 1. Same as with system transaction creation
+
+  // ### Monobank transaction deletion
+  // 1. Remove record
+
+  // ### Monobank account deletion, keep DB's cascade deletion
+
   static async handleTransactionChange(
     { data, prevData, isDelete = false }: { data: Transactions; prevData?: Transactions; isDelete?: boolean },
     attributes: GenericSequelizeModelAttributes = {},
@@ -109,14 +120,17 @@ export default class Balances extends Model<BalanceModel> {
       amount = -amount; // Reverse the amount if it's a deletion
     } else if (prevData) {
       const originalDate = new Date(prevData.time);
+      const originalAmount = prevData.transactionType === TRANSACTION_TYPES.income
+        ? prevData.amount
+        : prevData.amount * -1
       originalDate.setHours(0, 0, 0, 0);
 
-      if (data.accountId !== prevData.accountId || originalDate.getTime() !== date.getTime()) {
-        // If the account ID or date changed, subtract the original amount from the old account and/or date
+      // if only amount is changed: find record by date, and substruct old amount
+      if (originalAmount !== amount && accountId === prevData.accountId) {
         await this.updateBalance({
           accountId: prevData.accountId,
           date: originalDate,
-          amount: -prevData.amount,
+          amount: -originalAmount,
         }, attributes);
       }
     }
@@ -126,13 +140,12 @@ export default class Balances extends Model<BalanceModel> {
       accountId,
       date,
       amount,
-      prevAmount: prevData?.amount,
     }, attributes);
   }
 
   // Update the balance for a specific account and date
   private static async updateBalance(
-    { accountId, date, amount, prevAmount }: { accountId: number; date: Date; amount: number; prevAmount?: number },
+    { accountId, date, amount }: { accountId: number; date: Date; amount: number },
     attributes: GenericSequelizeModelAttributes = {}
   ) {
     // Try to find an existing balance for the account and date
@@ -146,8 +159,6 @@ export default class Balances extends Model<BalanceModel> {
 
     // If trasnaction has previous amount, it means it's updating,
     // so we need to set newAmount - oldAmount
-    const newAmount = prevAmount ? amount - prevAmount : amount
-
     if (!balanceForTxDate) {
       // If there's not balance for current tx data, we trying to find a balance
       // prior tx date
@@ -200,14 +211,14 @@ export default class Balances extends Model<BalanceModel> {
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount += newAmount
+      balanceForTxDate.amount += amount
 
       await balanceForTxDate.save();
     }
 
     // Update the amount of all balances for the account that come after the date
     await this.update(
-      { amount: Balances.sequelize.literal(`amount + ${newAmount}`) },
+      { amount: Balances.sequelize.literal(`amount + ${amount}`) },
       {
         where: {
           accountId,
