@@ -83,10 +83,7 @@ export default class Balances extends Model<BalanceModel> {
   //      more record to represent accounts' initialBalance and record for the transaction itself
 
   // ### Transaction updation
-  // 1. If tx amount is updated, update amount of current record and all the future ones
-  // 2. If tx date is updated, update balances correspondingly
-  // 3. If tx date and amount are updated, update balances correspondingly
-  // 4. If tx account is changed, update balances for all records that are associated with that accounts correspondingly
+  // 1. ✅ If tx amount, data, accountId, or transactionType is updated, update balances correspondingly
 
   // ### Transaction deletion
   // 1. ✅ If tx is deleted, update balances for all records correspondingly
@@ -125,8 +122,8 @@ export default class Balances extends Model<BalanceModel> {
         : prevData.amount * -1
       originalDate.setHours(0, 0, 0, 0);
 
-      // if only amount is changed: find record by date, and substruct old amount
-      if (originalAmount !== amount && accountId === prevData.accountId) {
+      // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
+      if (accountId !== prevData.accountId || +date !== +originalDate || data.transactionType !== prevData.transactionType || originalAmount !== amount) {
         await this.updateBalance({
           accountId: prevData.accountId,
           date: originalDate,
@@ -292,6 +289,7 @@ export const getBalances = async (
 ): Promise<BalanceModel[]> => {
   return Balances.findAll({
     where: getWhereConditionForTime({ from, to }),
+    order: [['date', 'ASC']],
     include: [{
       model: Accounts,
       where: { userId },
@@ -309,6 +307,7 @@ export const getAccountBalanceHistory = async (
 ): Promise<Balances[]> => {
   return Balances.findAll({
     where: getWhereConditionForTime({ from, to }),
+    order: [['date', 'ASC']],
     include: [{
       model: Accounts,
       where: { userId, id: accountId },

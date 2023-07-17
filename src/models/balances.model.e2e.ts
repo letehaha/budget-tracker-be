@@ -37,6 +37,13 @@ const callGetBalanceHistory = async (accountId, token, raw = false) => {
 
   return raw ? extractResponse(result) : result
 }
+const callGelFullBalanceHistory = async (token, raw = false) => {
+  const result = await request(app)
+    .get('/api/v1/stats/balance-history')
+    .set('Authorization', token)
+
+  return raw ? extractResponse(result) : result
+}
 
 describe('Balances model', () => {
   afterAll(() => {
@@ -388,6 +395,60 @@ describe('Balances model', () => {
         { date: format(new Date(), 'yyyy-MM-dd'), amount: 1350 },
         { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1250 },
         { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1200 },
+      ])
+    })
+
+    it('updating transaction amount, date, transactionType and accountId', async () => {
+      const { accountData, transactionResults } = await mockBalanceHistory()
+
+      await request(app)
+        .put(`/api/v1/transactions/${transactionResults[0].id}`)
+        .set('Authorization', token)
+        .send({
+          amount: 150,
+          time: startOfDay(subDays(new Date(), 4)),
+          transactionType: TRANSACTION_TYPES.income
+        })
+
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+
+      expect(newBalanceHistory1).toStrictEqual([
+        { date: format(subDays(new Date(), 5), 'yyyy-MM-dd'), amount: accountData.initialBalance },
+        { date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1350 },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1500 },
+        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1400 },
+        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1350 },
+      ])
+
+      const { accountData: oneMoreAccountData } = await buildAccount({ accountInitialBalance: 0 })
+
+      await request(app)
+        .put(`/api/v1/transactions/${transactionResults[3].id}`)
+        .set('Authorization', token)
+        .send({
+          amount: 150,
+          time: startOfDay(addDays(new Date(), 5)),
+          transactionType: TRANSACTION_TYPES.income,
+          accountId: oneMoreAccountData.id,
+        })
+
+      const newBalanceHistory2: Balances[] = await callGelFullBalanceHistory(token, true)
+
+      // Yeah it looks really hard, but that's the way to verify everything is okay
+      expect(newBalanceHistory2).toStrictEqual([
+        { date: format(subDays(new Date(), 5), 'yyyy-MM-dd'), amount: accountData.initialBalance, accountId: accountData.id },
+        { date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 1150, accountId: accountData.id },
+        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: 1150, accountId: accountData.id },
+        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1150, accountId: accountData.id },
+        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1350, accountId: accountData.id },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1500, accountId: accountData.id },
+        { date: format(new Date(), 'yyyy-MM-dd'), amount: oneMoreAccountData.initialBalance, accountId: oneMoreAccountData.id },
+        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1400, accountId: accountData.id },
+        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1400, accountId: accountData.id },
+        { date: format(addDays(new Date(), 5), 'yyyy-MM-dd'), amount: 150, accountId: oneMoreAccountData.id },
       ])
     })
   })
