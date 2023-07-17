@@ -76,6 +76,7 @@ app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
 app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 app.use(`${apiPrefix}/stats`, statsRoutes);
 
+// Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
 export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
   // eslint-disable-next-line no-console
   // eslint-disable-next-line no-undef

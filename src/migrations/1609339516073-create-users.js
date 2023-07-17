@@ -1,6 +1,3 @@
-const bcrypt = require('bcryptjs');
-const salt = bcrypt.genSaltSync(10);
-
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('Users', {
