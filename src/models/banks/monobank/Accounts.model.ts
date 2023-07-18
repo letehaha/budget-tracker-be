@@ -11,10 +11,28 @@ import Currencies from '../../Currencies.model';
 import MonobankUsers from './Users.model';
 import AccountTypes from '../../AccountTypes.model';
 
+// If tx "type" is not "system", then only "name" can be modified
+interface MonobankAccountsAttributes {
+  id: number; // unified
+  accountId: string; // rename to externalId – represents id from the original external system if exists
+  balance: number;
+  // Since external account doesn't have refCurrenBalance, we will add it anyway
+  creditLimit: number;
+  cashbackType: string; // move to additionalFields that will represent non-unified data
+  maskedPan: string; // move to additionalFields
+  type: string; // move to additionalFields
+  iban: string; // move to additionalFields
+  isEnabled: boolean; // should be unified, represents "if account is active and should be visible in stats"
+  name: string; // unified
+  monoUserId: number; // just use userId
+  currencyId: number; // unified
+  accountTypeId: number; // unified
+}
+
 @Table({
   timestamps: true,
 })
-export default class MonobankAccounts extends Model {
+export default class MonobankAccounts extends Model<MonobankAccountsAttributes> {
   @Column({
     unique: true,
     allowNull: false,

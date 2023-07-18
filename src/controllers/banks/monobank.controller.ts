@@ -371,7 +371,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       id,
       userId,
       categoryId,
-      note,
+      description: note,
     });
 
     return res.status(200).json({

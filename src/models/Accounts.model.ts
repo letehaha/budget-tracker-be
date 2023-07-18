@@ -14,17 +14,17 @@ import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
 
 interface AccountsAttributes {
-  id: number;
-  name: string;
-  initialBalance: number;
-  currentBalance: number;
-  refCurrentBalance: number;
-  creditLimit: number;
-  refCreditLimit: number;
-  internal: boolean;
-  accountTypeId: number;
-  currencyId: number;
-  userId: number;
+  id: number; // unified
+  name: string; // unified
+  initialBalance: number; // unified. check by balance from first tx
+  currentBalance: number; // unified
+  refCurrentBalance: number; // unified
+  creditLimit: number; // unified
+  refCreditLimit: number; // unified
+  internal: boolean; // rename to "type = 'system' | 'monobank'"
+  accountTypeId: number; // unified
+  currencyId: number; // unified
+  userId: number; // unified
 }
 
 @Table({

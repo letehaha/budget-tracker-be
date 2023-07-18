@@ -56,10 +56,32 @@ const prepareTXInclude = (
   return include;
 };
 
+interface MonobankTransactionsAttributes {
+  id: number;
+  originalId: MonoTxOriginalId; // rename to externalId. Marks the original id from external source
+  description: string; // unify by using "note"
+  time: Date; // unified
+  amount: number; // unified
+  operationAmount: number; // dunno how to handle better, probably just use as refAmount
+  commissionRate: number; // should be comission calculated as refAmount
+  cashbackAmount: number; // add to unified
+  balance: number; // add to additionalInfo
+  hold: boolean; // add to additionalInfo
+  receiptId: string; // add to additionalInfo
+  note: string; // unified
+  userId: number; // rename Transactions.authorId to userId and make unified
+  categoryId: number; // unified
+  transactionType: TRANSACTION_TYPES; // unified
+  paymentType: PAYMENT_TYPES; // unified
+  monoAccountId: number; // unified. use accountId
+  currencyId: number; // unified
+  accountType: ACCOUNT_TYPES; // use same field in accounts. ['system' | 'monobank' | ...]
+}
+
 @Table({
   timestamps: false,
 })
-export default class MonobankTransactions extends Model {
+export default class MonobankTransactions extends Model<MonobankTransactionsAttributes> {
   @Column({
     unique: true,
     allowNull: false,
@@ -267,7 +289,7 @@ export const createTransaction = async (
 
 type UpdateTxParamsFromMono = Partial<Pick<
   ExternalMonobankTransactionResponse,
-  'amount' | 'description' | 'time' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
+  'amount' | 'description' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance' | 'hold' | 'receiptId'
 >>
 
 export interface UpdateTransactionByIdPayload extends UpdateTxParamsFromMono {
@@ -279,7 +301,8 @@ export interface UpdateTransactionByIdPayload extends UpdateTxParamsFromMono {
   monoAccountId?: number;
   categoryId?: number;
   currencyId?: number;
-  note?: string;
+  time?: Date;
+  description?: string;
 }
 export const updateTransactionById = async (
   { id, userId, ...payload }: UpdateTransactionByIdPayload,

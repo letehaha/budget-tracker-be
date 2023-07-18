@@ -48,7 +48,8 @@ export const createTransaction = async (req, res: CustomResponse) => {
     });
 
     if (data[0].dataValues) {
-      data = data.map(d => d.dataValues ?? d)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data = data.map(d => d.dataValues ?? d) as any
     }
 
     return res.status(200).json({

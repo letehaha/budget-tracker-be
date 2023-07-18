@@ -52,10 +52,34 @@ const prepareTXInclude = (
 
   return include;
 };
+
+interface TransactionsAttributes {
+  id: number;
+  amount: number;
+  // Amount in currency of base currency
+  refAmount: number;
+  note: string;
+  time: Date;
+  authorId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  currencyId: number;
+  currencyCode: string;
+  accountType: ACCOUNT_TYPES;
+  refCurrencyCode: string;
+
+  // is transaction transfer?
+  isTransfer: boolean;
+  // (hash, used to connect two transactions)
+  transferId: string;
+}
+
 @Table({
   timestamps: false,
 })
-export default class Transactions extends Model {
+export default class Transactions extends Model<TransactionsAttributes> {
   @Column({
     unique: true,
     allowNull: false,
@@ -519,7 +543,7 @@ export const updateTransactions = (
   }: {
     amount?: number;
     note?: string;
-    time?: string;
+    time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
     accountId?: number;
