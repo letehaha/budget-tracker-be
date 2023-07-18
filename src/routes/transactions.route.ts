@@ -6,8 +6,8 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
-} from '../controllers/transactions.controller';
-import { authenticateJwt } from '../middlewares/passport';
+} from '@controllers/transactions.controller';
+import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
 

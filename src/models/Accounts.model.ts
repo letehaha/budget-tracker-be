@@ -4,16 +4,33 @@ import {
   Model,
   ForeignKey,
   BelongsTo,
+  DataType,
+  AfterCreate,
 } from 'sequelize-typescript';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
+import Balances from '@models/Balances.model';
+
+interface AccountsAttributes {
+  id: number;
+  name: string;
+  initialBalance: number;
+  currentBalance: number;
+  refCurrentBalance: number;
+  creditLimit: number;
+  refCreditLimit: number;
+  internal: boolean;
+  accountTypeId: number;
+  currencyId: number;
+  userId: number;
+}
 
 @Table({
   timestamps: false,
 })
-export default class Accounts extends Model {
+export default class Accounts extends Model<AccountsAttributes> {
   @BelongsTo(
     () => Currencies,
     {
@@ -32,6 +49,13 @@ export default class Accounts extends Model {
 
   @Column({ allowNull: false })
   name: string;
+
+  @Column({
+    allowNull: false,
+    defaultValue: 0,
+    type: DataType.INTEGER,
+  })
+  initialBalance: number;
 
   @Column({
     allowNull: false,
@@ -74,10 +98,15 @@ export default class Accounts extends Model {
   @ForeignKey(() => Users)
   @Column
   userId: number;
+
+  @AfterCreate
+  static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
+    await Balances.handleAccountCreation(instance, { transaction });
+  }
 }
 
 export const getAccounts = async (
-  { userId }: { userId: number },
+  { userId }: { userId: AccountsAttributes['userId'] },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const accounts = await Accounts.findAll({
@@ -90,7 +119,7 @@ export const getAccounts = async (
 };
 
 export const getAccountById = async (
-  { userId, id }: { userId: number; id: number },
+  { userId, id }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const account = await Accounts.findOne({ where: { userId, id }, ...attributes });
@@ -100,32 +129,25 @@ export const getAccountById = async (
 
 export const createAccount = async (
   {
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
     userId,
-    internal,
+    internal = false,
+    ...rest
   }: {
-    accountTypeId: number;
-    currencyId: number;
-    name: string;
-    currentBalance: number;
-    creditLimit: number;
-    userId: number;
-    internal?: boolean;
+    accountTypeId: AccountsAttributes['accountTypeId'];
+    currencyId: AccountsAttributes['currencyId'];
+    name: AccountsAttributes['name'];
+    currentBalance: AccountsAttributes['currentBalance'];
+    initialBalance: AccountsAttributes['initialBalance'];
+    creditLimit: AccountsAttributes['creditLimit'];
+    userId: AccountsAttributes['userId'];
+    internal?: AccountsAttributes['internal'];
   },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    creditLimit,
     userId,
-    internal: internal ?? false,
+    internal,
+    ...rest
   }, attributes);
 
   const account = await getAccountById({
@@ -136,38 +158,33 @@ export const createAccount = async (
   return account;
 };
 
+// TODO: Do we need to allow initialBalance editing here?
 export const updateAccountById = async (
   {
     id,
-    accountTypeId,
-    currencyId,
-    name,
-    currentBalance,
-    refCurrentBalance,
-    creditLimit,
     userId,
+    refCurrentBalance,
+    currentBalance,
+    ...rest
   }: {
-    id: number;
-    accountTypeId?: number;
-    currencyId?: number;
-    name?: string;
-    currentBalance?: number;
-    refCurrentBalance?: number;
-    creditLimit?: number;
-    userId: number;
+    id: AccountsAttributes['id'];
+    accountTypeId?: AccountsAttributes['accountTypeId'];
+    currencyId?: AccountsAttributes['currencyId'];
+    name?: AccountsAttributes['name'];
+    currentBalance?: AccountsAttributes['currentBalance'];
+    refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
+    creditLimit?: AccountsAttributes['creditLimit'];
+    userId: AccountsAttributes['userId'];
   },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const where = { id, userId };
   await Accounts.update(
     {
-      accountTypeId,
-      currencyId,
-      name,
       currentBalance,
       // TODO: fix
       refCurrentBalance: refCurrentBalance ?? currentBalance,
-      creditLimit,
+      ...rest,
     },
     { where, ...attributes },
   );

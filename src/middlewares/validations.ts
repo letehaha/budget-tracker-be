@@ -1,6 +1,6 @@
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import { validationResult } from 'express-validator/check';
+import { validationResult } from 'express-validator';
 
 export default (req, res: CustomResponse, next) => {
   const errors = validationResult(req);

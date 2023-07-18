@@ -25,6 +25,7 @@ import categoriesRoutes from './routes/categories.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import monobankRoutes from './routes/banks/monobank.route';
 import binanceRoutes from './routes/crypto/binance.route';
+import statsRoutes from './routes/stats.route';
 
 import { supportedLocales } from './translations';
 
@@ -73,8 +74,10 @@ app.use(`${apiPrefix}/models/account-types`, modelsAccountTypesRoutes);
 app.use(`${apiPrefix}/models/currencies`, modelsCurrenciesRoutes);
 app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
 app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
+app.use(`${apiPrefix}/stats`, statsRoutes);
 
-export const serverInstance = app.listen(app.get('port'), () => {
+// Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
+export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
   // eslint-disable-next-line no-console
   // eslint-disable-next-line no-undef
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);

@@ -20,6 +20,7 @@ import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
+import Balances from '@models/Balances.model';
 
 // TODO: replace with scopes
 const prepareTXInclude = (
@@ -155,6 +156,8 @@ export default class Transactions extends Model {
         currencyId,
       }, { transaction });
     }
+
+    await Balances.handleTransactionChange({ data: instance }, { transaction });
   }
 
   @AfterUpdate
@@ -200,6 +203,17 @@ export default class Transactions extends Model {
         }, { transaction });
       }
     }
+
+    const originalData = {
+      accountId: prevData.accountId,
+      amount: prevData.amount,
+      refAmount: prevData.refAmount,
+      time: prevData.time,
+      transactionType: prevData.transactionType,
+      currencyId: prevData.currencyId,
+    } as Transactions;
+
+    await Balances.handleTransactionChange({ data: newData, prevData: originalData }, { transaction });
   }
 
   @BeforeDestroy
@@ -216,6 +230,8 @@ export default class Transactions extends Model {
         currencyId,
       }, { transaction });
     }
+
+    await Balances.handleTransactionChange({ data: instance, isDelete: true }, { transaction });
   }
 }
 

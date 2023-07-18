@@ -32,7 +32,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
     // 3. That passed currencyId exists
     // 4. Amount and destinationAmount with same currency should be equal
 
-    const data = await transactionsService.createTransaction({
+    let data = await transactionsService.createTransaction({
       amount,
       destinationAmount,
       note,
@@ -46,6 +46,10 @@ export const createTransaction = async (req, res: CustomResponse) => {
       authorId,
       isTransfer,
     });
+
+    if (data[0].dataValues) {
+      data = data.map(d => d.dataValues ?? d)
+    }
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
