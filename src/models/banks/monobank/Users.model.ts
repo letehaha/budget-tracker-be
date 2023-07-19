@@ -112,7 +112,8 @@ export const createUser = async (
     systemUserId: userId,
     ...payload,
   }, attributes);
-  const user = await getUserByToken({ token, userId });
+
+  const user = await getUserByToken({ token, userId }, attributes);
 
   return user;
 };

@@ -13,7 +13,6 @@ import {
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
   MonobankAccountModel,
-  MonobankUserModel,
   endpointsTypes,
   ExternalMonobankClientInfoResponse,
   ExternalMonobankTransactionResponse,
@@ -21,11 +20,11 @@ import {
 import { CustomResponse } from '@common/types';
 import { getQueryBooleanValue } from '@common/helpers';
 
-import * as monobankAccountsService from '@services/banks/monobank/accounts';
+import * as accountsService from '@services/accounts.service';
 import * as monobankUsersService from '@services/banks/monobank/users';
+import * as monobankAccountsService from '@services/banks/monobank/accounts';
 import * as monobankTransactionsService from '@services/banks/monobank/transactions';
 
-import * as Currencies from '@models/Currencies.model';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
 import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
 import * as Users from '@models/Users.model';
@@ -157,83 +156,25 @@ async function createMonoTransaction(
 
 export const pairAccount = async (req, res: CustomResponse) => {
   const { token }: endpointsTypes.PairMonobankAccountBody = req.body;
-  const { id } = req.user;
+  let { id: systemUserId }: { id: number; } = req.user;
+  systemUserId = Number(systemUserId)
 
   try {
-    let user = await monobankUsersService.getUserByToken({ token, userId: id });
+    const result = await accountsService.pairMonobankAccount({ token, userId: systemUserId })
 
-    if (!user) {
-      const response: string = await req.redisClient.get(token);
-      let clientInfo: ExternalMonobankClientInfoResponse;
-
-      if (!response) {
-        await updateWebhookAxios({ userToken: token });
-
-        clientInfo = (await axios({
-          method: 'GET',
-          url: `${hostname}/personal/client-info`,
-          responseType: 'json',
-          headers: {
-            'X-Token': token,
-          },
-        })).data;
-
-        await req.redisClient.set(token, JSON.stringify(response));
-        await req.redisClient.expire(token, 60);
-      } else {
-        clientInfo = JSON.parse(response);
-      }
-
-      user = await monobankUsersService.createUser({
-        userId: id,
-        token,
-        clientId: clientInfo.clientId,
-        name: clientInfo.name,
-        webHookUrl: clientInfo.webHookUrl,
-      });
-
-      // TODO: wrap createCurrency and createAccount into single transactions
-      const currencyCodes = [...new Set(clientInfo.accounts.map((i) => i.currencyCode))];
-
-      const currencies = await Promise.all(
-        currencyCodes.map((code) => Currencies.createCurrency({ code })),
-      );
-
-      const accountCurrencyCodes = {};
-      currencies.forEach((item) => {
-        accountCurrencyCodes[item.number] = item.id;
-      });
-
-      await Promise.all(
-        clientInfo.accounts.map((account) => monobankAccountsService.createAccount({
-          monoUserId: user.id,
-          currencyId: accountCurrencyCodes[account.currencyCode],
-          accountTypeId: 4,
-          accountId: account.id,
-          balance: account.balance,
-          creditLimit: account.creditLimit,
-          cashbackType: account.cashbackType,
-          maskedPan: JSON.stringify(account.maskedPan),
-          type: account.type,
-          iban: account.iban,
-          isEnabled: false,
-        })),
-      );
-
-      (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
-
-      return res.status(200).json({
-        status: API_RESPONSE_STATUS.success,
-        response: user,
+    if ('connected' in result && result.connected) {
+      return res.status(404).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          message: 'Account already connected',
+          code: API_ERROR_CODES.monobankUserAlreadyConnected,
+        },
       });
     }
 
-    return res.status(404).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Account already connected',
-        code: API_ERROR_CODES.monobankUserAlreadyConnected,
-      },
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+      response: result,
     });
   } catch (err) {
     return res.status(500).json({

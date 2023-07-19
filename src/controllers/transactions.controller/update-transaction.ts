@@ -22,7 +22,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       categoryId,
       isTransfer,
     } = req.body;
-    const { id: authorId } = req.user;
+    const { id: userId } = req.user;
 
     validateTransactionAmount(amount);
 
@@ -32,7 +32,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationAmount,
       note,
       time,
-      authorId,
+      userId,
       transactionType,
       paymentType,
       accountId,

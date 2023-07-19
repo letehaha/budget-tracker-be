@@ -10,6 +10,7 @@ import * as Transactions from '@models/Transactions.model';
 import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
 
 import * as transactionsService from '@services/transactions';
+import { logger} from '@js/utils/logger';
 
 const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
@@ -35,7 +36,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       const txs = await connection.sequelize
         .query(
           `SELECT * FROM(
-            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "authorId"=${userId}
+            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
             UNION
             SELECT "id", "time", "accountType" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
@@ -50,7 +51,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
           .filter((item) => item.accountType === ACCOUNT_TYPES.system)
           .map((item) => Number(item.id)),
         fieldName: 'id',
-        authorId: userId,
+        userId,
         includeUser,
         includeAccount,
         includeCategory,
@@ -80,7 +81,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       });
     }
     const transactions = await Transactions.getTransactions({
-      authorId: userId,
+      userId,
       sortDirection: sort,
       includeUser,
       includeAccount,
@@ -106,6 +107,9 @@ export const getTransactions = async (req, res: CustomResponse) => {
       response: [...transactions, ...monoTransactions],
     });
   } catch (err) {
+    console.log('err', err);
+    logger.error(err);
+
     return res.status(500).json({
       status: API_RESPONSE_STATUS.error,
       response: {
@@ -119,7 +123,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
 export const getTransactionById = async (req, res: CustomResponse) => {
   try {
     const { id } = req.params;
-    const { id: authorId } = req.user;
+    const { id: userId } = req.user;
     const {
       includeUser,
       includeAccount,
@@ -132,7 +136,7 @@ export const getTransactionById = async (req, res: CustomResponse) => {
 
     const data = await transactionsService.getTransactionById({
       id,
-      authorId,
+      userId,
       includeUser,
       includeAccount,
       includeCategory,
@@ -158,7 +162,7 @@ export const getTransactionById = async (req, res: CustomResponse) => {
 export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
   try {
     const { transferId } = req.params;
-    const { id: authorId } = req.user;
+    const { id: userId } = req.user;
     const {
       includeUser,
       includeAccount,
@@ -171,7 +175,7 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
 
     const data = await transactionsService.getTransactionsByTransferId({
       transferId,
-      authorId,
+      userId,
       includeUser,
       includeAccount,
       includeCategory,

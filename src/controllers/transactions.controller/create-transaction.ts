@@ -22,7 +22,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       accountType = ACCOUNT_TYPES.system,
       isTransfer,
     } = req.body;
-    const { id: authorId } = req.user;
+    const { id: userId } = req.user;
 
     validateTransactionAmount(amount);
 
@@ -43,7 +43,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       accountType,
-      authorId,
+      userId,
       isTransfer,
     });
 

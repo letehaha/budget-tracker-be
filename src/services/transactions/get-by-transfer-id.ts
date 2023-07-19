@@ -5,7 +5,7 @@ import * as Transactions from '@models/Transactions.model';
 export const getTransactionsByTransferId = async (
   {
     transferId,
-    authorId,
+    userId,
     includeUser,
     includeAccount,
     includeCategory,
@@ -13,7 +13,7 @@ export const getTransactionsByTransferId = async (
     nestedInclude,
   }: {
     transferId: number;
-    authorId: number;
+    userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
@@ -25,7 +25,7 @@ export const getTransactionsByTransferId = async (
   try {
     const data = await Transactions.getTransactionsByTransferId({
       transferId,
-      authorId,
+      userId,
       includeUser,
       includeAccount,
       includeCategory,

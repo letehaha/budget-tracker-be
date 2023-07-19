@@ -1,7 +1,20 @@
-import { TRANSACTION_TYPES, AccountModel, ACCOUNT_TYPES } from 'shared-types';
+import axios from 'axios';
+import config from 'config';
+import {
+  TRANSACTION_TYPES,
+  AccountModel,
+  ACCOUNT_TYPES,
+  ExternalMonobankClientInfoResponse,
+  MonobankUserModel,
+} from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
+import { connection } from '@models/index';
+import * as monobankUsersService from '@services/banks/monobank/users';
+import * as Currencies from '@models/Currencies.model';
+import { GenericSequelizeModelAttributes } from '@common/types';
+import { redisClient } from '@root/app';
 
 const normalizeAccount = (account: Accounts.default): AccountModel => ({
   ...(account.dataValues || account),
@@ -28,22 +41,117 @@ export const getAccountById = async (
   return normalizeAccount(account);
 };
 
+const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
+
+export const pairMonobankAccount = async (
+  payload: { token: string; userId: number },
+  attributes: { transaction?: Transaction } = {},
+) => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+
+  try {
+    const { token, userId } = payload;
+    let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
+    // If user is found, return
+    if (user) return { connected: true }
+
+    // Otherwise begin user connection
+    const response: string = await redisClient.get(token);
+    let clientInfo: ExternalMonobankClientInfoResponse;
+
+    if (!response) {
+      // TODO: setup it later
+      // await updateWebhookAxios({ userToken: token });
+
+      clientInfo = (await axios({
+        method: 'GET',
+        url: `${hostname}/personal/client-info`,
+        responseType: 'json',
+        headers: {
+          'X-Token': token,
+        },
+      })).data;
+
+      await redisClient.set(token, JSON.stringify(response));
+      await redisClient.expire(token, 60);
+    } else {
+      clientInfo = JSON.parse(response);
+    }
+
+    user = await monobankUsersService.createUser({
+      userId,
+      token,
+      clientId: clientInfo.clientId,
+      name: clientInfo.name,
+      webHookUrl: clientInfo.webHookUrl,
+    }, { transaction });
+
+    // TODO: wrap createCurrency and createAccount into single transactions
+    const currencyCodes = [...new Set(clientInfo.accounts.map((i) => i.currencyCode))];
+
+    const currencies = await Promise.all(
+      currencyCodes.map((code) => Currencies.createCurrency({ code }, { transaction })),
+    );
+
+    const accountCurrencyCodes = {};
+    currencies.forEach((item) => {
+      accountCurrencyCodes[item.number] = item.id;
+    });
+
+    await Promise.all(
+      clientInfo.accounts.map((account) => createAccount({
+        userId,
+        currencyId: accountCurrencyCodes[account.currencyCode],
+        accountTypeId: 4,
+        name: account.maskedPan[0] || account.iban,
+        externalId: account.id,
+        currentBalance: account.balance,
+        creditLimit: account.creditLimit,
+        externalData: {
+          cashbackType: account.cashbackType,
+          maskedPan: JSON.stringify(account.maskedPan),
+          type: account.type,
+          iban: account.iban,
+        },
+        isEnabled: false,
+      }, { transaction })),
+    );
+
+    (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return user;
+  } catch (err) {
+    console.log('err', err)
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+    throw err;
+  }
+}
+
 export const createAccount = async (
   payload: {
-    accountTypeId: number;
-    currencyId: number;
-    name: string;
-    currentBalance: number;
-    creditLimit: number;
-    userId: number;
-    internal?: boolean;
+    accountTypeId: Accounts.AccountsAttributes['accountTypeId'];
+    currencyId: Accounts.AccountsAttributes['currencyId'];
+    name: Accounts.AccountsAttributes['name'];
+    currentBalance: Accounts.AccountsAttributes['currentBalance'];
+    creditLimit: Accounts.AccountsAttributes['creditLimit'];
+    userId: Accounts.AccountsAttributes['userId'];
+    externalId?: Accounts.AccountsAttributes['externalId'];
+    isEnabled?: Accounts.AccountsAttributes['isEnabled'];
+    externalData?: Accounts.AccountsAttributes['externalData'];
   },
-  { transaction }: { transaction?: Transaction } = {}
+  attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel> => {
   const account = await Accounts.createAccount({
     initialBalance: payload.currentBalance,
     ...payload,
-  }, { transaction });
+  }, { transaction: attributes.transaction });
 
   return normalizeAccount(account);
 }

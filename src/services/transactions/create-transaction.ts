@@ -12,7 +12,7 @@ import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 export interface CreateTransactionParams {
-  authorId: number;
+  userId: number;
   amount: number;
   note?: string;
   time: Date;
@@ -33,7 +33,7 @@ export interface CreateTransferTransactionParams {
  * Creates transaction and updates account balance.
  */
  export const createTransaction = async ({
-  authorId,
+  userId,
   amount,
   note,
   time,
@@ -56,7 +56,7 @@ export interface CreateTransferTransactionParams {
       refAmount: amount,
       note,
       time,
-      authorId,
+      userId,
       transactionType,
       paymentType,
       accountId,
@@ -70,14 +70,14 @@ export interface CreateTransferTransactionParams {
     };
 
     const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
-      { userId: authorId, isDefaultCurrency: true },
+      { userId, isDefaultCurrency: true },
       { transaction },
     );
 
     generalTxParams.refCurrencyCode = defaultUserCurrency.code;
 
     const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
-      userId: authorId,
+      userId,
       id: accountId,
     }, { transaction });
 
@@ -86,7 +86,7 @@ export interface CreateTransferTransactionParams {
 
     if (defaultUserCurrency.code !== generalTxCurrency.code) {
       const { rate } = await userExchangeRateService.getExchangeRate({
-        userId: authorId,
+        userId,
         baseCode: generalTxCurrency.code,
         quoteCode: defaultUserCurrency.code,
       }, { transaction })
@@ -122,7 +122,7 @@ export interface CreateTransferTransactionParams {
       }
 
       const { currency: destinationTxCurrency } = await Accounts.getAccountCurrency({
-        userId: authorId,
+        userId,
         id: destinationAccountId,
       });
 

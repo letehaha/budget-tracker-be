@@ -343,7 +343,7 @@ export const setDefaultUserCurrency = async (
       {
         refCurrencyCode: currency.code,
       },
-      { authorId: userId, accountType: ACCOUNT_TYPES.system },
+      { userId, accountType: ACCOUNT_TYPES.system },
       { transaction },
     );
 
@@ -416,7 +416,7 @@ export const deleteUserCurrency = async (
       {
         currencyId: defaultCurrency.currencyId,
       },
-      { authorId: userId, currencyId: passedCurrency.currencyId },
+      { userId, currencyId: passedCurrency.currencyId },
       { transaction },
     );
 

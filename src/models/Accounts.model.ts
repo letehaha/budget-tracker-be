@@ -13,7 +13,7 @@ import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
 
-interface AccountsAttributes {
+export interface AccountsAttributes {
   id: number; // unified
   name: string; // unified
   initialBalance: number; // unified. check by balance from first tx
@@ -21,10 +21,20 @@ interface AccountsAttributes {
   refCurrentBalance: number; // unified
   creditLimit: number; // unified
   refCreditLimit: number; // unified
-  internal: boolean; // rename to "type = 'system' | 'monobank'"
+  type: 'system' | 'monobank'; // rename to "type = 'system' | 'monobank'"
   accountTypeId: number; // unified
   currencyId: number; // unified
   userId: number; // unified
+
+  // TODO:
+  externalId: string; // represents id from the original external system if exists
+  externalData: object; // JSON of any addition fields
+  // cashbackType: string; // move to additionalFields that will represent non-unified data
+  // maskedPan: string; // move to additionalFields
+  // type: string; // move to additionalFields
+  // iban: string; // move to additionalFields
+  isEnabled: boolean; // represents "if account is active and should be visible in stats"
+  // monoUserId -> userId: number; // just use userId
 }
 
 @Table({
@@ -82,10 +92,11 @@ export default class Accounts extends Model<AccountsAttributes> {
   refCreditLimit: number;
 
   @Column({
+    type: DataType.STRING,
     allowNull: false,
-    defaultValue: false,
+    defaultValue: 0,
   })
-  internal: boolean;
+  type: 'system' | 'monobank';
 
   @ForeignKey(() => AccountTypes)
   @Column
@@ -98,6 +109,32 @@ export default class Accounts extends Model<AccountsAttributes> {
   @ForeignKey(() => Users)
   @Column
   userId: number;
+
+  // represents id from the original external system if exists
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  externalId: string;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true,
+  })
+  externalData: object; // JSON of any addition fields
+  // cashbackType: string; // move to additionalFields that will represent non-unified data
+  // maskedPan: string; // move to additionalFields
+  // type: string; // move to additionalFields
+  // iban: string; // move to additionalFields
+
+  // represents "if account is active and should be visible in stats"
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  isEnabled: boolean;
+  // monoUserId -> userId: number; // just use userId
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
@@ -130,9 +167,13 @@ export const getAccountById = async (
 export const createAccount = async (
   {
     userId,
-    internal = false,
+    type = 'system',
+    isEnabled = true,
     ...rest
   }: {
+    externalId?: AccountsAttributes['externalId'];
+    externalData?: AccountsAttributes['externalData'];
+    isEnabled?: AccountsAttributes['isEnabled'];
     accountTypeId: AccountsAttributes['accountTypeId'];
     currencyId: AccountsAttributes['currencyId'];
     name: AccountsAttributes['name'];
@@ -140,13 +181,14 @@ export const createAccount = async (
     initialBalance: AccountsAttributes['initialBalance'];
     creditLimit: AccountsAttributes['creditLimit'];
     userId: AccountsAttributes['userId'];
-    internal?: AccountsAttributes['internal'];
+    type?: AccountsAttributes['type'];
   },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
     userId,
-    internal,
+    type,
+    isEnabled,
     ...rest
   }, attributes);
 

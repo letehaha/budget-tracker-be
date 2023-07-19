@@ -14,6 +14,7 @@ import {
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import { removeUndefinedKeys } from '@js/helpers';
 
 @Table({
@@ -115,7 +116,10 @@ export async function getCurrencies(
   return Currencies.findAll({ where, transaction });
 }
 
-export const createCurrency = async ({ code }) => {
+export const createCurrency = async (
+  { code },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const currency = cc.number(code);
 
   const currencyData = {
@@ -127,6 +131,7 @@ export const createCurrency = async ({ code }) => {
   const [result] = await Currencies.findOrCreate({
     where: { number: code },
     defaults: currencyData,
+    transaction: attributes.transaction,
   });
 
   return result;

@@ -9,25 +9,25 @@ import { getTransactionById } from './get-by-id';
 
 export const deleteTransaction = async ({
   id,
-  authorId,
+  userId,
 }: {
   id: number;
-  authorId: number;
+  userId: number;
 }): Promise<void> => {
   let transaction: Transaction = null;
 
   try {
     transaction = await connection.sequelize.transaction();
 
-    const { isTransfer, transferId } = await getTransactionById({ id, authorId }, { transaction });
+    const { isTransfer, transferId } = await getTransactionById({ id, userId }, { transaction });
 
     if (!isTransfer) {
-      await Transactions.deleteTransactionById({ id, authorId }, { transaction });
+      await Transactions.deleteTransactionById({ id, userId }, { transaction });
     } else if (isTransfer && transferId) {
       const transferTransactions = await Transactions.getTransactionsByArrayOfField({
         fieldValues: [transferId],
         fieldName: 'transferId',
-        authorId,
+        userId,
       });
 
       await Promise.all(
@@ -35,7 +35,7 @@ export const deleteTransaction = async ({
         transferTransactions.map(tx => Promise.all([
           Transactions.deleteTransactionById({
             id: tx.id,
-            authorId: tx.authorId
+            userId: tx.userId,
           }, { transaction }),
         ]))
       )
