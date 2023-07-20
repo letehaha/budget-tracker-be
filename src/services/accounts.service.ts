@@ -23,9 +23,12 @@ const normalizeAccount = (account: Accounts.default): AccountModel => ({
 
 export const getAccounts = async (
   { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel[]> => {
-  const accounts = await Accounts.getAccounts({ userId }, { transaction });
+  const accounts = await Accounts.getAccounts(
+    { userId },
+    { transaction: attributes.transaction },
+  );
 
   const normalizedAccounts: AccountModel[] = accounts.map(normalizeAccount)
 
@@ -33,10 +36,13 @@ export const getAccounts = async (
 }
 
 export const getAccountById = async (
-  { id, userId }: { id: number; userId: number },
-  { transaction }: { transaction?: Transaction } = {},
+  payload: { id: number; userId: number },
+  attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel> => {
-  const account = await Accounts.getAccountById({ userId, id }, { transaction });
+  const account = await Accounts.getAccountById(
+    payload,
+    { transaction: attributes.transaction },
+  );
 
   return normalizeAccount(account);
 };
@@ -45,7 +51,7 @@ const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
 export const pairMonobankAccount = async (
   payload: { token: string; userId: number },
-  attributes: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
   const transaction = attributes.transaction ?? await connection.sequelize.transaction();

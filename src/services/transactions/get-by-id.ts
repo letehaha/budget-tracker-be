@@ -1,5 +1,6 @@
 import { Transaction } from 'sequelize/types';
 
+import { GenericSequelizeModelAttributes } from '@common/types';
 import * as Transactions from '@models/Transactions.model';
 
 export const getTransactionById = async (
@@ -20,7 +21,7 @@ export const getTransactionById = async (
     includeAll?: boolean;
     nestedInclude?: boolean;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
   try {
     const data = await Transactions.getTransactionById({
@@ -31,7 +32,7 @@ export const getTransactionById = async (
       includeCategory,
       includeAll,
       nestedInclude,
-    }, { transaction });
+    }, { transaction: attributes.transaction });
 
     return data;
   } catch (err) {

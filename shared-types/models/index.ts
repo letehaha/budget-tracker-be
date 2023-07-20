@@ -43,6 +43,9 @@ export interface AccountModel {
   accountTypeId: number;
   currencyId: number;
   userId: number;
+  externalId?: string;
+  externalData?: object;
+  isEnabled: boolean;
 }
 
 export interface MonobankAccountModel {

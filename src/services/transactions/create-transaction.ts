@@ -1,70 +1,49 @@
-import { TRANSACTION_TYPES, PAYMENT_TYPES, ACCOUNT_TYPES } from 'shared-types'
-
-import { Transaction } from 'sequelize/types';
+import { TRANSACTION_TYPES } from 'shared-types'
 import { v4 as uuidv4 } from 'uuid';
 
 import { connection } from '@models/index';
 import { logger} from '@js/utils/logger';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
-export interface CreateTransactionParams {
-  userId: number;
-  amount: number;
-  note?: string;
-  time: Date;
-  transactionType: TRANSACTION_TYPES;
-  paymentType: PAYMENT_TYPES;
-  accountId: number;
-  categoryId: number;
-  accountType: ACCOUNT_TYPES;
-  isTransfer;
-}
-
-export interface CreateTransferTransactionParams {
-  destinationAmount?: number;
-  destinationAccountId?: number;
-}
+type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'>
 
 /**
  * Creates transaction and updates account balance.
  */
- export const createTransaction = async ({
-  userId,
-  amount,
-  note,
-  time,
-  transactionType,
-  paymentType,
-  accountId,
-  categoryId,
-  accountType,
-  isTransfer = false,
-  destinationAmount,
-  destinationAccountId,
-}: CreateTransactionParams & CreateTransferTransactionParams) => {
-  let transaction: Transaction = null;
-
-  transaction = await connection.sequelize.transaction();
+ export const createTransaction = async (
+  {
+    amount,
+    userId,
+    accountId,
+    isTransfer,
+    destinationAmount,
+    destinationAccountId,
+    ...payload
+  }: CreateTransactionParams & {
+    destinationAmount?: number;
+    destinationAccountId?: number;
+  },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
 
   try {
-    const generalTxParams = {
+    const generalTxParams: Transactions.CreateTransactionPayload = {
+      ...payload,
       amount,
-      refAmount: amount,
-      note,
-      time,
       userId,
-      transactionType,
-      paymentType,
       accountId,
-      categoryId,
-      accountType,
+      isTransfer,
+      refAmount: amount,
+      // since we already pass accountId, we don't need currencyId (at least for now)
       currencyId: undefined,
       currencyCode: undefined,
-      isTransfer,
       transferId: undefined,
       refCurrencyCode: undefined,
     };
@@ -142,14 +121,18 @@ export interface CreateTransferTransactionParams {
       ))
     );
 
-    await transaction.commit();
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
 
     return transactions;
   } catch (e) {
     if (process.env.NODE_ENV !== 'test') {
       logger.error(e);
     }
-    await transaction.rollback();
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
     throw e;
   }
 };

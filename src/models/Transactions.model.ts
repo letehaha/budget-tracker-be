@@ -22,6 +22,7 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
 // TODO: replace with scopes
 const prepareTXInclude = (
@@ -85,13 +86,6 @@ interface TransactionsAttributes {
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
-}
-
-interface MonobankTransactionsAttributes {
-  // operationAmount -> externalData: number; // dunno how to handle better, probably just use as refAmount
-  userId: number; // rename Transactions.authorId to userId and make unified
-  monoAccountId: number; // unified. use accountId
-  accountType: ACCOUNT_TYPES; // use same field in accounts. ['system' | 'monobank' | ...]
 }
 
 @Table({
@@ -343,6 +337,27 @@ export const getTransactions = async ({
   return transactions;
 };
 
+export interface GetTransactionBySomeIdPayload {
+  userId: TransactionsAttributes['userId'],
+  id?: TransactionsAttributes['id'],
+  transferId?: TransactionsAttributes['transferId'],
+  originalId?: TransactionsAttributes['originalId'],
+}
+export const getTransactionBySomeId = (
+  payload: GetTransactionBySomeIdPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  return Transactions.findOne({
+    where: {
+      userId: payload.userId,
+      id: payload.id,
+      transferId: payload.transferId,
+      originalId: payload.originalId,
+    },
+    ...attributes,
+  });
+}
+
 export const getTransactionById = (
   {
     id,
@@ -457,67 +472,30 @@ export const getTransactionsByArrayOfField = async (
   return transactions;
 };
 
+type CreateTxRequiredParams = Pick<TransactionsAttributes,
+  'amount' | 'refAmount' | 'time' | 'userId' |
+  'transactionType' | 'paymentType' | 'accountId' |
+  'categoryId' | 'currencyId' | 'currencyCode' | 'accountType' |
+  'isTransfer'
+>
+type CreateTxOptionalParams = Partial<Pick<TransactionsAttributes,
+  'note' | 'refCurrencyCode' |  'transferId' | 'originalId' |
+  'externalData' | 'commissionRate' | 'refCommissionRate' |
+  'cashbackAmount'
+>>
+
+export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams
+
 export const createTransaction = async (
-  {
-    amount,
-    refAmount,
-    note,
-    time,
-    userId,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    accountType,
-    isTransfer,
-    transferId,
-  }: {
-    amount: number;
-    refAmount: number;
-    note?: string;
-    time: Date;
-    userId: number;
-    transactionType: TRANSACTION_TYPES;
-    paymentType: PAYMENT_TYPES;
-    accountId: number;
-    categoryId: number;
-    currencyId: number;
-    currencyCode: string;
-    refCurrencyCode?: string;
-    accountType: ACCOUNT_TYPES;
-    isTransfer?: boolean;
-    transferId?: string;
-  },
+  { userId, ...rest }: CreateTransactionPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const response = await Transactions.create({
-    amount,
-    refAmount,
-    note,
-    time,
-    userId,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    accountType,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    isTransfer,
-    transferId,
-  }, { transaction });
+  const response = await Transactions.create({ userId, ...rest }, { transaction });
 
-  return getTransactionById(
-    {
-      id: response.get('id'),
-      userId,
-    },
-    { transaction }
-  );
+  return getTransactionById({
+    id: response.get('id'),
+    userId,
+  }, { transaction });
 };
 
 export interface UpdateTransactionByIdParams {
