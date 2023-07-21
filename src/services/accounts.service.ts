@@ -18,15 +18,15 @@ import { redisClient } from '@root/app';
 
 const normalizeAccount = (account: Accounts.default): AccountModel => ({
   ...(account.dataValues || account),
-  systemType: ACCOUNT_TYPES.system,
+  type: ACCOUNT_TYPES.system,
 })
 
 export const getAccounts = async (
-  { userId }: { userId: number },
+  payload: Accounts.GetAccountsPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel[]> => {
   const accounts = await Accounts.getAccounts(
-    { userId },
+    payload,
     { transaction: attributes.transaction },
   );
 
@@ -162,22 +162,31 @@ export const createAccount = async (
   return normalizeAccount(account);
 }
 
-export const updateAccount = async (
-  payload: {
-    id: number;
-    userId: number;
-    accountTypeId?: number;
-    currencyId?: number;
-    name?: string;
-    currentBalance?: number;
-    creditLimit?: number;
+export async function updateAccount (
+  payload: Accounts.UpdateAccountByIdPayload & {
+    id: Accounts.UpdateAccountByIdPayload['id']
   },
-  { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel> => {
-  const data = await Accounts.updateAccountById(payload, { transaction });
+  attributes?: GenericSequelizeModelAttributes,
+): Promise<AccountModel>
 
-  return normalizeAccount(data);
-};
+export async function updateAccount (
+  payload: Accounts.UpdateAccountByIdPayload & {
+    externalId: Accounts.UpdateAccountByIdPayload['externalId']
+  },
+  attributes?: GenericSequelizeModelAttributes,
+): Promise<AccountModel>
+
+export async function updateAccount (
+  { id, externalId, ...payload }: Accounts.UpdateAccountByIdPayload,
+  attributes?: GenericSequelizeModelAttributes,
+): Promise<AccountModel> {
+  const data = await Accounts.updateAccountById(
+    { id, externalId, ...payload },
+    { transaction: attributes.transaction },
+  );
+
+  return data;
+}
 
 const calculateNewBalance = (
   amount: number,

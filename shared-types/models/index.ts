@@ -33,7 +33,7 @@ export interface CategoryModel {
 }
 
 export interface AccountModel {
-  systemType: ACCOUNT_TYPES.system,
+  type: ACCOUNT_TYPES,
   id: number;
   name: string;
   currentBalance: number;

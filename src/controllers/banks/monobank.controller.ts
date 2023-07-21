@@ -24,7 +24,6 @@ import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import * as usersService from '@services/user.service';
 import * as monobankUsersService from '@services/banks/monobank/users';
-import * as monobankAccountsService from '@services/banks/monobank/accounts';
 
 import { connection } from '@models/index';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
@@ -434,7 +433,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
               data: item,
               account,
               userId: systemUserId,
-            });
+            }, { transaction });
           }
         } catch (err) {
           if (err.response.status === 429) {
@@ -465,6 +464,8 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
     });
 
+    await transaction.commit();
+
     return res.status(200).json<endpointsTypes.LoadMonoTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: {
@@ -472,6 +473,8 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       },
     });
   } catch (err) {
+    await transaction.rollback();
+
     return res.status(500).json({
       status: API_RESPONSE_STATUS.error,
       response: {
@@ -485,10 +488,17 @@ export const loadTransactions = async (req, res: CustomResponse) => {
 export const refreshAccounts = async (req, res) => {
   const { id: systemUserId } = req.user;
 
+  const transaction = await connection.sequelize.transaction();
+
   try {
-    const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId });
+    const monoUser = await monobankUsersService.getUserBySystemId(
+      { systemUserId },
+      { transaction },
+    );
 
     if (!monoUser) {
+      await transaction.commit();
+
       return res.status(404).json({
         status: API_RESPONSE_STATUS.error,
         response: {
@@ -513,12 +523,14 @@ export const refreshAccounts = async (req, res) => {
           },
         })).data;
       } catch (e) {
+        await transaction.rollback();
+
         if (e.response) {
           if (e.response.data.errorDescription === "Unknown 'X-Token'") {
             // Set user token to empty, since it is already invalid. In that way
             // we can let BE/FE know that last token was invalid and now it
             // needs to be updated
-            await monobankUsersService.updateUser({ systemUserId, apiToken: '' });
+            await monobankUsersService.updateUser({ systemUserId, apiToken: '' }, { transaction });
 
             return res.status(403).json({
               status: API_RESPONSE_STATUS.error,
@@ -541,29 +553,33 @@ export const refreshAccounts = async (req, res) => {
       await req.redisClient.expire(token, 60);
 
       await Promise.all(
-        clientInfo.accounts.map((item) => monobankAccountsService.updateById({
-          accountId: item.id,
-          // We need to pass currencyId based on currencyCode
-          // currencyCode: item.currencyCode,
-          // cashbackType: item.cashbackType,
-          balance: item.balance,
+        clientInfo.accounts.map((item) => accountsService.updateAccount({
+          externalId: item.id,
+          currentBalance: item.balance,
           creditLimit: item.creditLimit,
-          maskedPan: JSON.stringify(item.maskedPan),
-          type: item.type,
-          iban: item.iban,
-          monoUserId: monoUser.id,
-        })),
+          userId: monoUser.systemUserId,
+          // TODO: update externalData
+          // maskedPan: JSON.stringify(item.maskedPan),
+          // cashbackType: item.cashbackType,
+          // type: item.type,
+          // iban: item.iban,
+        }, { transaction })),
       );
 
-      const accounts = await monobankAccountsService.getAccountsByUserId({
-        monoUserId: monoUser.id,
-      });
+      const accounts = await accountsService.getAccounts({
+        userId: monoUser.systemUserId,
+        type: ACCOUNT_TYPES.monobank,
+      }, { transaction });
+
+      await transaction.commit();
 
       return res.status(200).json({
         status: API_RESPONSE_STATUS.success,
         response: accounts,
       });
     }
+
+    await transaction.commit();
 
     return res.status(429).json({
       status: API_RESPONSE_STATUS.error,
@@ -573,6 +589,8 @@ export const refreshAccounts = async (req, res) => {
       },
     });
   } catch (err) {
+    await transaction.rollback();
+
     return res.status(500).json({
       status: API_RESPONSE_STATUS.error,
       response: {
