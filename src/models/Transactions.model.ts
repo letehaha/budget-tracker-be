@@ -14,7 +14,7 @@ import {
   ForeignKey,
   DataType,
 } from 'sequelize-typescript';
-import { isExist } from '@js/helpers';
+import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors'
 import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
 import Users from '@models/Users.model';
@@ -310,8 +310,11 @@ export default class Transactions extends Model<TransactionsAttributes> {
 }
 
 export const getTransactions = async ({
+  from = 0,
+  limit = 20,
+  accountType,
   userId,
-  sortDirection,
+  sortDirection = 'DESC',
   includeUser,
   includeAccount,
   includeCategory,
@@ -329,7 +332,12 @@ export const getTransactions = async ({
 
   const transactions = await Transactions.findAll({
     include,
-    where: { userId },
+    where: {
+      userId,
+      ...removeUndefinedKeys({ accountType }),
+    },
+    offset: from,
+    limit: limit,
     order: [['time', sortDirection.toUpperCase()]],
     raw: isRaw,
   });
@@ -344,17 +352,15 @@ export interface GetTransactionBySomeIdPayload {
   originalId?: TransactionsAttributes['originalId'],
 }
 export const getTransactionBySomeId = (
-  payload: GetTransactionBySomeIdPayload,
+  { userId, id, transferId, originalId }: GetTransactionBySomeIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   return Transactions.findOne({
     where: {
-      userId: payload.userId,
-      id: payload.id,
-      transferId: payload.transferId,
-      originalId: payload.originalId,
+      userId,
+      ...removeUndefinedKeys({ id, transferId, originalId }),
     },
-    ...attributes,
+    transaction: attributes.transaction,
   });
 }
 

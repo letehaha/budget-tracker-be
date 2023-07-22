@@ -63,7 +63,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
       name: account.maskedPan[0] || account.iban,
       externalId: account.id,
       currentBalance: account.balance,
-      initialBalance: account.balance,
+      initialBalance: 0,
       creditLimit: account.creditLimit,
       externalData: {
         cashbackType: account.cashbackType,

@@ -1,5 +1,3 @@
-import { Transaction } from 'sequelize/types';
-
 import { GenericSequelizeModelAttributes } from '@common/types';
 import * as Transactions from '@models/Transactions.model';
 

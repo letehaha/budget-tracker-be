@@ -1,10 +1,8 @@
-import { API_ERROR_CODES, ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import { QueryTypes } from 'sequelize';
 
 import { ValidationError } from '@js/errors'
 
-import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 
 import * as transactionsService from '@services/transactions';
@@ -17,6 +15,8 @@ const SORT_DIRECTIONS = Object.freeze({
 
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
+    const { id: userId } = req.user;
+
     const {
       sort = SORT_DIRECTIONS.desc,
       includeUser,
@@ -26,42 +26,14 @@ export const getTransactions = async (req, res: CustomResponse) => {
       nestedInclude,
       limit,
       from = 0,
+      accountType,
     } = req.query;
 
-    const { id: userId } = req.user;
-
-    if (limit) {
-      const txs = await connection.sequelize
-        .query(
-          `SELECT * FROM(
-            SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
-          ) AS R
-          ORDER BY R.time ${sort}
-          LIMIT ${limit}
-          OFFSET ${from}`,
-          { type: QueryTypes.SELECT },
-        );
-
-      const transactions = await Transactions.getTransactionsByArrayOfField({
-        fieldValues: txs
-          .filter((item) => item.accountType === ACCOUNT_TYPES.system)
-          .map((item) => Number(item.id)),
-        fieldName: 'id',
-        userId,
-        includeUser,
-        includeAccount,
-        includeCategory,
-        includeAll,
-        nestedInclude,
-      });
-
-      return res.status(200).json({
-        status: API_RESPONSE_STATUS.success,
-        response: transactions,
-      });
-    }
     const transactions = await Transactions.getTransactions({
       userId,
+      from,
+      accountType,
+      limit,
       sortDirection: sort,
       includeUser,
       includeAccount,

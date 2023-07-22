@@ -13,9 +13,9 @@ export interface UpdateMonobankUserBody extends BodyPayload {
 }
 
 export interface LoadMonoTransactionsQuery extends QueryPayload {
-  from: string;
-  to: string;
-  accountId: string;
+  from: number;
+  to: number;
+  accountId: number;
 }
 export interface LoadMonoTransactionsResponse {
   minutesToFinish: number;

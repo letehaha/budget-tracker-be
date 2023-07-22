@@ -315,7 +315,6 @@ export const setDefaultUserCurrency = async (
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-
   transaction = transaction ?? await connection.sequelize.transaction();
 
   try {

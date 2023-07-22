@@ -1,7 +1,6 @@
 import axios from 'axios';
 import config from 'config';
 import PQueue from 'p-queue';
-import { Transaction } from 'sequelize';
 import {
   addMonths,
   endOfMonth,
@@ -19,7 +18,7 @@ import {
   AccountModel,
   ACCOUNT_TYPES,
 } from 'shared-types';
-import { CustomResponse, GenericSequelizeModelAttributes } from '@common/types';
+import { CustomResponse } from '@common/types';
 
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
@@ -58,8 +57,6 @@ function dateRange(
     });
   }
 
-  console.log('dates', dates)
-
   return dates;
 }
 
@@ -80,37 +77,28 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
 async function createMonoTransaction(
   { data, account, userId }:
   { data: ExternalMonobankTransactionResponse, account: AccountModel, userId: number },
-  attributes: GenericSequelizeModelAttributes = {},
+  // attributes: GenericSequelizeModelAttributes = {},
 ) {
-  const existTx = await transactionsService.getTransactionBySomeId({
+  const isTransactionExists = await transactionsService.getTransactionBySomeId({
     originalId: data.id,
     userId,
-  }, { transaction: attributes.transaction });
+  });
 
-  // check if transaction exists
-  if (existTx) return;
+  if (isTransactionExists) return;
 
-  const userData = await usersService.getUser(
-    account.userId,
-    { transaction: attributes.transaction },
-  );
+  const userData = await usersService.getUser(account.userId);
 
-  let mccId = await MerchantCategoryCodes.getByCode({
-    code: data.mcc,
-  }, { transaction: attributes.transaction });
+  let mccId = await MerchantCategoryCodes.getByCode({ code: data.mcc });
 
   // check if mcc code exist. If not, create a new with name 'Unknown'
   if (!mccId) {
-    mccId = await MerchantCategoryCodes.addCode(
-      { code: data.mcc },
-      { transaction: attributes.transaction },
-    );
+    mccId = await MerchantCategoryCodes.addCode({ code: data.mcc });
   }
 
   const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
     mccId: mccId.get('id'),
     userId: userData.id,
-  }, { transaction: attributes.transaction });
+  });
 
   let categoryId;
 
@@ -118,17 +106,14 @@ async function createMonoTransaction(
     categoryId = userMcc[0].get('categoryId');
   } else {
     categoryId = (
-      await Users.getUserDefaultCategory(
-        { id: userData.id },
-        { transaction: attributes.transaction },
-      )
+      await Users.getUserDefaultCategory({ id: userData.id })
     ).get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
       userId: userData.id,
       categoryId,
-    }, { transaction: attributes.transaction });
+    });
   }
 
   await transactionsService.createTransaction({
@@ -151,7 +136,7 @@ async function createMonoTransaction(
     categoryId,
     isTransfer: false,
     accountType: ACCOUNT_TYPES.monobank,
-  }, { transaction: attributes.transaction });
+  });
 
   // eslint-disable-next-line no-console
   logger.info(`New MONOBANK transaction! Amount is ${data.amount}`);
@@ -335,8 +320,6 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 };
 
 export const loadTransactions = async (req, res: CustomResponse) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
-
   try {
     const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
     const { id: systemUserId } = req.user;
@@ -354,10 +337,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       });
     }
 
-    const monobankUser = await monobankUsersService.getUserBySystemId(
-      { systemUserId },
-      { transaction },
-    );
+    const monobankUser = await monobankUsersService.getUserBySystemId({ systemUserId });
 
     if (!monobankUser) {
       return res.status(404).json({
@@ -373,7 +353,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     const account = await accountsService.getAccountById({
       id: Number(accountId),
       userId: Number(systemUserId),
-    }, { transaction });
+    });
 
     if (!account) {
       return res.status(404).json({
@@ -415,9 +395,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
 
     usersQuery.set(`query-${systemUserId}`, queue);
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const month of months) {
-      // eslint-disable-next-line no-await-in-loop, no-console
       queue.add(async () => {
         try {
           const { data }: { data: ExternalMonobankTransactionResponse[] } = await axios({
@@ -434,7 +412,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
               data: item,
               account,
               userId: systemUserId,
-            }, { transaction });
+            });
           }
         } catch (err) {
           if (err.response.status === 429) {
@@ -449,6 +427,8 @@ export const loadTransactions = async (req, res: CustomResponse) => {
               },
             });
           }
+
+          throw err
         }
       });
     }
@@ -465,8 +445,6 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
     });
 
-    await transaction.commit();
-
     return res.status(200).json<endpointsTypes.LoadMonoTransactionsResponse>({
       status: API_RESPONSE_STATUS.success,
       response: {
@@ -474,7 +452,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       },
     });
   } catch (err) {
-    await transaction.rollback();
+    logger.error(err);
 
     return res.status(500).json({
       status: API_RESPONSE_STATUS.error,
