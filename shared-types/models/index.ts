@@ -1,10 +1,7 @@
 import {
   ACCOUNT_TYPES,
   CATEGORY_TYPES,
-  TRANSACTION_TYPES,
-  PAYMENT_TYPES,
 } from 'shared-types';
-import { ExternalMonobankTransactionResponse } from './external-services';
 export * from './external-services';
 
 export interface UserModel {
@@ -48,25 +45,6 @@ export interface AccountModel {
   isEnabled: boolean;
 }
 
-export interface MonobankAccountModel {
-  id: number;
-  systemType: ACCOUNT_TYPES.monobank,
-  accountId: string;
-  balance: number;
-  creditLimit: number;
-  cashbackType: string;
-  maskedPan: string[];
-  type: string;
-  iban: string;
-  isEnabled: boolean;
-  name: string;
-  createdAt?: string;
-  updatedAt?: string;
-  monoUserId: number;
-  currencyId: number;
-  accountTypeId: number;
-}
-
 export interface MonobankUserModel {
   id: number;
   clientId: string;
@@ -74,27 +52,6 @@ export interface MonobankUserModel {
   webHookUrl?: string
   systemUserId: number;
   apiToken: string;
-}
-
-export interface MonobankTrasnactionModel {
-  id: number;
-  originalId: ExternalMonobankTransactionResponse['id'];
-  description: ExternalMonobankTransactionResponse['description'];
-  amount: ExternalMonobankTransactionResponse['amount'];
-  time: Date;
-  operationAmount: ExternalMonobankTransactionResponse['operationAmount'];
-  commissionRate: ExternalMonobankTransactionResponse['commissionRate'];
-  cashbackAmount: ExternalMonobankTransactionResponse['cashbackAmount'];
-  balance: ExternalMonobankTransactionResponse['balance'];
-  hold: ExternalMonobankTransactionResponse['hold'];
-  userId: number;
-  categoryId: number;
-  transactionType: TRANSACTION_TYPES;
-  paymentType: PAYMENT_TYPES;
-  monoAccountId: number;
-  currencyId: number;
-  accountType: ACCOUNT_TYPES;
-  note: string;
 }
 
 export interface BalanceModel {

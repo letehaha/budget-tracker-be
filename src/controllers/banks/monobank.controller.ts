@@ -1,6 +1,7 @@
 import axios from 'axios';
 import config from 'config';
 import PQueue from 'p-queue';
+import { Transaction } from 'sequelize';
 import {
   addMonths,
   endOfMonth,
@@ -334,7 +335,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 };
 
 export const loadTransactions = async (req, res: CustomResponse) => {
-  const transaction = await connection.sequelize.transaction();
+  const transaction: Transaction = await connection.sequelize.transaction();
 
   try {
     const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;

@@ -1,13 +1,11 @@
 import { API_ERROR_CODES, ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { QueryTypes } from 'sequelize';
-import { compareDesc } from 'date-fns';
 
 import { ValidationError } from '@js/errors'
 
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
-import * as MonobankTransactions from '@models/banks/monobank/Transactions.model';
 
 import * as transactionsService from '@services/transactions';
 import { logger} from '@js/utils/logger';
@@ -37,8 +35,6 @@ export const getTransactions = async (req, res: CustomResponse) => {
         .query(
           `SELECT * FROM(
             SELECT "id", "time", "accountType" FROM "Transactions" WHERE "userId"=${userId}
-            UNION
-            SELECT "id", "time", "accountType" FROM "MonobankTransactions" WHERE "userId"=${userId}
           ) AS R
           ORDER BY R.time ${sort}
           LIMIT ${limit}
@@ -58,26 +54,10 @@ export const getTransactions = async (req, res: CustomResponse) => {
         includeAll,
         nestedInclude,
       });
-      const monoTransactions = await MonobankTransactions.getTransactionsByArrayOfField({
-        fieldValues: txs
-          .filter((item) => item.accountType === ACCOUNT_TYPES.monobank)
-          .map((item) => item.id),
-        fieldName: 'id',
-        systemUserId: userId,
-        includeUser,
-        includeAccount,
-        includeCategory,
-        includeAll,
-        nestedInclude,
-        isRaw: true,
-      });
-
-      const sortedResult = [...transactions, ...monoTransactions]
-        .sort((a, b) => compareDesc(new Date(a.time), new Date(b.time)));
 
       return res.status(200).json({
         status: API_RESPONSE_STATUS.success,
-        response: sortedResult,
+        response: transactions,
       });
     }
     const transactions = await Transactions.getTransactions({
@@ -91,20 +71,9 @@ export const getTransactions = async (req, res: CustomResponse) => {
       isRaw: true,
     });
 
-    const monoTransactions = await MonobankTransactions.getTransactions({
-      systemUserId: userId,
-      sortDirection: sort,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-      isRaw: true,
-    });
-
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: [...transactions, ...monoTransactions],
+      response: transactions,
     });
   } catch (err) {
     console.log('err', err);
