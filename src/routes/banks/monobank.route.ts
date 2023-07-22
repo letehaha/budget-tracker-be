@@ -4,7 +4,7 @@ import {
   getUser,
   updateUser,
   loadTransactions,
-  // refreshAccounts,
+  refreshAccounts,
 } from '@controllers/banks/monobank.controller';
 import { authenticateJwt } from '@middlewares/passport';
 
@@ -16,6 +16,6 @@ router.post('/user', authenticateJwt, updateUser);
 // TODO: in transactions service limit what data might be edited for external txs
 // router.post('/transaction', authenticateJwt, updateTransaction);
 router.get('/load-transactions', authenticateJwt, loadTransactions);
-// router.get('/refresh-accounts', authenticateJwt, refreshAccounts);
+router.get('/refresh-accounts', authenticateJwt, refreshAccounts);
 
 export default router;

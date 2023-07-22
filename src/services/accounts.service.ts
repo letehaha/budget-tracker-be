@@ -35,6 +35,11 @@ export const getAccounts = async (
   return normalizedAccounts;
 }
 
+export const getAccountsByExternalIds = async (
+  payload: Accounts.GetAccountsByExternalIdsPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => Accounts.getAccountsByExternalIds(payload, attributes);
+
 export const getAccountById = async (
   payload: { id: number; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
@@ -48,6 +53,42 @@ export const getAccountById = async (
 };
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
+
+export const createSystemAccountsFromMonobankAccounts = async (
+  { userId, monoAccounts },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  // TODO: wrap createCurrency and createAccount into single transactions
+  const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
+
+  const currencies = await Promise.all(
+    currencyCodes.map((code) => Currencies.createCurrency({ code }, { transaction: attributes.transaction })),
+  );
+
+  const accountCurrencyCodes = {};
+  currencies.forEach((item) => {
+    accountCurrencyCodes[item.number] = item.id;
+  });
+
+  await Promise.all(
+    monoAccounts.map((account) => createAccount({
+      userId,
+      currencyId: accountCurrencyCodes[account.currencyCode],
+      accountTypeId: 4,
+      name: account.maskedPan[0] || account.iban,
+      externalId: account.id,
+      currentBalance: account.balance,
+      creditLimit: account.creditLimit,
+      externalData: {
+        cashbackType: account.cashbackType,
+        maskedPan: JSON.stringify(account.maskedPan),
+        type: account.type,
+        iban: account.iban,
+      },
+      isEnabled: false,
+    }, { transaction: attributes.transaction })),
+  );
+};
 
 export const pairMonobankAccount = async (
   payload: { token: string; userId: number },
@@ -93,36 +134,7 @@ export const pairMonobankAccount = async (
       webHookUrl: clientInfo.webHookUrl,
     }, { transaction });
 
-    // TODO: wrap createCurrency and createAccount into single transactions
-    const currencyCodes = [...new Set(clientInfo.accounts.map((i) => i.currencyCode))];
-
-    const currencies = await Promise.all(
-      currencyCodes.map((code) => Currencies.createCurrency({ code }, { transaction })),
-    );
-
-    const accountCurrencyCodes = {};
-    currencies.forEach((item) => {
-      accountCurrencyCodes[item.number] = item.id;
-    });
-
-    await Promise.all(
-      clientInfo.accounts.map((account) => createAccount({
-        userId,
-        currencyId: accountCurrencyCodes[account.currencyCode],
-        accountTypeId: 4,
-        name: account.maskedPan[0] || account.iban,
-        externalId: account.id,
-        currentBalance: account.balance,
-        creditLimit: account.creditLimit,
-        externalData: {
-          cashbackType: account.cashbackType,
-          maskedPan: JSON.stringify(account.maskedPan),
-          type: account.type,
-          iban: account.iban,
-        },
-        isEnabled: false,
-      }, { transaction })),
-    );
+    await createSystemAccountsFromMonobankAccounts({ userId, monoAccounts: clientInfo.accounts });
 
     (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
 
@@ -162,22 +174,23 @@ export const createAccount = async (
   return normalizeAccount(account);
 }
 
-export async function updateAccount (
-  payload: Accounts.UpdateAccountByIdPayload & {
-    id: Accounts.UpdateAccountByIdPayload['id']
-  },
-  attributes?: GenericSequelizeModelAttributes,
-): Promise<AccountModel>
+// export async function updateAccount (
+//   payload: Accounts.UpdateAccountByIdPayload & {
+//     id: Accounts.UpdateAccountByIdPayload['id']
+//   },
+//   attributes?: GenericSequelizeModelAttributes,
+// ): Promise<AccountModel>
+
+// export async function updateAccount (
+//   payload: Accounts.UpdateAccountByIdPayload & {
+//     externalId: Accounts.UpdateAccountByIdPayload['externalId']
+//   },
+//   attributes?: GenericSequelizeModelAttributes,
+// ): Promise<AccountModel>
 
 export async function updateAccount (
-  payload: Accounts.UpdateAccountByIdPayload & {
-    externalId: Accounts.UpdateAccountByIdPayload['externalId']
-  },
-  attributes?: GenericSequelizeModelAttributes,
-): Promise<AccountModel>
-
-export async function updateAccount (
-  { id, externalId, ...payload }: Accounts.UpdateAccountByIdPayload,
+  { id, externalId, ...payload }:
+  Accounts.UpdateAccountByIdPayload & (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>),
   attributes?: GenericSequelizeModelAttributes,
 ): Promise<AccountModel> {
   const data = await Accounts.updateAccountById(

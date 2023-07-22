@@ -553,19 +553,37 @@ export const refreshAccounts = async (req, res) => {
       await req.redisClient.set(token, true);
       await req.redisClient.expire(token, 60);
 
-      await Promise.all(
-        clientInfo.accounts.map((item) => accountsService.updateAccount({
-          externalId: item.id,
-          currentBalance: item.balance,
-          creditLimit: item.creditLimit,
-          userId: monoUser.systemUserId,
-          // TODO: update externalData
-          // maskedPan: JSON.stringify(item.maskedPan),
-          // cashbackType: item.cashbackType,
-          // type: item.type,
-          // iban: item.iban,
-        }, { transaction })),
-      );
+      const existingAccounts = await accountsService.getAccountsByExternalIds({
+        userId: monoUser.systemUserId,
+        externalIds: clientInfo.accounts.map(item => item.id),
+      }, { transaction, raw: true })
+
+      const accountsToUpdate = []
+      const accountsToCreate = []
+      clientInfo.accounts.forEach(account => {
+        const existingAccount = existingAccounts.find(acc => acc.externalId === account.id)
+
+        if (existingAccount) {
+          accountsToUpdate.push(accountsService.updateAccount({
+            id: existingAccount.id,
+            currentBalance: account.balance,
+            creditLimit: account.creditLimit,
+            userId: monoUser.systemUserId,
+            // TODO: update externalData
+            // maskedPan: JSON.stringify(item.maskedPan),
+            // cashbackType: item.cashbackType,
+            // type: item.type,
+            // iban: item.iban,
+          }, { transaction }))
+        } else {
+          accountsToCreate.push(
+            accountsService.createSystemAccountsFromMonobankAccounts({ userId: systemUserId, monoAccounts: [account] }),
+          )
+        }
+      })
+
+      await Promise.all(accountsToUpdate);
+      await Promise.all(accountsToCreate);
 
       const accounts = await accountsService.getAccounts({
         userId: monoUser.systemUserId,

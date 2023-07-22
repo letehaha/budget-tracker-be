@@ -7,6 +7,7 @@ import {
   DataType,
   AfterCreate,
 } from 'sequelize-typescript';
+import { Op } from 'sequelize';
 import { ACCOUNT_TYPES } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
@@ -178,6 +179,29 @@ export const getAccountById = async (
   return account;
 };
 
+export interface GetAccountsByExternalIdsPayload {
+  userId: AccountsAttributes['userId'];
+  externalIds: string[];
+}
+export const getAccountsByExternalIds = async (
+  { userId, externalIds }: GetAccountsByExternalIdsPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  console.log('getAccountsByExternalIds', { userId, externalIds })
+
+  const account = await Accounts.findAll({
+    where: {
+      userId,
+      externalId: {
+        [Op.in]: externalIds,
+      }
+    },
+    ...attributes,
+  });
+
+  return account;
+};
+
 export const createAccount = async (
   {
     userId,
@@ -215,9 +239,9 @@ export const createAccount = async (
 };
 
 export interface UpdateAccountByIdPayload {
-  id?: AccountsAttributes['id'];
-  externalId?: AccountsAttributes['externalId'];
+  id: AccountsAttributes['id'];
   userId: AccountsAttributes['userId'];
+  externalId?: AccountsAttributes['externalId'];
   accountTypeId?: AccountsAttributes['accountTypeId'];
   currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
@@ -226,25 +250,10 @@ export interface UpdateAccountByIdPayload {
   creditLimit?: AccountsAttributes['creditLimit'];
 }
 
-export async function updateAccountById (
-  payload: UpdateAccountByIdPayload & {
-    id: AccountsAttributes['id'],
-  },
-  attributes?: GenericSequelizeModelAttributes,
-): Promise<Accounts>
-
-export async function updateAccountById (
-  payload: UpdateAccountByIdPayload & {
-    externalId: AccountsAttributes['externalId'],
-  },
-  attributes?: GenericSequelizeModelAttributes,
-): Promise<Accounts>
-
 // TODO: Do we need to allow initialBalance editing here?
 export async function updateAccountById(
   {
     id,
-    externalId,
     userId,
     refCurrentBalance,
     currentBalance,
@@ -252,7 +261,7 @@ export async function updateAccountById(
   }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) {
-  const where = { userId, id, externalId };
+  const where = { id, userId }
 
   await Accounts.update(
     {
