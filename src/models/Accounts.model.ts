@@ -6,6 +6,7 @@ import {
   BelongsTo,
   DataType,
   AfterCreate,
+  BeforeUpdate,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { ACCOUNT_TYPES } from 'shared-types';
@@ -16,19 +17,17 @@ import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
 
 export interface AccountsAttributes {
-  id: number; // unified
-  name: string; // unified
-  initialBalance: number; // unified. check by balance from first tx
-  currentBalance: number; // unified
-  refCurrentBalance: number; // unified
-  creditLimit: number; // unified
-  refCreditLimit: number; // unified
-  type: 'system' | 'monobank'; // rename to "type = 'system' | 'monobank'"
-  accountTypeId: number; // unified
-  currencyId: number; // unified
-  userId: number; // unified
-
-  // TODO:
+  id: number;
+  name: string;
+  initialBalance: number;
+  currentBalance: number;
+  refCurrentBalance: number;
+  creditLimit: number;
+  refCreditLimit: number;
+  type: ACCOUNT_TYPES;
+  accountTypeId: number;
+  currencyId: number;
+  userId: number;
   externalId: string; // represents id from the original external system if exists
   externalData: object; // JSON of any addition fields
   // cashbackType: string; // move to additionalFields that will represent non-unified data
@@ -36,7 +35,6 @@ export interface AccountsAttributes {
   // type: string; // move to additionalFields
   // iban: string; // move to additionalFields
   isEnabled: boolean; // represents "if account is active and should be visible in stats"
-  // monoUserId -> userId: number; // just use userId
 }
 
 @Table({
@@ -136,11 +134,15 @@ export default class Accounts extends Model<AccountsAttributes> {
     defaultValue: true,
   })
   isEnabled: boolean;
-  // monoUserId -> userId: number; // just use userId
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
     await Balances.handleAccountCreation(instance, { transaction });
+  }
+
+  @BeforeUpdate
+  static async validateEditableFields(instance: Accounts) {
+    console.log('instance', instance)
   }
 }
 
@@ -202,25 +204,27 @@ export const getAccountsByExternalIds = async (
   return account;
 };
 
+export interface CreateAccountPayload {
+  externalId?: AccountsAttributes['externalId'];
+  externalData?: AccountsAttributes['externalData'];
+  isEnabled?: AccountsAttributes['isEnabled'];
+  accountTypeId: AccountsAttributes['accountTypeId'];
+  currencyId: AccountsAttributes['currencyId'];
+  name: AccountsAttributes['name'];
+  currentBalance: AccountsAttributes['currentBalance'];
+  initialBalance: AccountsAttributes['initialBalance'];
+  creditLimit: AccountsAttributes['creditLimit'];
+  userId: AccountsAttributes['userId'];
+  type: AccountsAttributes['type'];
+}
+
 export const createAccount = async (
   {
     userId,
-    type = 'system',
+    type = ACCOUNT_TYPES.system,
     isEnabled = true,
     ...rest
-  }: {
-    externalId?: AccountsAttributes['externalId'];
-    externalData?: AccountsAttributes['externalData'];
-    isEnabled?: AccountsAttributes['isEnabled'];
-    accountTypeId: AccountsAttributes['accountTypeId'];
-    currencyId: AccountsAttributes['currencyId'];
-    name: AccountsAttributes['name'];
-    currentBalance: AccountsAttributes['currentBalance'];
-    initialBalance: AccountsAttributes['initialBalance'];
-    creditLimit: AccountsAttributes['creditLimit'];
-    userId: AccountsAttributes['userId'];
-    type?: AccountsAttributes['type'];
-  },
+  }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
@@ -245,9 +249,11 @@ export interface UpdateAccountByIdPayload {
   accountTypeId?: AccountsAttributes['accountTypeId'];
   currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
+  initialBalance?: AccountsAttributes['initialBalance'];
   currentBalance?: AccountsAttributes['currentBalance'];
   refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
   creditLimit?: AccountsAttributes['creditLimit'];
+  isEnabled?: AccountsAttributes['isEnabled'];
 }
 
 // TODO: Do we need to allow initialBalance editing here?

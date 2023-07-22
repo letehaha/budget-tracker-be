@@ -3,9 +3,9 @@ import config from 'config';
 import {
   TRANSACTION_TYPES,
   AccountModel,
-  ACCOUNT_TYPES,
   ExternalMonobankClientInfoResponse,
   MonobankUserModel,
+  ACCOUNT_TYPES,
 } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -16,24 +16,13 @@ import * as Currencies from '@models/Currencies.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { redisClient } from '@root/app';
 
-const normalizeAccount = (account: Accounts.default): AccountModel => ({
-  ...(account.dataValues || account),
-  type: ACCOUNT_TYPES.system,
-})
-
 export const getAccounts = async (
   payload: Accounts.GetAccountsPayload,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel[]> => {
-  const accounts = await Accounts.getAccounts(
-    payload,
-    { transaction: attributes.transaction },
-  );
-
-  const normalizedAccounts: AccountModel[] = accounts.map(normalizeAccount)
-
-  return normalizedAccounts;
-}
+): Promise<AccountModel[]> => Accounts.getAccounts(
+  payload,
+  { transaction: attributes.transaction },
+);
 
 export const getAccountsByExternalIds = async (
   payload: Accounts.GetAccountsByExternalIdsPayload,
@@ -43,14 +32,10 @@ export const getAccountsByExternalIds = async (
 export const getAccountById = async (
   payload: { id: number; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel> => {
-  const account = await Accounts.getAccountById(
-    payload,
-    { transaction: attributes.transaction },
-  );
-
-  return normalizeAccount(account);
-};
+): Promise<AccountModel> => Accounts.getAccountById(
+  payload,
+  { transaction: attributes.transaction },
+);
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
@@ -78,6 +63,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
       name: account.maskedPan[0] || account.iban,
       externalId: account.id,
       currentBalance: account.balance,
+      initialBalance: account.balance,
       creditLimit: account.creditLimit,
       externalData: {
         cashbackType: account.cashbackType,
@@ -85,6 +71,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
         type: account.type,
         iban: account.iban,
       },
+      type: ACCOUNT_TYPES.monobank,
       isEnabled: false,
     }, { transaction: attributes.transaction })),
   );
@@ -153,26 +140,12 @@ export const pairMonobankAccount = async (
 }
 
 export const createAccount = async (
-  payload: {
-    accountTypeId: Accounts.AccountsAttributes['accountTypeId'];
-    currencyId: Accounts.AccountsAttributes['currencyId'];
-    name: Accounts.AccountsAttributes['name'];
-    currentBalance: Accounts.AccountsAttributes['currentBalance'];
-    creditLimit: Accounts.AccountsAttributes['creditLimit'];
-    userId: Accounts.AccountsAttributes['userId'];
-    externalId?: Accounts.AccountsAttributes['externalId'];
-    isEnabled?: Accounts.AccountsAttributes['isEnabled'];
-    externalData?: Accounts.AccountsAttributes['externalData'];
-  },
+  payload: Accounts.CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel> => {
-  const account = await Accounts.createAccount({
-    initialBalance: payload.currentBalance,
-    ...payload,
-  }, { transaction: attributes.transaction });
-
-  return normalizeAccount(account);
-}
+): Promise<AccountModel> => Accounts.createAccount({
+  initialBalance: payload.currentBalance,
+  ...payload,
+}, { transaction: attributes.transaction });
 
 // export async function updateAccount (
 //   payload: Accounts.UpdateAccountByIdPayload & {
@@ -188,18 +161,14 @@ export const createAccount = async (
 //   attributes?: GenericSequelizeModelAttributes,
 // ): Promise<AccountModel>
 
-export async function updateAccount (
+export const updateAccount = async (
   { id, externalId, ...payload }:
   Accounts.UpdateAccountByIdPayload & (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>),
-  attributes?: GenericSequelizeModelAttributes,
-): Promise<AccountModel> {
-  const data = await Accounts.updateAccountById(
-    { id, externalId, ...payload },
-    { transaction: attributes.transaction },
-  );
-
-  return data;
-}
+  attributes: GenericSequelizeModelAttributes = {},
+) => Accounts.updateAccountById(
+  { id, externalId, ...payload },
+  { transaction: attributes.transaction },
+);
 
 const calculateNewBalance = (
   amount: number,

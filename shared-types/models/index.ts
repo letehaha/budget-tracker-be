@@ -33,6 +33,7 @@ export interface AccountModel {
   type: ACCOUNT_TYPES,
   id: number;
   name: string;
+  initialBalance: number;
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
