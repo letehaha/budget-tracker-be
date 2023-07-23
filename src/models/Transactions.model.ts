@@ -12,8 +12,9 @@ import {
   Model,
   Length,
   ForeignKey,
+  DataType,
 } from 'sequelize-typescript';
-import { isExist } from '@js/helpers';
+import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors'
 import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
 import Users from '@models/Users.model';
@@ -21,6 +22,7 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
 // TODO: replace with scopes
 const prepareTXInclude = (
@@ -52,10 +54,43 @@ const prepareTXInclude = (
 
   return include;
 };
+
+interface TransactionsAttributes {
+  id: number;
+  amount: number;
+  // Amount in currency of base currency
+  refAmount: number;
+  note: string;
+  time: Date;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  currencyId: number;
+  currencyCode: string;
+  accountType: ACCOUNT_TYPES;
+  refCurrencyCode: string;
+
+  // is transaction transfer?
+  isTransfer: boolean;
+  // (hash, used to connect two transactions)
+  transferId: string;
+
+  originalId: string; // Stores the original id from external source
+  externalData: object; // JSON of any addition fields
+  // balance: number;
+  // hold: boolean;
+  // receiptId: string;
+  commissionRate: number; // should be comission calculated as refAmount
+  refCommissionRate: number; // should be comission calculated as refAmount
+  cashbackAmount: number; // add to unified
+}
+
 @Table({
   timestamps: false,
 })
-export default class Transactions extends Model {
+export default class Transactions extends Model<TransactionsAttributes> {
   @Column({
     unique: true,
     allowNull: false,
@@ -83,7 +118,7 @@ export default class Transactions extends Model {
 
   @ForeignKey(() => Users)
   @Column
-  authorId: number;
+  userId: number;
 
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
   transactionType: TRANSACTION_TYPES;
@@ -120,6 +155,44 @@ export default class Transactions extends Model {
   @Column({ allowNull: true, defaultValue: null })
   transferId: string;
 
+  // Stores the original id from external source
+  @Column({
+    allowNull: true,
+    type: DataType.STRING,
+  })
+  originalId: string;
+
+  // Stores the original id from external source
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true,
+  })
+  externalData: object;
+
+  // Stores the original id from external source
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  })
+  commissionRate: number;
+
+  // Stores the original id from external source
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  refCommissionRate: number;
+
+  // Stores the original id from external source
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  cashbackAmount: number;
+
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
   @BeforeUpdate
@@ -144,11 +217,11 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions, { transaction }) {
-    const { accountType, accountId, authorId, currencyId, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId: authorId,
+        userId,
         accountId,
         amount,
         refAmount,
@@ -172,7 +245,7 @@ export default class Transactions extends Model {
       if (isAccountChanged) {
         // Update old tx
         await updateAccountBalanceForChangedTx({
-          userId: prevData.authorId,
+          userId: prevData.userId,
           accountId: prevData.accountId,
           prevAmount: prevData.amount,
           prevRefAmount: prevData.refAmount,
@@ -182,7 +255,7 @@ export default class Transactions extends Model {
 
         // Update new tx
         await updateAccountBalanceForChangedTx({
-          userId: newData.authorId,
+          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           refAmount: newData.refAmount,
@@ -191,7 +264,7 @@ export default class Transactions extends Model {
         }, { transaction });
       } else {
         await updateAccountBalanceForChangedTx({
-          userId: newData.authorId,
+          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
@@ -218,11 +291,11 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions, { transaction }) {
-    const { accountType, accountId, authorId, currencyId, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId: authorId,
+        userId,
         accountId,
         prevAmount: amount,
         prevRefAmount: refAmount,
@@ -236,8 +309,11 @@ export default class Transactions extends Model {
 }
 
 export const getTransactions = async ({
-  authorId,
-  sortDirection,
+  from = 0,
+  limit = 20,
+  accountType,
+  userId,
+  sortDirection = 'DESC',
   includeUser,
   includeAccount,
   includeCategory,
@@ -255,7 +331,12 @@ export const getTransactions = async ({
 
   const transactions = await Transactions.findAll({
     include,
-    where: { authorId },
+    where: {
+      userId,
+      ...removeUndefinedKeys({ accountType }),
+    },
+    offset: from,
+    limit: limit,
     order: [['time', sortDirection.toUpperCase()]],
     raw: isRaw,
   });
@@ -263,10 +344,29 @@ export const getTransactions = async ({
   return transactions;
 };
 
+export interface GetTransactionBySomeIdPayload {
+  userId: TransactionsAttributes['userId'],
+  id?: TransactionsAttributes['id'],
+  transferId?: TransactionsAttributes['transferId'],
+  originalId?: TransactionsAttributes['originalId'],
+}
+export const getTransactionBySomeId = (
+  { userId, id, transferId, originalId }: GetTransactionBySomeIdPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  return Transactions.findOne({
+    where: {
+      userId,
+      ...removeUndefinedKeys({ id, transferId, originalId }),
+    },
+    transaction: attributes.transaction,
+  });
+}
+
 export const getTransactionById = (
   {
     id,
-    authorId,
+    userId,
     includeUser,
     includeAccount,
     includeCategory,
@@ -274,7 +374,7 @@ export const getTransactionById = (
     nestedInclude,
   }: {
     id: number;
-    authorId: number;
+    userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
@@ -292,7 +392,7 @@ export const getTransactionById = (
   });
 
   return Transactions.findOne({
-    where: { id, authorId },
+    where: { id, userId },
     include,
     transaction,
   });
@@ -301,7 +401,7 @@ export const getTransactionById = (
 export const getTransactionsByTransferId = (
   {
     transferId,
-    authorId,
+    userId,
     includeUser,
     includeAccount,
     includeCategory,
@@ -309,7 +409,7 @@ export const getTransactionsByTransferId = (
     nestedInclude,
   }: {
     transferId: number;
-    authorId: number;
+    userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
@@ -327,7 +427,7 @@ export const getTransactionsByTransferId = (
   });
 
   return Transactions.findAll({
-    where: { transferId, authorId },
+    where: { transferId, userId },
     include,
     transaction,
   });
@@ -337,7 +437,7 @@ export const getTransactionsByArrayOfField = async (
   {
     fieldValues,
     fieldName,
-    authorId,
+    userId,
     includeUser,
     includeAccount,
     includeCategory,
@@ -346,7 +446,7 @@ export const getTransactionsByArrayOfField = async (
   }: {
     fieldValues: unknown[];
     fieldName: string;
-    authorId: number;
+    userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
     includeCategory?: boolean;
@@ -368,7 +468,7 @@ export const getTransactionsByArrayOfField = async (
       [fieldName]: {
         [Op.in]: fieldValues,
       },
-      authorId,
+      userId,
     },
     include,
     transaction,
@@ -377,72 +477,35 @@ export const getTransactionsByArrayOfField = async (
   return transactions;
 };
 
+type CreateTxRequiredParams = Pick<TransactionsAttributes,
+  'amount' | 'refAmount' | 'time' | 'userId' |
+  'transactionType' | 'paymentType' | 'accountId' |
+  'categoryId' | 'currencyId' | 'currencyCode' | 'accountType' |
+  'isTransfer'
+>
+type CreateTxOptionalParams = Partial<Pick<TransactionsAttributes,
+  'note' | 'refCurrencyCode' |  'transferId' | 'originalId' |
+  'externalData' | 'commissionRate' | 'refCommissionRate' |
+  'cashbackAmount'
+>>
+
+export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams
+
 export const createTransaction = async (
-  {
-    amount,
-    refAmount,
-    note,
-    time,
-    authorId,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    accountType,
-    isTransfer,
-    transferId,
-  }: {
-    amount: number;
-    refAmount: number;
-    note?: string;
-    time: Date;
-    authorId: number;
-    transactionType: TRANSACTION_TYPES;
-    paymentType: PAYMENT_TYPES;
-    accountId: number;
-    categoryId: number;
-    currencyId: number;
-    currencyCode: string;
-    refCurrencyCode?: string;
-    accountType: ACCOUNT_TYPES;
-    isTransfer?: boolean;
-    transferId?: string;
-  },
+  { userId, ...rest }: CreateTransactionPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const response = await Transactions.create({
-    amount,
-    refAmount,
-    note,
-    time,
-    authorId,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    accountType,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    isTransfer,
-    transferId,
-  }, { transaction });
+  const response = await Transactions.create({ userId, ...rest }, { transaction });
 
-  return getTransactionById(
-    {
-      id: response.get('id'),
-      authorId,
-    },
-    { transaction }
-  );
+  return getTransactionById({
+    id: response.get('id'),
+    userId,
+  }, { transaction });
 };
 
 export interface UpdateTransactionByIdParams {
   id: number;
-  authorId: number;
+  userId: number;
   amount?: number;
   refAmount?: number;
   note?: string;
@@ -461,7 +524,7 @@ export interface UpdateTransactionByIdParams {
 export const updateTransactionById = async (
   {
     id,
-    authorId,
+    userId,
     amount,
     refAmount,
     note,
@@ -478,7 +541,7 @@ export const updateTransactionById = async (
   }: UpdateTransactionByIdParams,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const where = { id, authorId };
+  const where = { id, userId };
   await Transactions.update(
     {
       amount,
@@ -502,7 +565,7 @@ export const updateTransactionById = async (
     },
   );
 
-  return getTransactionById({ id, authorId }, { transaction });
+  return getTransactionById({ id, userId }, { transaction });
 };
 
 export const updateTransactions = (
@@ -519,7 +582,7 @@ export const updateTransactions = (
   }: {
     amount?: number;
     note?: string;
-    time?: string;
+    time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
     accountId?: number;
@@ -528,7 +591,7 @@ export const updateTransactions = (
     currencyId?: number;
     refCurrencyCode?: string;
   },
-  where: Record<string, unknown> & { authorId: number },
+  where: Record<string, unknown> & { userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   return Transactions.update(
@@ -552,11 +615,11 @@ export const updateTransactions = (
 };
 
 export const deleteTransactionById = (
-  { id, authorId }: { id: number; authorId: number },
+  { id, userId }: { id: number; userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   return Transactions.destroy({
-    where: { id, authorId },
+    where: { id, userId },
     transaction,
     // So that BeforeDestroy will be triggered
     individualHooks: true,

@@ -1,6 +1,8 @@
-import { API_RESPONSE_STATUS } from 'shared-types';
+import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import { logger} from '@js/utils/logger';
 import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
+import { removeUndefinedKeys } from '@js/helpers';
 
 export const getAccounts = async (req, res: CustomResponse, next) => {
   const { id: userId } = req.user;
@@ -13,6 +15,7 @@ export const getAccounts = async (req, res: CustomResponse, next) => {
       response: accounts,
     });
   } catch (err) {
+    logger.error(err);
     return next(err);
   }
 };
@@ -29,6 +32,7 @@ export const getAccountById = async (req, res: CustomResponse, next) => {
       response: account,
     });
   } catch (err) {
+    logger.error(err);
     return next(err);
   }
 };
@@ -39,6 +43,7 @@ export const createAccount = async (req, res, next) => {
     currencyId,
     name,
     currentBalance,
+    initialBalance = 0,
     creditLimit,
   } = req.body;
   const { id: userId } = req.user;
@@ -50,7 +55,9 @@ export const createAccount = async (req, res, next) => {
       name,
       currentBalance,
       creditLimit,
+      initialBalance,
       userId,
+      type: ACCOUNT_TYPES.system,
     });
 
     return res.status(200).json({
@@ -58,6 +65,7 @@ export const createAccount = async (req, res, next) => {
       response: account,
     });
   } catch (err) {
+    logger.error(err);
     return next(err);
   }
 };
@@ -71,18 +79,23 @@ export const updateAccount = async (req, res, next) => {
     name,
     currentBalance,
     creditLimit,
-  } = req.body;
+    isEnabled,
+    initialBalance,
+  }: endpointsTypes.UpdateAccountBody = req.body;
 
   try {
     const account = await accountsService.updateAccount({
       id,
       userId,
-
-      accountTypeId,
-      currencyId,
-      name,
-      currentBalance,
-      creditLimit,
+      ...removeUndefinedKeys({
+        isEnabled,
+        accountTypeId: Number(accountTypeId),
+        currencyId: Number(currencyId),
+        initialBalance: Number(initialBalance),
+        name,
+        currentBalance: Number(currentBalance),
+        creditLimit: Number(creditLimit),
+      }),
     });
 
     return res.status(200).json({
@@ -90,6 +103,7 @@ export const updateAccount = async (req, res, next) => {
       response: account,
     });
   } catch (err) {
+    logger.error(err);
     return next(err);
   }
 };
@@ -102,6 +116,7 @@ export const deleteAccount = async (req, res, next) => {
 
     return res.status(200).json({ status: API_RESPONSE_STATUS.success });
   } catch (err) {
+    logger.error(err);
     return next(err);
   }
 };

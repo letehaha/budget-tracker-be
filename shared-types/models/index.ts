@@ -4,7 +4,6 @@ import {
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
 } from 'shared-types';
-import { ExternalMonobankTransactionResponse } from './external-services';
 export * from './external-services';
 
 export interface UserModel {
@@ -33,9 +32,10 @@ export interface CategoryModel {
 }
 
 export interface AccountModel {
-  systemType: ACCOUNT_TYPES.system,
+  type: ACCOUNT_TYPES,
   id: number;
   name: string;
+  initialBalance: number;
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
@@ -43,25 +43,9 @@ export interface AccountModel {
   accountTypeId: number;
   currencyId: number;
   userId: number;
-}
-
-export interface MonobankAccountModel {
-  id: number;
-  systemType: ACCOUNT_TYPES.monobank,
-  accountId: string;
-  balance: number;
-  creditLimit: number;
-  cashbackType: string;
-  maskedPan: string[];
-  type: string;
-  iban: string;
+  externalId?: string;
+  externalData?: object;
   isEnabled: boolean;
-  name: string;
-  createdAt?: string;
-  updatedAt?: string;
-  monoUserId: number;
-  currencyId: number;
-  accountTypeId: number;
 }
 
 export interface MonobankUserModel {
@@ -73,31 +57,42 @@ export interface MonobankUserModel {
   apiToken: string;
 }
 
-export interface MonobankTrasnactionModel {
-  id: number;
-  originalId: ExternalMonobankTransactionResponse['id'];
-  description: ExternalMonobankTransactionResponse['description'];
-  amount: ExternalMonobankTransactionResponse['amount'];
-  time: Date;
-  operationAmount: ExternalMonobankTransactionResponse['operationAmount'];
-  commissionRate: ExternalMonobankTransactionResponse['commissionRate'];
-  cashbackAmount: ExternalMonobankTransactionResponse['cashbackAmount'];
-  balance: ExternalMonobankTransactionResponse['balance'];
-  hold: ExternalMonobankTransactionResponse['hold'];
-  userId: number;
-  categoryId: number;
-  transactionType: TRANSACTION_TYPES;
-  paymentType: PAYMENT_TYPES;
-  monoAccountId: number;
-  currencyId: number;
-  accountType: ACCOUNT_TYPES;
-  note: string;
-}
-
 export interface BalanceModel {
   id: number;
   date: Date;
   amount: number;
   accountId: number;
   account: Omit<AccountModel, 'systemType'>;
+}
+
+export interface TransactionModel {
+  id: number;
+  amount: number;
+  // Amount in base currency
+  refAmount: number;
+  note: string;
+  time: Date;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  currencyId: number;
+  currencyCode: string;
+  accountType: ACCOUNT_TYPES;
+  refCurrencyCode: string;
+
+  // is transaction transfer?
+  isTransfer: boolean;
+  // (hash, used to connect two transactions)
+  transferId: string;
+
+  originalId: string; // Stores the original id from external source
+  externalData: object; // JSON of any addition fields
+  // balance: number;
+  // hold: boolean;
+  // receiptId: string;
+  commissionRate: number; // should be comission calculated as refAmount
+  refCommissionRate: number; // should be comission calculated as refAmount
+  cashbackAmount: number; // add to unified
 }

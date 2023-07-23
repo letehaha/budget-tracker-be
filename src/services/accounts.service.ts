@@ -1,69 +1,174 @@
-import { TRANSACTION_TYPES, AccountModel, ACCOUNT_TYPES } from 'shared-types';
+import axios from 'axios';
+import config from 'config';
+import {
+  TRANSACTION_TYPES,
+  AccountModel,
+  ExternalMonobankClientInfoResponse,
+  MonobankUserModel,
+  ACCOUNT_TYPES,
+} from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
-
-const normalizeAccount = (account: Accounts.default): AccountModel => ({
-  ...(account.dataValues || account),
-  systemType: ACCOUNT_TYPES.system,
-})
+import { connection } from '@models/index';
+import * as monobankUsersService from '@services/banks/monobank/users';
+import * as Currencies from '@models/Currencies.model';
+import { GenericSequelizeModelAttributes } from '@common/types';
+import { redisClient } from '@root/app';
 
 export const getAccounts = async (
-  { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel[]> => {
-  const accounts = await Accounts.getAccounts({ userId }, { transaction });
+  payload: Accounts.GetAccountsPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<AccountModel[]> => Accounts.getAccounts(
+  payload,
+  { transaction: attributes.transaction },
+);
 
-  const normalizedAccounts: AccountModel[] = accounts.map(normalizeAccount)
-
-  return normalizedAccounts;
-}
+export const getAccountsByExternalIds = async (
+  payload: Accounts.GetAccountsByExternalIdsPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => Accounts.getAccountsByExternalIds(payload, attributes);
 
 export const getAccountById = async (
-  { id, userId }: { id: number; userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel> => {
-  const account = await Accounts.getAccountById({ userId, id }, { transaction });
+  payload: { id: number; userId: number },
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<AccountModel> => Accounts.getAccountById(
+  payload,
+  { transaction: attributes.transaction },
+);
 
-  return normalizeAccount(account);
+const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
+
+export const createSystemAccountsFromMonobankAccounts = async (
+  { userId, monoAccounts },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  // TODO: wrap createCurrency and createAccount into single transactions
+  const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
+
+  const currencies = await Promise.all(
+    currencyCodes.map((code) => Currencies.createCurrency({ code }, { transaction: attributes.transaction })),
+  );
+
+  const accountCurrencyCodes = {};
+  currencies.forEach((item) => {
+    accountCurrencyCodes[item.number] = item.id;
+  });
+
+  await Promise.all(
+    monoAccounts.map((account) => createAccount({
+      userId,
+      currencyId: accountCurrencyCodes[account.currencyCode],
+      accountTypeId: 4,
+      name: account.maskedPan[0] || account.iban,
+      externalId: account.id,
+      currentBalance: account.balance,
+      initialBalance: 0,
+      creditLimit: account.creditLimit,
+      externalData: {
+        cashbackType: account.cashbackType,
+        maskedPan: JSON.stringify(account.maskedPan),
+        type: account.type,
+        iban: account.iban,
+      },
+      type: ACCOUNT_TYPES.monobank,
+      isEnabled: false,
+    }, { transaction: attributes.transaction })),
+  );
 };
 
-export const createAccount = async (
-  payload: {
-    accountTypeId: number;
-    currencyId: number;
-    name: string;
-    currentBalance: number;
-    creditLimit: number;
-    userId: number;
-    internal?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {}
-): Promise<AccountModel> => {
-  const account = await Accounts.createAccount({
-    initialBalance: payload.currentBalance,
-    ...payload,
-  }, { transaction });
+export const pairMonobankAccount = async (
+  payload: { token: string; userId: number },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
 
-  return normalizeAccount(account);
+  try {
+    const { token, userId } = payload;
+    let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
+    // If user is found, return
+    if (user) return { connected: true }
+
+    // Otherwise begin user connection
+    const response: string = await redisClient.get(token);
+    let clientInfo: ExternalMonobankClientInfoResponse;
+
+    if (!response) {
+      // TODO: setup it later
+      // await updateWebhookAxios({ userToken: token });
+
+      clientInfo = (await axios({
+        method: 'GET',
+        url: `${hostname}/personal/client-info`,
+        responseType: 'json',
+        headers: {
+          'X-Token': token,
+        },
+      })).data;
+
+      await redisClient.set(token, JSON.stringify(response));
+      await redisClient.expire(token, 60);
+    } else {
+      clientInfo = JSON.parse(response);
+    }
+
+    user = await monobankUsersService.createUser({
+      userId,
+      token,
+      clientId: clientInfo.clientId,
+      name: clientInfo.name,
+      webHookUrl: clientInfo.webHookUrl,
+    }, { transaction });
+
+    await createSystemAccountsFromMonobankAccounts({ userId, monoAccounts: clientInfo.accounts });
+
+    (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return user;
+  } catch (err) {
+    console.log('err', err)
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+    throw err;
+  }
 }
 
-export const updateAccount = async (
-  payload: {
-    id: number;
-    userId: number;
-    accountTypeId?: number;
-    currencyId?: number;
-    name?: string;
-    currentBalance?: number;
-    creditLimit?: number;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-): Promise<AccountModel> => {
-  const data = await Accounts.updateAccountById(payload, { transaction });
+export const createAccount = async (
+  payload: Accounts.CreateAccountPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<AccountModel> => Accounts.createAccount({
+  initialBalance: payload.currentBalance,
+  ...payload,
+}, { transaction: attributes.transaction });
 
-  return normalizeAccount(data);
-};
+// export async function updateAccount (
+//   payload: Accounts.UpdateAccountByIdPayload & {
+//     id: Accounts.UpdateAccountByIdPayload['id']
+//   },
+//   attributes?: GenericSequelizeModelAttributes,
+// ): Promise<AccountModel>
+
+// export async function updateAccount (
+//   payload: Accounts.UpdateAccountByIdPayload & {
+//     externalId: Accounts.UpdateAccountByIdPayload['externalId']
+//   },
+//   attributes?: GenericSequelizeModelAttributes,
+// ): Promise<AccountModel>
+
+export const updateAccount = async (
+  { id, externalId, ...payload }:
+  Accounts.UpdateAccountByIdPayload & (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>),
+  attributes: GenericSequelizeModelAttributes = {},
+) => Accounts.updateAccountById(
+  { id, externalId, ...payload },
+  { transaction: attributes.transaction },
+);
 
 const calculateNewBalance = (
   amount: number,

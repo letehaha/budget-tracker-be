@@ -1,7 +1,7 @@
 const isExist = (v) => v !== undefined;
 const removeUndefinedKeys = (obj: Record<string, unknown>): Record<string, unknown> => {
   for (const key in obj) {
-    if (obj[key] === undefined) {
+    if (obj[key] === undefined || (typeof obj[key] === 'number' && isNaN(obj[key] as number))) {
       delete obj[key]
     }
   }

@@ -15,7 +15,7 @@ import { getTransactionById } from './get-by-id';
 
 interface UpdateParams {
   id: number;
-  authorId: number;
+  userId: number;
   amount?: number;
   note?: string;
   time?: Date;
@@ -37,7 +37,7 @@ interface UpdateTransferParams {
  */
  export const updateTransaction = async ({
   id,
-  authorId,
+  userId,
   amount,
   destinationAmount,
   note,
@@ -62,12 +62,12 @@ interface UpdateTransferParams {
       currencyCode: previousCurrencyCode,
       transferId,
     } = await getTransactionById(
-      { id, authorId },
+      { id, userId },
       { transaction },
     );
 
     const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
-      { userId: authorId, isDefaultCurrency: true },
+      { userId, isDefaultCurrency: true },
       { transaction }
     );
 
@@ -85,7 +85,7 @@ interface UpdateTransferParams {
       refAmount: amount ?? previousRefAmount,
       note,
       time,
-      authorId,
+      userId,
       // When transfer, base tx can only be "expense'
       transactionType: isTransfer ? TRANSACTION_TYPES.expense : transactionType,
       paymentType,
@@ -98,7 +98,7 @@ interface UpdateTransferParams {
     if (isBaseTxAccountChanged) {
       // Since accountId is changed, we need to change currency too
       const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
-        userId: authorId,
+        userId,
         id: accountId,
       });
 
@@ -111,7 +111,7 @@ interface UpdateTransferParams {
       baseTransactionUpdateParams.amount !== previousAmount
     ) {
       const { rate } = await userExchangeRateService.getExchangeRate({
-        userId: authorId,
+        userId,
         baseCode: baseTransactionUpdateParams.currencyCode,
         quoteCode: defaultUserCurrency.code,
       }, { transaction })
@@ -138,13 +138,13 @@ interface UpdateTransferParams {
         const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
           fieldValues: [transferId],
           fieldName: 'transferId',
-          authorId,
+          userId,
         })).find(item => Number(item.id) !== Number(id));
 
         const destinationTransaction = await Transactions.updateTransactionById(
           {
             id: notBaseTransaction.id,
-            authorId,
+            userId,
             amount: destinationAmount,
             refAmount: baseTransactionUpdateParams.refAmount,
             note,
@@ -161,13 +161,13 @@ interface UpdateTransferParams {
         if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
           // Since accountId is changed, we need to change currency too
           const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-            userId: authorId,
+            userId,
             id: accountId,
           });
           await Transactions.updateTransactionById(
             {
               id: notBaseTransaction.id,
-              authorId,
+              userId,
               currencyId: oppositeTxCurrency.id,
               currencyCode: oppositeTxCurrency.code,
             },
@@ -192,19 +192,19 @@ interface UpdateTransferParams {
 
         await Transactions.updateTransactionById({
           id: baseTransaction.id,
-          authorId: baseTransaction.authorId,
+          userId: baseTransaction.userId,
           transferId,
           isTransfer: true,
         }, { transaction });
 
         const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-          userId: authorId,
+          userId,
           id: destinationAccountId,
         });
 
         const createdTx = await Transactions.createTransaction(
           {
-            authorId: baseTransaction.authorId,
+            userId: baseTransaction.userId,
             amount: destinationAmount,
             refAmount: destinationAmount,
             note: baseTransaction.note,
@@ -234,18 +234,18 @@ interface UpdateTransferParams {
       const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
         fieldValues: [transferId],
         fieldName: 'transferId',
-        authorId,
+        userId,
       })).find(item => Number(item.id) !== Number(id));
 
       await Transactions.deleteTransactionById({
         id: notBaseTransaction.id,
-        authorId: notBaseTransaction.authorId
+        userId: notBaseTransaction.userId
       }, { transaction });
 
       await Transactions.updateTransactionById(
         {
           id: baseTransaction.id,
-          authorId: baseTransaction.authorId,
+          userId: baseTransaction.userId,
           transferId: null,
           isTransfer: false,
         },

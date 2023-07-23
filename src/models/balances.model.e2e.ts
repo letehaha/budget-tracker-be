@@ -2,7 +2,7 @@
 import Umzug from 'umzug';
 import request from 'supertest';
 import path from 'path';
-import { TRANSACTION_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { app, serverInstance, redisClient } from '@root/app';
 import { connection } from '@models/index';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
@@ -57,6 +57,7 @@ describe('Balances model', () => {
     accountTypeId: 1,
     currencyId: baseCurrencyId,
     name: 'test',
+    type: ACCOUNT_TYPES.system,
     currentBalance: 0,
     creditLimit: 0,
     ...overrides,
@@ -70,6 +71,7 @@ describe('Balances model', () => {
     paymentType: 'creditCard',
     time: startOfDay(new Date()),
     transactionType: type,
+    type: ACCOUNT_TYPES.system,
   })
 
   beforeEach(async () => {
@@ -124,18 +126,24 @@ describe('Balances model', () => {
       const accountResult = await request(app)
         .post('/api/v1/accounts')
         .set('Authorization', token)
-        .send(buildAccountPayload({ currentBalance: accountInitialBalance }))
+        .send(buildAccountPayload({
+          initialBalance: accountInitialBalance,
+          currentBalance: accountInitialBalance,
+        }))
 
-      const expense = buildTransactionPayload({ accountId: extractResponse(accountResult).id })
+      const accountResponse = extractResponse(accountResult);
+      expect(accountResponse.initialBalance).toBe(accountInitialBalance);
+
+      const expense = buildTransactionPayload({ accountId: accountResponse.id })
       const income = buildTransactionPayload({
-        accountId: extractResponse(accountResult).id,
+        accountId: accountResponse.id,
         type: TRANSACTION_TYPES.income
       })
-      const initialBalancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
+      const initialBalancesHistory = await callGetBalanceHistory(accountResponse.id, token);
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(initialBalancesHistory).length).toEqual(1);
-      expect(extractResponse(initialBalancesHistory)[0].amount).toEqual(extractResponse(accountResult).currentBalance);
+      expect(extractResponse(initialBalancesHistory)[0].amount).toEqual(accountResponse.currentBalance);
 
       const toReturn: {
         accountData: Accounts;
@@ -144,7 +152,7 @@ describe('Balances model', () => {
         income: any;
       } = {
         accountResult,
-        accountData: extractResponse(accountResult),
+        accountData: accountResponse,
         expense,
         income,
       }

@@ -1,5 +1,4 @@
 import { UserModel } from 'shared-types';
-import { Transaction } from 'sequelize/types';
 import {
   Table,
   Column,
@@ -9,6 +8,9 @@ import {
   BelongsToMany,
   Length,
 } from 'sequelize-typescript';
+
+import { GenericSequelizeModelAttributes } from '@common/types';
+
 import UsersCurrencies from './UsersCurrencies.model';
 import Currencies from './Currencies.model';
 
@@ -80,28 +82,38 @@ export default class Users extends Model {
   defaultCategoryId: number;
 }
 
-export const getUsers = async () => {
-  const users = await Users.findAll();
+export const getUsers = async (attributes: GenericSequelizeModelAttributes = {}) => {
+  const users = await Users.findAll({ transaction: attributes.transaction });
 
   return users;
 };
 
-export const getUserById = async ({ id }: { id: number }): Promise<UserModel> => {
-  const user = await Users.findOne({ where: { id } });
+export const getUserById = async (
+  { id }: { id: number },
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<UserModel> => {
+  const user = await Users.findOne({ where: { id }, transaction: attributes.transaction });
 
   return user;
 };
 
-export const getUserDefaultCategory = async ({ id }: { id: number }) => {
+export const getUserDefaultCategory = async (
+  { id }: { id: number },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const user = await Users.findOne({
     where: { id },
     attributes: ['defaultCategoryId'],
+    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const getUserCurrencies = async ({ userId }) => {
+export const getUserCurrencies = async (
+  { userId },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const user = await Users.findOne({
     where: { id: userId },
     include: [
@@ -112,22 +124,22 @@ export const getUserCurrencies = async ({ userId }) => {
         through: { attributes: [] },
       },
     ],
+    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const getUserByCredentials = async ({
-  username,
-  email,
-}: {
-  username?: string;
-  email?: string;
-}): Promise<UserModel> => {
+export const getUserByCredentials = async (
+  { username, email }: { username?: string; email?: string },
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<UserModel> => {
   const where: Record<string, unknown> = {};
+
   if (username) where.username = username;
   if (email) where.email = email;
-  const user = await Users.scope('withPassword').findOne({ where });
+
+  const user = await Users.scope('withPassword').findOne({ where, transaction: attributes.transaction });
 
   return user;
 };
@@ -152,7 +164,7 @@ export const createUser = async (
     avatar?: string;
     totalBalance?: number,
   },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ): Promise<UserModel> => {
   const user = await Users.create(
     {
@@ -166,7 +178,7 @@ export const createUser = async (
       totalBalance,
     },
     {
-      transaction,
+      transaction: attributes.transaction,
     },
   );
 
@@ -197,7 +209,7 @@ export const updateUserById = async (
     totalBalance?: number;
     defaultCategoryId?: number;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ): Promise<UserModel> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};
@@ -212,16 +224,16 @@ export const updateUserById = async (
   if (totalBalance) updateFields.totalBalance = totalBalance;
   if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
 
-  await Users.update(updateFields, { where, transaction });
+  await Users.update(updateFields, { where, transaction: attributes.transaction });
 
-  const user = await Users.findOne({ where, transaction });
+  const user = await Users.findOne({ where, transaction: attributes.transaction });
 
   return user;
 };
 
 export const deleteUserById = (
   { id },
-  { transaction }: { transaction?: Transaction } = {},
+  attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  Users.destroy({ where: { id }, transaction });
+  Users.destroy({ where: { id }, transaction: attributes.transaction });
 };

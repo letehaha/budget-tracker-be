@@ -6,14 +6,17 @@ import {
   BelongsTo,
   DataType,
   AfterCreate,
+  BeforeUpdate,
 } from 'sequelize-typescript';
+import { Op } from 'sequelize';
+import { ACCOUNT_TYPES } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
 
-interface AccountsAttributes {
+export interface AccountsAttributes {
   id: number;
   name: string;
   initialBalance: number;
@@ -21,10 +24,17 @@ interface AccountsAttributes {
   refCurrentBalance: number;
   creditLimit: number;
   refCreditLimit: number;
-  internal: boolean;
+  type: ACCOUNT_TYPES;
   accountTypeId: number;
   currencyId: number;
   userId: number;
+  externalId: string; // represents id from the original external system if exists
+  externalData: object; // JSON of any addition fields
+  // cashbackType: string; // move to additionalFields that will represent non-unified data
+  // maskedPan: string; // move to additionalFields
+  // type: string; // move to additionalFields
+  // iban: string; // move to additionalFields
+  isEnabled: boolean; // represents "if account is active and should be visible in stats"
 }
 
 @Table({
@@ -82,10 +92,11 @@ export default class Accounts extends Model<AccountsAttributes> {
   refCreditLimit: number;
 
   @Column({
+    type: DataType.STRING,
     allowNull: false,
-    defaultValue: false,
+    defaultValue: 0,
   })
-  internal: boolean;
+  type: ACCOUNT_TYPES;
 
   @ForeignKey(() => AccountTypes)
   @Column
@@ -99,18 +110,61 @@ export default class Accounts extends Model<AccountsAttributes> {
   @Column
   userId: number;
 
+  // represents id from the original external system if exists
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  externalId: string;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true,
+  })
+  externalData: object; // JSON of any addition fields
+  // cashbackType: string; // move to additionalFields that will represent non-unified data
+  // maskedPan: string; // move to additionalFields
+  // type: string; // move to additionalFields
+  // iban: string; // move to additionalFields
+
+  // represents "if account is active and should be visible in stats"
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  isEnabled: boolean;
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
     await Balances.handleAccountCreation(instance, { transaction });
   }
+
+  @BeforeUpdate
+  static async validateEditableFields(instance: Accounts) {
+    console.log('instance', instance)
+  }
+}
+
+export interface GetAccountsPayload {
+  userId: AccountsAttributes['userId'],
+  type?: AccountsAttributes['type'],
 }
 
 export const getAccounts = async (
-  { userId }: { userId: AccountsAttributes['userId'] },
+  payload: GetAccountsPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
+  const { userId, type } = payload;
+  const where: {
+    userId: AccountsAttributes['userId'];
+    type?: AccountsAttributes['type'];
+  } = { userId }
+
+  if (type) where.type = type
+
   const accounts = await Accounts.findAll({
-    where: { userId },
+    where,
     raw: true,
     ...attributes,
   });
@@ -127,26 +181,56 @@ export const getAccountById = async (
   return account;
 };
 
+export interface GetAccountsByExternalIdsPayload {
+  userId: AccountsAttributes['userId'];
+  externalIds: string[];
+}
+export const getAccountsByExternalIds = async (
+  { userId, externalIds }: GetAccountsByExternalIdsPayload,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  console.log('getAccountsByExternalIds', { userId, externalIds })
+
+  const account = await Accounts.findAll({
+    where: {
+      userId,
+      externalId: {
+        [Op.in]: externalIds,
+      }
+    },
+    ...attributes,
+  });
+
+  return account;
+};
+
+export interface CreateAccountPayload {
+  externalId?: AccountsAttributes['externalId'];
+  externalData?: AccountsAttributes['externalData'];
+  isEnabled?: AccountsAttributes['isEnabled'];
+  accountTypeId: AccountsAttributes['accountTypeId'];
+  currencyId: AccountsAttributes['currencyId'];
+  name: AccountsAttributes['name'];
+  currentBalance: AccountsAttributes['currentBalance'];
+  initialBalance: AccountsAttributes['initialBalance'];
+  creditLimit: AccountsAttributes['creditLimit'];
+  userId: AccountsAttributes['userId'];
+  type: AccountsAttributes['type'];
+}
+
 export const createAccount = async (
   {
     userId,
-    internal = false,
+    type = ACCOUNT_TYPES.system,
+    isEnabled = true,
     ...rest
-  }: {
-    accountTypeId: AccountsAttributes['accountTypeId'];
-    currencyId: AccountsAttributes['currencyId'];
-    name: AccountsAttributes['name'];
-    currentBalance: AccountsAttributes['currentBalance'];
-    initialBalance: AccountsAttributes['initialBalance'];
-    creditLimit: AccountsAttributes['creditLimit'];
-    userId: AccountsAttributes['userId'];
-    internal?: AccountsAttributes['internal'];
-  },
+  }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create({
     userId,
-    internal,
+    type,
+    isEnabled,
     ...rest
   }, attributes);
 
@@ -158,27 +242,33 @@ export const createAccount = async (
   return account;
 };
 
+export interface UpdateAccountByIdPayload {
+  id: AccountsAttributes['id'];
+  userId: AccountsAttributes['userId'];
+  externalId?: AccountsAttributes['externalId'];
+  accountTypeId?: AccountsAttributes['accountTypeId'];
+  currencyId?: AccountsAttributes['currencyId'];
+  name?: AccountsAttributes['name'];
+  initialBalance?: AccountsAttributes['initialBalance'];
+  currentBalance?: AccountsAttributes['currentBalance'];
+  refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
+  creditLimit?: AccountsAttributes['creditLimit'];
+  isEnabled?: AccountsAttributes['isEnabled'];
+}
+
 // TODO: Do we need to allow initialBalance editing here?
-export const updateAccountById = async (
+export async function updateAccountById(
   {
     id,
     userId,
     refCurrentBalance,
     currentBalance,
     ...rest
-  }: {
-    id: AccountsAttributes['id'];
-    accountTypeId?: AccountsAttributes['accountTypeId'];
-    currencyId?: AccountsAttributes['currencyId'];
-    name?: AccountsAttributes['name'];
-    currentBalance?: AccountsAttributes['currentBalance'];
-    refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
-    creditLimit?: AccountsAttributes['creditLimit'];
-    userId: AccountsAttributes['userId'];
-  },
+  }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
-) => {
-  const where = { id, userId };
+) {
+  const where = { id, userId }
+
   await Accounts.update(
     {
       currentBalance,
@@ -192,7 +282,7 @@ export const updateAccountById = async (
   const account = await getAccountById(where, { ...attributes });
 
   return account;
-};
+}
 
 export const deleteAccountById = (
   { id }: { id: number },

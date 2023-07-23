@@ -12,7 +12,7 @@ export const deleteTransaction = async (req, res: CustomResponse) => {
 
     await transactionsService.deleteTransaction({
       id,
-      authorId: authorId ?? userId,
+      userId: authorId ?? userId,
     })
 
     return res.status(200).json({

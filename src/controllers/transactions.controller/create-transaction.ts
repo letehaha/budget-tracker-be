@@ -22,7 +22,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       accountType = ACCOUNT_TYPES.system,
       isTransfer,
     } = req.body;
-    const { id: authorId } = req.user;
+    const { id: userId } = req.user;
 
     validateTransactionAmount(amount);
 
@@ -43,12 +43,13 @@ export const createTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       accountType,
-      authorId,
+      userId,
       isTransfer,
     });
 
     if (data[0].dataValues) {
-      data = data.map(d => d.dataValues ?? d)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data = data.map(d => d.dataValues ?? d) as any
     }
 
     return res.status(200).json({

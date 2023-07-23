@@ -2,6 +2,8 @@
 import { Transaction } from 'sequelize/types';
 import { ACCOUNT_TYPES } from 'shared-types';
 
+import { GenericSequelizeModelAttributes } from '@common/types';
+
 import { connection } from '@models/index';
 import { ValidationError } from '@js/errors'
 import * as Users from '@models/Users.model';
@@ -11,9 +13,12 @@ import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
 
-export const getUser = async (id: number) => {
+export const getUser = async (
+  id: number,
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   try {
-    const user = await Users.getUserById({ id });
+    const user = await Users.getUserById({ id }, attributes);
 
     return user;
   } catch (err) {
@@ -310,7 +315,6 @@ export const setDefaultUserCurrency = async (
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-
   transaction = transaction ?? await connection.sequelize.transaction();
 
   try {
@@ -343,7 +347,7 @@ export const setDefaultUserCurrency = async (
       {
         refCurrencyCode: currency.code,
       },
-      { authorId: userId, accountType: ACCOUNT_TYPES.system },
+      { userId, accountType: ACCOUNT_TYPES.system },
       { transaction },
     );
 
@@ -416,7 +420,7 @@ export const deleteUserCurrency = async (
       {
         currencyId: defaultCurrency.currencyId,
       },
-      { authorId: userId, currencyId: passedCurrency.currencyId },
+      { userId, currencyId: passedCurrency.currencyId },
       { transaction },
     );
 

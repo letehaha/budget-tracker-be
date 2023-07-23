@@ -16,5 +16,6 @@ export interface CustomResponse extends Response {
 
 
 export interface GenericSequelizeModelAttributes {
-  transaction?: Transaction,
+  transaction?: Transaction;
+  raw?: boolean;
 }

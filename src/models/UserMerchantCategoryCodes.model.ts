@@ -5,6 +5,8 @@ import {
   ForeignKey,
 } from 'sequelize-typescript';
 
+import { GenericSequelizeModelAttributes } from '@common/types';
+
 import Categories from './Categories.model';
 import Users from './Users.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
@@ -42,14 +44,14 @@ export const getByPassedParams = async ({
   mccId?: number;
   userId?: number;
   categoryId?: number;
-}) => {
+}, attributes: GenericSequelizeModelAttributes = {},) => {
   const where: Record<string, number> = {};
 
   if (mccId) where.mccId = mccId;
   if (userId) where.userId = userId;
   if (categoryId) where.categoryId = categoryId;
 
-  const mcc = await UserMerchantCategoryCodes.findAll({ where });
+  const mcc = await UserMerchantCategoryCodes.findAll({ where, transaction: attributes.transaction });
 
   return mcc;
 };
@@ -58,12 +60,12 @@ export const createEntry = async ({
   mccId,
   userId,
   categoryId,
-}) => {
+}, attributes: GenericSequelizeModelAttributes = {},) => {
   const userMcc = await UserMerchantCategoryCodes.create({
     mccId,
     userId,
     categoryId,
-  });
+  }, { transaction: attributes.transaction });
 
   return userMcc;
 };
