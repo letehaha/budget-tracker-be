@@ -1,6 +1,8 @@
 import {
   ACCOUNT_TYPES,
   CATEGORY_TYPES,
+  TRANSACTION_TYPES,
+  PAYMENT_TYPES,
 } from 'shared-types';
 export * from './external-services';
 
@@ -61,4 +63,36 @@ export interface BalanceModel {
   amount: number;
   accountId: number;
   account: Omit<AccountModel, 'systemType'>;
+}
+
+export interface TransactionModel {
+  id: number;
+  amount: number;
+  // Amount in base currency
+  refAmount: number;
+  note: string;
+  time: Date;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  paymentType: PAYMENT_TYPES;
+  accountId: number;
+  categoryId: number;
+  currencyId: number;
+  currencyCode: string;
+  accountType: ACCOUNT_TYPES;
+  refCurrencyCode: string;
+
+  // is transaction transfer?
+  isTransfer: boolean;
+  // (hash, used to connect two transactions)
+  transferId: string;
+
+  originalId: string; // Stores the original id from external source
+  externalData: object; // JSON of any addition fields
+  // balance: number;
+  // hold: boolean;
+  // receiptId: string;
+  commissionRate: number; // should be comission calculated as refAmount
+  refCommissionRate: number; // should be comission calculated as refAmount
+  cashbackAmount: number; // add to unified
 }

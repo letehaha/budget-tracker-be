@@ -77,7 +77,6 @@ interface TransactionsAttributes {
   // (hash, used to connect two transactions)
   transferId: string;
 
-  // TODO:
   originalId: string; // Stores the original id from external source
   externalData: object; // JSON of any addition fields
   // balance: number;
