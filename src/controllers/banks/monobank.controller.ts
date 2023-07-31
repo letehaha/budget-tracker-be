@@ -119,7 +119,7 @@ async function createMonoTransaction(
   await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
-    amount: data.amount,
+    amount: Math.abs(data.amount),
     time: new Date(data.time * 1000),
     externalData: {
       operationAmount: data.operationAmount,
