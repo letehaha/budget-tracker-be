@@ -43,6 +43,7 @@
     "@common": "src/common",
     "@controllers": "src/controllers",
     "@models": "src/models",
+    "@tests": "src/tests",
     "@services": "src/services",
     "@root": "src",
     "shared-types": "shared-types"
