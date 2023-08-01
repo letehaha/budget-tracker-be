@@ -31,6 +31,8 @@ import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.mo
 import * as Users from '@models/Users.model';
 
 import { logger} from '@js/utils/logger';
+import { errorHandler } from '@controllers/helpers';
+import { ValidationError } from '@js/errors';
 
 const usersQuery = new Map();
 
@@ -148,6 +150,10 @@ export const pairAccount = async (req, res: CustomResponse) => {
   systemUserId = Number(systemUserId)
 
   try {
+    if (!token || typeof token !== 'string') {
+      throw new ValidationError({ message: '"token" (Monobank API token) field is required and should be a string' })
+    }
+
     const result = await accountsService.pairMonobankAccount({ token, userId: systemUserId })
 
     if ('connected' in result && result.connected) {
@@ -165,13 +171,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
       response: result,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
