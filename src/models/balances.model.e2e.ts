@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Umzug from 'umzug';
-import request from 'supertest';
 import path from 'path';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
-import { app, serverInstance, redisClient } from '@root/app';
+import { serverInstance, redisClient } from '@root/app';
 import { connection } from '@models/index';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Accounts from '@models/Accounts.model';
+import { makeRequest, extractResponse } from '@tests/helpers';
 
 // Create a new instance of Umzug with your sequelize instance and the path to your migrations
 const umzug = new Umzug({
@@ -29,18 +29,21 @@ const umzug = new Umzug({
   },
 });
 
-const extractResponse = response => response.body.response;
 const callGetBalanceHistory = async (accountId, token, raw = false) => {
-  const result = await request(app)
-    .get(`/api/v1/stats/balance-history?accountId=${accountId}`)
-    .set('Authorization', token)
+  const result = await makeRequest({
+    method: 'get',
+    url: `/stats/balance-history?accountId=${accountId}`,
+    token,
+  });
 
   return raw ? extractResponse(result) : result
 }
 const callGelFullBalanceHistory = async (token, raw = false) => {
-  const result = await request(app)
-    .get('/api/v1/stats/balance-history')
-    .set('Authorization', token)
+  const result = await makeRequest({
+    method: 'get',
+    url: '/stats/balance-history',
+    token,
+  });
 
   return raw ? extractResponse(result) : result
 }
@@ -80,38 +83,46 @@ describe('Balances model', () => {
       await connection.sequelize.drop({ cascade: true });
       await umzug.up();
 
-      await request(app)
-        .post('/api/v1/auth/register')
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/auth/register',
+        payload: {
           username: 'test1',
           password: 'test1',
-        });
+        },
+      });
 
-      const res = await request(app)
-        .post('/api/v1/auth/login')
-        .send({
+      const res = await makeRequest({
+        method: 'post',
+        url: '/auth/login',
+        payload: {
           username: 'test1',
           password: 'test1',
-        });
+        },
+      });
 
       token = extractResponse(res).token;
 
-      await request(app)
-        .post('/api/v1/user/currencies/base')
-        .set('Authorization', token)
-        .send({ currencyId: baseCurrencyId });
+      await makeRequest({
+        method: 'post',
+        url: '/user/currencies/base',
+        token,
+        payload: { currencyId: baseCurrencyId },
+      });
     } catch (err) {
       console.log(err)
     }
   })
 
   it('the balances table correctly managing account creation', async () => {
-    const accountResult = await request(app)
-      .post('/api/v1/accounts')
-      .set('Authorization', token)
-      .send(buildAccountPayload());
+    const accountResult = await makeRequest({
+      method: 'post',
+      url: '/accounts',
+      token,
+      payload: buildAccountPayload(),
+    })
 
-      const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
+    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
 
     const result = extractResponse(balancesHistory)
 
@@ -123,13 +134,15 @@ describe('Balances model', () => {
     const buildAccount = async (
       { accountInitialBalance = 0 } = {}
     ) => {
-      const accountResult = await request(app)
-        .post('/api/v1/accounts')
-        .set('Authorization', token)
-        .send(buildAccountPayload({
+      const accountResult = await makeRequest({
+        method: 'post',
+        url: '/accounts',
+        token,
+        payload: buildAccountPayload({
           initialBalance: accountInitialBalance,
           currentBalance: accountInitialBalance,
-        }))
+        }),
+      });
 
       const accountResponse = extractResponse(accountResult);
       expect(accountResponse.initialBalance).toBe(accountInitialBalance);
@@ -164,10 +177,7 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount()
 
       for (const type of [expense, expense, income]) {
-        await request(app)
-          .post('/api/v1/transactions')
-          .set('Authorization', token)
-          .send(type);
+        await makeRequest({ method: 'post', url: '/transactions', token, payload: type })
       }
 
       const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
@@ -184,10 +194,7 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount({ accountInitialBalance: 1200 })
 
       for (const type of [expense, expense, income]) {
-        await request(app)
-          .post('/api/v1/transactions')
-          .set('Authorization', token)
-          .send(type);
+        await makeRequest({ method: 'post', url: '/transactions', token, payload: type });
       }
 
       const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
@@ -208,13 +215,15 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount({ accountInitialBalance: 1000 })
 
       // Firstly create a transaction AFTER account creation date
-      await request(app)
-        .post('/api/v1/transactions')
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        token,
+        payload: {
           ...expense,
           time: startOfDay(addDays(new Date(), 1))
-        });
+        },
+      });
 
       const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
 
@@ -223,13 +232,15 @@ describe('Balances model', () => {
       expect(afterBalance.at(1).amount).toBe(accountData.initialBalance - expense.amount);
 
       // Then create a transaction BEFORE account creation date
-      await request(app)
-        .post('/api/v1/transactions')
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        token,
+        payload: {
           ...income,
           time: startOfDay(subDays(new Date(), 1))
-        });
+        },
+      });
 
       const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
 
@@ -249,22 +260,26 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount({ accountInitialBalance: 1000 })
 
       // Firstly create a transaction AFTER account creation date
-      await request(app)
-        .post('/api/v1/transactions')
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        token,
+        payload: {
           ...expense,
           time: startOfDay(addDays(new Date(), 1))
-        });
+        },
+      });
 
       // Add transaction for the same day
-      await request(app)
-        .post('/api/v1/transactions')
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        token,
+        payload: {
           ...income,
           time: startOfDay(new Date())
-        });
+        },
+      });
 
       const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
 
@@ -273,13 +288,15 @@ describe('Balances model', () => {
       expect(afterBalance.at(1).amount).toBe(accountData.initialBalance - expense.amount + income.amount);
 
       // Then create a transaction BEFORE account creation date
-      await request(app)
-        .post('/api/v1/transactions')
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        token,
+        payload: {
           ...income,
           time: startOfDay(subDays(new Date(), 1))
-        });
+        },
+      });
 
       const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
 
@@ -303,19 +320,14 @@ describe('Balances model', () => {
       // Send 3 transactions at different days
       for (const tx of transactionsPayloads) {
         const response: Transactions[] = extractResponse(
-          await request(app)
-            .post('/api/v1/transactions')
-            .set('Authorization', token)
-            .send(tx)
+          await makeRequest({ method: 'post', url: '/transactions', payload: tx, token }),
         )
         transactionResults.push(response[0]);
       }
 
       // Delete them
       for (const result of transactionResults.flat()) {
-        await request(app)
-          .delete(`/api/v1/transactions/${result.id}`)
-          .set('Authorization', token)
+        await makeRequest({ method: 'delete', url: `/transactions/${result.id}`, token});
       }
 
       const finalBalanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
@@ -340,10 +352,7 @@ describe('Balances model', () => {
       const transactionResults = []
 
       for (const tx of transactionsPayloads) {
-        const response = await request(app)
-          .post('/api/v1/transactions')
-          .set('Authorization', token)
-          .send(tx)
+        const response = await makeRequest({ method: 'post', url: '/transactions', token, payload: tx });
 
         transactionResults.push(...extractResponse(response));
       }
@@ -372,10 +381,12 @@ describe('Balances model', () => {
       const { accountData, transactionResults } = await mockBalanceHistory()
 
       // Update expense transaction
-      await request(app)
-          .put(`/api/v1/transactions/${transactionResults[0].id}`)
-          .set('Authorization', token)
-          .send({ amount: 150 })
+      await makeRequest({
+        method: 'put',
+        url: `/transactions/${transactionResults[0].id}`,
+        token,
+        payload: { amount: 150 },
+      });
 
       const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
 
@@ -389,10 +400,12 @@ describe('Balances model', () => {
       ])
 
       // Update income transaction
-      await request(app)
-          .put(`/api/v1/transactions/${transactionResults[1].id}`)
-          .set('Authorization', token)
-          .send({ amount: 350 })
+      await makeRequest({
+        method: 'put',
+        url: `/transactions/${transactionResults[1].id}`,
+        token,
+        payload: { amount: 350 },
+      });
 
       const newBalanceHistory2: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
 
@@ -409,14 +422,16 @@ describe('Balances model', () => {
     it('updating transaction amount, date, transactionType and accountId', async () => {
       const { accountData, transactionResults } = await mockBalanceHistory()
 
-      await request(app)
-        .put(`/api/v1/transactions/${transactionResults[0].id}`)
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'put',
+        url: `/transactions/${transactionResults[0].id}`,
+        token,
+        payload: {
           amount: 150,
           time: startOfDay(subDays(new Date(), 4)),
           transactionType: TRANSACTION_TYPES.income
-        })
+        },
+      });
 
       const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
 
@@ -433,15 +448,17 @@ describe('Balances model', () => {
 
       const { accountData: oneMoreAccountData } = await buildAccount({ accountInitialBalance: 0 })
 
-      await request(app)
-        .put(`/api/v1/transactions/${transactionResults[3].id}`)
-        .set('Authorization', token)
-        .send({
+      await makeRequest({
+        method: 'put',
+        url: `/transactions/${transactionResults[3].id}`,
+        token,
+        payload: {
           amount: 150,
           time: startOfDay(addDays(new Date(), 5)),
           transactionType: TRANSACTION_TYPES.income,
           accountId: oneMoreAccountData.id,
-        })
+        },
+      });
 
       const newBalanceHistory2: Balances[] = await callGelFullBalanceHistory(token, true)
 
