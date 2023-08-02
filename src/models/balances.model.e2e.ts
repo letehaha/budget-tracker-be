@@ -1,60 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Umzug from 'umzug';
-import path from 'path';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
-import { serverInstance, redisClient } from '@root/app';
-import { connection } from '@models/index';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Accounts from '@models/Accounts.model';
 import { makeRequest, extractResponse } from '@tests/helpers';
 
-// Create a new instance of Umzug with your sequelize instance and the path to your migrations
-const umzug = new Umzug({
-  migrations: {
-    // The params that get passed to the migrations
-    params: [
-      connection.sequelize.getQueryInterface(),
-      connection.sequelize.constructor,
-    ],
-    // The path to the migrations directory
-    path: path.join(__dirname, '../migrations'),
-    // The pattern that determines whether files are migrations
-    pattern: /\.js$/,
-  },
-  storage: 'sequelize',
-  storageOptions: {
-    sequelize: connection.sequelize,
-  },
-});
-
-const callGetBalanceHistory = async (accountId, token, raw = false) => {
+const callGetBalanceHistory = async (accountId, raw = false) => {
   const result = await makeRequest({
     method: 'get',
     url: `/stats/balance-history?accountId=${accountId}`,
-    token,
   });
 
   return raw ? extractResponse(result) : result
 }
-const callGelFullBalanceHistory = async (token, raw = false) => {
+const callGelFullBalanceHistory = async (raw = false) => {
   const result = await makeRequest({
     method: 'get',
     url: '/stats/balance-history',
-    token,
   });
 
   return raw ? extractResponse(result) : result
 }
 
 describe('Balances model', () => {
-  afterAll(() => {
-    redisClient.quit();
-    serverInstance.close();
-  });
-
-  let token
   const baseCurrencyId = 2
   const buildAccountPayload = (overrides = {}) => ({
     accountTypeId: 1,
@@ -77,52 +46,14 @@ describe('Balances model', () => {
     type: ACCOUNT_TYPES.system,
   })
 
-  beforeEach(async () => {
-    try {
-      await connection.sequelize.sync({ force: true });
-      await connection.sequelize.drop({ cascade: true });
-      await umzug.up();
-
-      await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test1',
-          password: 'test1',
-        },
-      });
-
-      const res = await makeRequest({
-        method: 'post',
-        url: '/auth/login',
-        payload: {
-          username: 'test1',
-          password: 'test1',
-        },
-      });
-
-      token = extractResponse(res).token;
-
-      await makeRequest({
-        method: 'post',
-        url: '/user/currencies/base',
-        token,
-        payload: { currencyId: baseCurrencyId },
-      });
-    } catch (err) {
-      console.log(err)
-    }
-  })
-
   it('the balances table correctly managing account creation', async () => {
     const accountResult = await makeRequest({
       method: 'post',
       url: '/accounts',
-      token,
       payload: buildAccountPayload(),
     })
 
-    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id, token);
+    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id);
 
     const result = extractResponse(balancesHistory)
 
@@ -137,7 +68,6 @@ describe('Balances model', () => {
       const accountResult = await makeRequest({
         method: 'post',
         url: '/accounts',
-        token,
         payload: buildAccountPayload({
           initialBalance: accountInitialBalance,
           currentBalance: accountInitialBalance,
@@ -152,7 +82,7 @@ describe('Balances model', () => {
         accountId: accountResponse.id,
         type: TRANSACTION_TYPES.income
       })
-      const initialBalancesHistory = await callGetBalanceHistory(accountResponse.id, token);
+      const initialBalancesHistory = await callGetBalanceHistory(accountResponse.id);
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(initialBalancesHistory).length).toEqual(1);
@@ -177,10 +107,10 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount()
 
       for (const type of [expense, expense, income]) {
-        await makeRequest({ method: 'post', url: '/transactions', token, payload: type })
+        await makeRequest({ method: 'post', url: '/transactions', payload: type })
       }
 
-      const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
+      const finalBalancesHistory = await callGetBalanceHistory(accountData.id);
 
       expect(finalBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(finalBalancesHistory).length).toEqual(1);
@@ -194,10 +124,10 @@ describe('Balances model', () => {
       const { accountData, expense, income } = await buildAccount({ accountInitialBalance: 1200 })
 
       for (const type of [expense, expense, income]) {
-        await makeRequest({ method: 'post', url: '/transactions', token, payload: type });
+        await makeRequest({ method: 'post', url: '/transactions', payload: type });
       }
 
-      const finalBalancesHistory = await callGetBalanceHistory(accountData.id, token);
+      const finalBalancesHistory = await callGetBalanceHistory(accountData.id);
 
       expect(finalBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(finalBalancesHistory).length).toEqual(1);
@@ -218,14 +148,13 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'post',
         url: '/transactions',
-        token,
         payload: {
           ...expense,
           time: startOfDay(addDays(new Date(), 1))
         },
       });
 
-      const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
+      const afterBalance = await callGetBalanceHistory(accountData.id, true);
 
       expect(afterBalance.length).toBe(2);
       expect(afterBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -235,14 +164,13 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'post',
         url: '/transactions',
-        token,
         payload: {
           ...income,
           time: startOfDay(subDays(new Date(), 1))
         },
       });
 
-      const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
+      const beforeBalance = await callGetBalanceHistory(accountData.id, true);
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -263,7 +191,6 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'post',
         url: '/transactions',
-        token,
         payload: {
           ...expense,
           time: startOfDay(addDays(new Date(), 1))
@@ -274,14 +201,13 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'post',
         url: '/transactions',
-        token,
         payload: {
           ...income,
           time: startOfDay(new Date())
         },
       });
 
-      const afterBalance = await callGetBalanceHistory(accountData.id, token, true);
+      const afterBalance = await callGetBalanceHistory(accountData.id, true);
 
       expect(afterBalance.length).toBe(2);
       expect(afterBalance.at(0).amount).toBe(accountData.initialBalance + income.amount);
@@ -291,14 +217,13 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'post',
         url: '/transactions',
-        token,
         payload: {
           ...income,
           time: startOfDay(subDays(new Date(), 1))
         },
       });
 
-      const beforeBalance = await callGetBalanceHistory(accountData.id, token, true);
+      const beforeBalance = await callGetBalanceHistory(accountData.id, true);
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
@@ -320,17 +245,17 @@ describe('Balances model', () => {
       // Send 3 transactions at different days
       for (const tx of transactionsPayloads) {
         const response: Transactions[] = extractResponse(
-          await makeRequest({ method: 'post', url: '/transactions', payload: tx, token }),
+          await makeRequest({ method: 'post', url: '/transactions', payload: tx }),
         )
         transactionResults.push(response[0]);
       }
 
       // Delete them
       for (const result of transactionResults.flat()) {
-        await makeRequest({ method: 'delete', url: `/transactions/${result.id}`, token});
+        await makeRequest({ method: 'delete', url: `/transactions/${result.id}`});
       }
 
-      const finalBalanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+      const finalBalanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, true)
 
       // Since we added transaction prior account creation, we will have +1 transaction
       expect(finalBalanceHistory.length).toBe(4);
@@ -352,12 +277,12 @@ describe('Balances model', () => {
       const transactionResults = []
 
       for (const tx of transactionsPayloads) {
-        const response = await makeRequest({ method: 'post', url: '/transactions', token, payload: tx });
+        const response = await makeRequest({ method: 'post', url: '/transactions', payload: tx });
 
         transactionResults.push(...extractResponse(response));
       }
 
-      const balanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+      const balanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, true)
 
       expect(balanceHistory).toStrictEqual([
         // Since we added transaction BEFORE account creation, we will always
@@ -384,11 +309,10 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'put',
         url: `/transactions/${transactionResults[0].id}`,
-        token,
         payload: { amount: 150 },
       });
 
-      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, true)
 
       expect(newBalanceHistory1).toStrictEqual([
         { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: accountData.initialBalance },
@@ -403,11 +327,10 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'put',
         url: `/transactions/${transactionResults[1].id}`,
-        token,
         payload: { amount: 350 },
       });
 
-      const newBalanceHistory2: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+      const newBalanceHistory2: Balances[] = await callGetBalanceHistory(accountData.id, true)
 
       expect(newBalanceHistory2).toStrictEqual([
         { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: accountData.initialBalance },
@@ -425,7 +348,6 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'put',
         url: `/transactions/${transactionResults[0].id}`,
-        token,
         payload: {
           amount: 150,
           time: startOfDay(subDays(new Date(), 4)),
@@ -433,7 +355,7 @@ describe('Balances model', () => {
         },
       });
 
-      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, token, true)
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, true)
 
       expect(newBalanceHistory1).toStrictEqual([
         { date: format(subDays(new Date(), 5), 'yyyy-MM-dd'), amount: accountData.initialBalance },
@@ -451,7 +373,6 @@ describe('Balances model', () => {
       await makeRequest({
         method: 'put',
         url: `/transactions/${transactionResults[3].id}`,
-        token,
         payload: {
           amount: 150,
           time: startOfDay(addDays(new Date(), 5)),
@@ -460,7 +381,7 @@ describe('Balances model', () => {
         },
       });
 
-      const newBalanceHistory2: Balances[] = await callGelFullBalanceHistory(token, true)
+      const newBalanceHistory2: Balances[] = await callGelFullBalanceHistory(true)
 
       // Yeah it looks really hard, but that's the way to verify everything is okay
       expect(newBalanceHistory2).toStrictEqual([

@@ -5,33 +5,8 @@ import {
   ExternalMonobankClientInfoResponse,
   API_ERROR_CODES,
 } from 'shared-types';
-import path from 'path';
-import request from 'supertest';
-import Umzug from 'umzug';
-import { app, serverInstance, redisClient } from '@root/app';
-import { connection } from '@models/index';
 import { ERROR_CODES } from '@js/errors';
 import { makeRequest, extractResponse } from '@tests/helpers';
-
-jest.mock('axios');
-
-const umzug = new Umzug({
-  migrations: {
-    // The params that get passed to the migrations
-    params: [
-      connection.sequelize.getQueryInterface(),
-      connection.sequelize.constructor,
-    ],
-    // The path to the migrations directory
-    path: path.join(__dirname, '../../migrations'),
-    // The pattern that determines whether files are migrations
-    pattern: /\.js$/,
-  },
-  storage: 'sequelize',
-  storageOptions: {
-    sequelize: connection.sequelize,
-  },
-});
 
 const getMockedClientData = (): { data: ExternalMonobankClientInfoResponse } => ({
   data: {
@@ -68,54 +43,13 @@ const getMockedClientData = (): { data: ExternalMonobankClientInfoResponse } => 
 });
 
 const DUMB_MONOBANK_API_TOKEN = '234234234234';
-const BASE_CURRENCY_ID = 2;
 
 describe('Balances model', () => {
-  afterAll(() => {
-    redisClient.quit();
-    serverInstance.close();
-  });
-
-  let token
-
-  beforeEach(async () => {
-    try {
-      await connection.sequelize.sync({ force: true });
-      await connection.sequelize.drop({ cascade: true });
-      redisClient.FLUSHALL('SYNC');
-      await umzug.up();
-
-      await request(app)
-        .post('/api/v1/auth/register')
-        .send({
-          username: 'test1',
-          password: 'test1',
-        });
-
-      const res = await request(app)
-        .post('/api/v1/auth/login')
-        .send({
-          username: 'test1',
-          password: 'test1',
-        });
-
-      token = extractResponse(res).token;
-
-      await request(app)
-        .post('/api/v1/user/currencies/base')
-        .set('Authorization', token)
-        .send({ currencyId: BASE_CURRENCY_ID });
-    } catch (err) {
-      console.log(err)
-    }
-  })
-
   describe('Pair Monobank account', () => {
     it('throws validation error if no "token" passed', async () => {
       const result = await makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
-        token,
       });
 
       expect(result.status).toEqual(ERROR_CODES.ValidationError);
@@ -124,7 +58,6 @@ describe('Balances model', () => {
       const result = await makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
-        token,
         payload: {
           token: DUMB_MONOBANK_API_TOKEN,
         },
@@ -139,7 +72,6 @@ describe('Balances model', () => {
       const createdMonoUserRestult = await makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
-        token,
         payload: {
           token: DUMB_MONOBANK_API_TOKEN,
         },
@@ -148,7 +80,7 @@ describe('Balances model', () => {
       expect(extractResponse(createdMonoUserRestult).apiToken).toBe(DUMB_MONOBANK_API_TOKEN);
       expect(extractResponse(createdMonoUserRestult).accounts.length).toBe(mockedClientData.data.accounts.length);
 
-      const accountResult = extractResponse(await makeRequest({ method: 'get', url: '/accounts', token }));
+      const accountResult = extractResponse(await makeRequest({ method: 'get', url: '/accounts' }));
 
       mockedClientData.data.accounts.forEach((item, index) => {
         const mockedAccount = mockedClientData.data.accounts[index];
@@ -169,7 +101,6 @@ describe('Balances model', () => {
       const result = await makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
-        token,
         payload: {
           token: DUMB_MONOBANK_API_TOKEN,
         },
@@ -180,7 +111,6 @@ describe('Balances model', () => {
       const oneMoreResult = await makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
-        token,
         payload: {
           token: DUMB_MONOBANK_API_TOKEN,
         },

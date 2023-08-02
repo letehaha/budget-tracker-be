@@ -10,6 +10,7 @@ const connection: {
 
 const DBConfig: Record<string, unknown> = config.get('db');
 
+// console.log('JEST global', global.process.env.JEST_WORKER_ID);
 const sequelize = new Sequelize({
   ...DBConfig,
   models: [__dirname + '/**/*.model.ts'],

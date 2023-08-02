@@ -7,17 +7,16 @@ const apiPrefix = config.get('apiPrefix');
 export const extractResponse = response => response.body.response;
 
 export const makeRequest = (
-  { url, method, payload = null, token }:
+  { url, method, payload = null }:
   {
     url: string;
     method: 'get' | 'post' | 'put' | 'delete';
     payload?: object;
-    token?: string;
   }
 ) => {
   const base = request(app)[method](`${apiPrefix}${url}`)
 
-  if (token) base.set('Authorization', token)
+  if (global.APP_AUTH_TOKEN) base.set('Authorization', global.APP_AUTH_TOKEN)
   if (payload) base.send(payload);
 
   return base;

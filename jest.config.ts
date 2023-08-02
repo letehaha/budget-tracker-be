@@ -2,6 +2,7 @@
 
 export default {
   preset: 'ts-jest',
+  verbose: true,
   testEnvironment: 'node',
   testMatch: ['**/?(*.)+(unit|spec|e2e).[jt]s?(x)'],
   transform: {
@@ -9,6 +10,7 @@ export default {
       tsconfig: 'tsconfig.json',
     }],
   },
+  setupFilesAfterEnv: ["<rootDir>/src/tests/setupTests.ts"],
   moduleNameMapper: {
     'shared-types': '<rootDir>/shared-types',
     '@routes/(.*)': '<rootDir>/src/routes/$1',
