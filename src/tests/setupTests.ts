@@ -24,12 +24,42 @@ const umzug = new Umzug({
   },
 });
 
+// const DBConfig: Record<string, unknown> = config.get('db');
+// const client = new Client({
+//   user: 'letehaha',
+//   password: 'password',
+//   host: '127.0.0.1',
+//   database: 'budget-tracker',
+// });
+
+// client.connect();
+
 global.BASE_CURRENCY_ID = 2;
 global.APP_AUTH_TOKEN = null;
 
 beforeEach(async () => {
   try {
-    await connection.sequelize.sync({ force: true })
+    // console.log(1.2)
+    // client.query(`DROP DATABASE "budget-tracker_test"`, (err, res) => {
+    //   console.log('DROP DATABASE err', err);
+    // });
+    // client.query(`CREATE DATABASE "budget-tracker_test"`, (err, res) => {
+    //   console.log('CREATE DATABASE err', err);
+    // });
+    // await connection.sequelize.sync({ force: true })
+    // for (const model of Object.keys(connection.sequelize.models)) {
+    //   await connection.sequelize.models[model].destroy({ where: {} });
+    // }
+    // try {
+    //   console.log('START QUERY');
+    //   await connection.sequelize.query(`DROP TABLE IF EXISTS "MonobankUsers"`);
+    //   console.log('END QUERY');
+    // } catch (err) {
+    //   console.log(5)
+    // }
+
+    // const data = await connection.sequelize.models.MonobankUsers.findAll({ raw: true });
+    // console.log('MonobankUsers data', data)
     await connection.sequelize.drop({ cascade: true });
     redisClient.FLUSHALL('SYNC');
     await umzug.up();
