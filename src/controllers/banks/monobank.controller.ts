@@ -32,7 +32,7 @@ import * as Users from '@models/Users.model';
 
 import { logger} from '@js/utils/logger';
 import { errorHandler } from '@controllers/helpers';
-import { ValidationError } from '@js/errors';
+import { ERROR_CODES, ValidationError } from '@js/errors';
 
 const usersQuery = new Map();
 
@@ -302,7 +302,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
       return res.status(200).json({ status: API_RESPONSE_STATUS.success });
     }
 
-    return res.status(429).json({
+    return res.status(ERROR_CODES.TooManyRequests).json({
       status: API_RESPONSE_STATUS.error,
       response: {
         message: 'Too many requests! Request cannot be called more that once a minute!',
@@ -324,15 +324,19 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
     const { id: systemUserId } = req.user;
 
+    if (!from || !Number(from)) throw new ValidationError({ message: '"from" field is invalid' });
+    if (!to || !Number(to)) throw new ValidationError({ message: '"to" field is invalid' });
+    if (!accountId) throw new ValidationError({ message: '"accountId" field is required' });
+
     const redisToken = `monobank-${systemUserId}-load-transactions`;
     const tempRedisToken = await req.redisClient.get(redisToken);
 
     if (tempRedisToken) {
-      return res.status(403).json({
+      return res.status(ERROR_CODES.TooManyRequests).json({
         status: API_RESPONSE_STATUS.error,
         response: {
           message: 'There were too many requests earlier. Please wait at least one minute from when you first saw this message.',
-          code: API_ERROR_CODES.forbidden,
+          code: API_ERROR_CODES.tooManyRequests,
         },
       });
     }
@@ -340,7 +344,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     const monobankUser = await monobankUsersService.getUserBySystemId({ systemUserId });
 
     if (!monobankUser) {
-      return res.status(404).json({
+      return res.status(ERROR_CODES.NotFoundError).json({
         status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Monobank user does not exist.',
@@ -356,7 +360,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     });
 
     if (!account) {
-      return res.status(404).json({
+      return res.status(ERROR_CODES.NotFoundError).json({
         status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Monobank account does not exist.',
@@ -371,7 +375,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     if (existQuery) {
       logger.error('[Monobank controller]: Query already exists');
 
-      return res.status(429).json({
+      return res.status(ERROR_CODES.TooManyRequests).json({
         status: API_RESPONSE_STATUS.error,
         response: {
           message: `
@@ -415,20 +419,12 @@ export const loadTransactions = async (req, res: CustomResponse) => {
             });
           }
         } catch (err) {
-          if (err.response.status === 429) {
+          if (err?.response?.status === ERROR_CODES.TooManyRequests) {
             await req.redisClient.set(redisToken, true);
             await req.redisClient.expire(redisToken, 60);
-
-            return res.status(429).json({
-              status: API_RESPONSE_STATUS.error,
-              response: {
-                message: 'Monobank connection error. Too many requests!',
-                code: API_ERROR_CODES.tooManyRequests,
-              },
-            });
+          } else {
+            logger.error(err);
           }
-
-          throw err
         }
       });
     }
@@ -452,15 +448,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       },
     });
   } catch (err) {
-    logger.error(err);
-
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
@@ -478,7 +466,7 @@ export const refreshAccounts = async (req, res) => {
     if (!monoUser) {
       await transaction.commit();
 
-      return res.status(404).json({
+      return res.status(ERROR_CODES.NotFoundError).json({
         status: API_RESPONSE_STATUS.error,
         response: {
           message: 'Current user does not have any paired monobank user.',
@@ -578,7 +566,7 @@ export const refreshAccounts = async (req, res) => {
 
     await transaction.commit();
 
-    return res.status(429).json({
+    return res.status(ERROR_CODES.TooManyRequests).json({
       status: API_RESPONSE_STATUS.error,
       response: {
         code: API_ERROR_CODES.tooManyRequests,
@@ -588,12 +576,6 @@ export const refreshAccounts = async (req, res) => {
   } catch (err) {
     await transaction.rollback();
 
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };

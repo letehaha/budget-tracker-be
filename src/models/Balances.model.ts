@@ -1,10 +1,10 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { TRANSACTION_TYPES, BalanceModel } from 'shared-types';
+import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Accounts from './Accounts.model';
-import Transactions from './Transactions.model';
+import Transactions, { TransactionsAttributes } from './Transactions.model';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -113,34 +113,63 @@ export default class Balances extends Model<BalanceModel> {
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
-    if (isDelete) {
-      amount = -amount; // Reverse the amount if it's a deletion
-    } else if (prevData) {
-      const originalDate = new Date(prevData.time);
-      const originalAmount = prevData.transactionType === TRANSACTION_TYPES.income
-        ? prevData.amount
-        : prevData.amount * -1
-      originalDate.setHours(0, 0, 0, 0);
+    if (data.accountType === ACCOUNT_TYPES.system) {
+      if (isDelete) {
+        amount = -amount; // Reverse the amount if it's a deletion
+      } else if (prevData) {
+        const originalDate = new Date(prevData.time);
+        const originalAmount = prevData.transactionType === TRANSACTION_TYPES.income
+          ? prevData.amount
+          : prevData.amount * -1
+        originalDate.setHours(0, 0, 0, 0);
 
-      // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
-      if (accountId !== prevData.accountId || +date !== +originalDate || data.transactionType !== prevData.transactionType || originalAmount !== amount) {
-        await this.updateBalance({
-          accountId: prevData.accountId,
-          date: originalDate,
-          amount: -originalAmount,
-        }, attributes);
+        // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
+        if (accountId !== prevData.accountId || +date !== +originalDate || data.transactionType !== prevData.transactionType || originalAmount !== amount) {
+          await this.updateBalance({
+            accountId: prevData.accountId,
+            date: originalDate,
+            amount: -originalAmount,
+          }, attributes);
+        }
+      }
+
+      // Update the balance for the current account and date
+      await this.updateBalance({
+        accountId,
+        date,
+        amount,
+      }, attributes);
+    } else if (data.accountType === ACCOUNT_TYPES.monobank) {
+      const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
+
+      // We don't need to calculate Monobank account balance based on tx since
+      // Monobank already provides us with the actual balance.
+      const existingRecordForTheDate = await this.findOne({
+        where: {
+          accountId,
+          date,
+        },
+        transaction: attributes.transaction,
+      });
+
+      if (existingRecordForTheDate) {
+        // Store the highest amount
+        existingRecordForTheDate.amount = existingRecordForTheDate.amount > balance
+          ? existingRecordForTheDate.amount
+          : balance;
+
+        await existingRecordForTheDate.save();
+      } else {
+        await this.create({
+          accountId,
+          date,
+          amount: (data.externalData as TransactionsAttributes['externalData']).balance,
+        }, { transaction: attributes.transaction });
       }
     }
-
-    // Update the balance for the current account and date
-    await this.updateBalance({
-      accountId,
-      date,
-      amount,
-    }, attributes);
   }
 
-  // Update the balance for a specific account and date
+  // Update the balance for a specific system account and date
   private static async updateBalance(
     { accountId, date, amount }: { accountId: number; date: Date; amount: number },
     attributes: GenericSequelizeModelAttributes = {}
@@ -154,7 +183,7 @@ export default class Balances extends Model<BalanceModel> {
       transaction: attributes.transaction,
     });
 
-    // If trasnaction has previous amount, it means it's updating,
+    // If history record has previous amount, it means it's updating,
     // so we need to set newAmount - oldAmount
     if (!balanceForTxDate) {
       // If there's not balance for current tx data, we trying to find a balance

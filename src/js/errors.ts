@@ -5,6 +5,7 @@ export enum ERROR_CODES {
   NotFoundError = 404,
   ConflictError = 409,
   ValidationError = 422,
+  TooManyRequests = 429,
   UnexpectedError = 500,
 }
 
@@ -57,5 +58,11 @@ export class ValidationError extends CustomError {
 export class UnexpectedError extends CustomError {
   constructor(code: string, message: string) {
     super(ERROR_CODES.UnexpectedError, code, message);
+  }
+}
+
+export class TooManyRequests extends CustomError {
+  constructor(code: string, message: string) {
+    super(ERROR_CODES.TooManyRequests, code, message);
   }
 }

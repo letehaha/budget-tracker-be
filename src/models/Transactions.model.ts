@@ -55,7 +55,7 @@ const prepareTXInclude = (
   return include;
 };
 
-interface TransactionsAttributes {
+export interface TransactionsAttributes {
   id: number;
   amount: number;
   // Amount in currency of base currency
@@ -78,10 +78,13 @@ interface TransactionsAttributes {
   transferId: string;
 
   originalId: string; // Stores the original id from external source
-  externalData: object; // JSON of any addition fields
-  // balance: number;
-  // hold: boolean;
-  // receiptId: string;
+  // JSON of any addition fields
+  externalData: {
+    operationAmount?: number;
+    balance?: number;
+    hold?: boolean;
+    receiptId?: string;
+  };
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified

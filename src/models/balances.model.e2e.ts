@@ -9,7 +9,10 @@ import { makeRequest, extractResponse } from '@tests/helpers';
 const callGetBalanceHistory = async (accountId, raw = false) => {
   const result = await makeRequest({
     method: 'get',
-    url: `/stats/balance-history?accountId=${accountId}`,
+    url: '/stats/balance-history',
+    payload: {
+      accountId,
+    },
   });
 
   return raw ? extractResponse(result) : result
