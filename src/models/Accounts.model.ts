@@ -212,6 +212,9 @@ export interface CreateAccountPayload {
   currencyId: AccountsAttributes['currencyId'];
   name: AccountsAttributes['name'];
   currentBalance: AccountsAttributes['currentBalance'];
+  // TODO: https://github.com/letehaha/budget-tracker-fe/issues/208
+  // refCurrentBalance: AccountsAttributes['refCurrentBalance'];
+  // refCreditLimit: AccountsAttributes['refCreditLimit'];
   initialBalance: AccountsAttributes['initialBalance'];
   creditLimit: AccountsAttributes['creditLimit'];
   userId: AccountsAttributes['userId'];

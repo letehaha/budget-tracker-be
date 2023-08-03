@@ -26,11 +26,12 @@ export const createTransaction = async (req, res: CustomResponse) => {
 
     validateTransactionAmount(amount);
 
-    // Add validations
+    // TODO: Add validations
     // 1. That amount and destinationAmount are integers
     // 2. If isTransfer, then all required fields are passed
     // 3. That passed currencyId exists
     // 4. Amount and destinationAmount with same currency should be equal
+    // 5. That transactions here might be created only with system account type
 
     let data = await transactionsService.createTransaction({
       amount,

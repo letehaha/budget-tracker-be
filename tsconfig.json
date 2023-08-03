@@ -12,6 +12,7 @@
       "@common/*": ["common/*"],
       "@controllers/*": ["controllers/*"],
       "@models/*": ["models/*"],
+      "@tests/*": ["tests/*"],
       "@js/*": ["js/*"],
       "@root/*": ["./*"],
       "shared-types": ["../shared-types"],

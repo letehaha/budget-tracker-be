@@ -6,6 +6,7 @@ import {
   ExternalMonobankClientInfoResponse,
   MonobankUserModel,
   ACCOUNT_TYPES,
+  API_ERROR_CODES,
 } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -15,6 +16,7 @@ import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { redisClient } from '@root/app';
+import { NotFoundError } from '@js/errors';
 
 export const getAccounts = async (
   payload: Accounts.GetAccountsPayload,
@@ -88,7 +90,10 @@ export const pairMonobankAccount = async (
     const { token, userId } = payload;
     let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
     // If user is found, return
-    if (user) return { connected: true }
+    if (user) {
+      await transaction.commit();
+      return { connected: true }
+    }
 
     // Otherwise begin user connection
     const response: string = await redisClient.get(token);
@@ -98,14 +103,23 @@ export const pairMonobankAccount = async (
       // TODO: setup it later
       // await updateWebhookAxios({ userToken: token });
 
-      clientInfo = (await axios({
+      const result = await axios({
         method: 'GET',
         url: `${hostname}/personal/client-info`,
         responseType: 'json',
         headers: {
           'X-Token': token,
         },
-      })).data;
+      });
+
+      if (!result) {
+        throw new NotFoundError(
+          API_ERROR_CODES.notFound,
+          '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.'
+        )
+      }
+
+      clientInfo = result.data;
 
       await redisClient.set(token, JSON.stringify(response));
       await redisClient.expire(token, 60);
@@ -119,11 +133,16 @@ export const pairMonobankAccount = async (
       clientId: clientInfo.clientId,
       name: clientInfo.name,
       webHookUrl: clientInfo.webHookUrl,
-    }, { transaction });
+    }, { raw: true, transaction });
 
-    await createSystemAccountsFromMonobankAccounts({ userId, monoAccounts: clientInfo.accounts });
+    await createSystemAccountsFromMonobankAccounts({
+      userId,
+      monoAccounts: clientInfo.accounts
+    });
 
-    (user as MonobankUserModel & { accounts: ExternalMonobankClientInfoResponse['accounts'] }).accounts = clientInfo.accounts;
+    (user as MonobankUserModel & {
+      accounts: ExternalMonobankClientInfoResponse['accounts']
+    }).accounts = clientInfo.accounts;
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
@@ -131,7 +150,6 @@ export const pairMonobankAccount = async (
 
     return user;
   } catch (err) {
-    console.log('err', err)
     if (!isTxPassedFromAbove) {
       await transaction.rollback();
     }

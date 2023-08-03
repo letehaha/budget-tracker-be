@@ -14,7 +14,7 @@
     "seed-undo": "npx sequelize-cli db:seed:undo:all",
     "db:reset": "cross-env NODE_ENV=test npx sequelize-cli db:drop && npx sequelize-cli db:create && npx sequelize-cli db:migrate",
     "pretest": "cross-env NODE_ENV=test npm run db:reset",
-    "test": "cross-env NODE_ENV=test jest --passWithNoTests --forceExit",
+    "test": "cross-env NODE_ENV=test jest --runInBand --passWithNoTests --forceExit --detectOpenHandles",
     "lint": "eslint .",
     "docker-build": "docker build . -t letehaha/budget-tracker-be",
     "docker-push": "docker push letehaha/budget-tracker-be",
@@ -43,6 +43,7 @@
     "@common": "src/common",
     "@controllers": "src/controllers",
     "@models": "src/models",
+    "@tests": "src/tests",
     "@services": "src/services",
     "@root": "src",
     "shared-types": "shared-types"
@@ -80,6 +81,7 @@
     "winston": "^3.7.2"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.0.2",
     "@types/config": "^0.0.40",
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
@@ -100,7 +102,7 @@
     "jest": "^29.6.1",
     "module-alias": "^2.2.2",
     "nodemon": "^2.0.20",
-    "supertest": "^6.3.0",
+    "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "tslint": "^6.1.3"
   }
