@@ -90,7 +90,10 @@ export const pairMonobankAccount = async (
     const { token, userId } = payload;
     let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
     // If user is found, return
-    if (user) return { connected: true }
+    if (user) {
+      await transaction.commit();
+      return { connected: true }
+    }
 
     // Otherwise begin user connection
     const response: string = await redisClient.get(token);

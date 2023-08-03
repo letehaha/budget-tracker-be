@@ -119,4 +119,33 @@ describe('Balances model', () => {
       expect(extractResponse(oneMoreResult).code).toBe(API_ERROR_CODES.monobankUserAlreadyConnected);
     });
   });
+  describe('[getUser] to get monobank user', () => {
+    it('Returns correct error when user not found', async () => {
+      const result = await makeRequest({
+        method: 'get',
+        url: '/banks/monobank/user',
+      });
+
+      expect(extractResponse(result).code).toEqual(API_ERROR_CODES.monobankUserNotPaired);
+    });
+    it('Returns correct user', async () => {
+      const mockedClientData = getMockedClientData();
+      (axios as any).mockResolvedValueOnce(mockedClientData);
+
+      await makeRequest({
+        method: 'post',
+        url: '/banks/monobank/pair-user',
+        payload: {
+          token: DUMB_MONOBANK_API_TOKEN,
+        },
+      });
+
+      const result = await makeRequest({
+        method: 'get',
+        url: '/banks/monobank/user',
+      });
+
+      expect(extractResponse(result).apiToken).toEqual(DUMB_MONOBANK_API_TOKEN);
+    });
+  })
 })

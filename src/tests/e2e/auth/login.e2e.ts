@@ -3,7 +3,6 @@ import { makeRequest } from '@tests/helpers';
 
 describe('Login service', () => {
   it('should return correct error for unexisting user', async () => {
-    await new Promise(resolve => setTimeout(resolve, 4000))
     const res = await makeRequest({
       method: 'post',
       url: '/auth/login',
