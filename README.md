@@ -10,20 +10,17 @@ Required stack (WIP): Postgres v11, Node version specified in `.nvmrc`
 npm i
 ```
 
-2. Fill configs in `./config` directory with required data (like DB name, user, pass, and e.g.) for dev/prod environments
+2. Project uses different `.env` files for each environment: `.env.development`,
+`.env.production`, `.env.test`. Locally you only need `.env.development`. You can create
+it based on the `.env.template`. Just copy `.env.template`, rename it and fill missing
+variables. You can omit `API_LAYER_API_KEY` for now, it's not really needed.
 
 3. Run migrations
 ```sh
-npm run migrations
+npm run migrate:dev
 ```
 
-4. Run seeds
-
-```sh
-npm run seed
-```
-
-5. Start dev server
+4. Start dev server
 
 ```sh
 npm run dev
