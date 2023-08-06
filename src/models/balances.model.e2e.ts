@@ -64,7 +64,7 @@ describe('Balances model', () => {
     expect(result[0].amount).toEqual(extractResponse(accountResult).initialBalance);
   })
 
-  describe('the balances table correctly updated when:', () => {
+  describe('the balances history table correctly updated when:', () => {
     const buildAccount = async (
       { accountInitialBalance = 0 } = {}
     ) => {
@@ -400,5 +400,62 @@ describe('Balances model', () => {
         { date: format(addDays(new Date(), 5), 'yyyy-MM-dd'), amount: 150, accountId: oneMoreAccountData.id },
       ])
     })
+
+    it("updating account's balance directly, without transactions", async () => {
+      const initialBalance = 1000;
+      const { accountData, expense, income } = await buildAccount({ accountInitialBalance: initialBalance })
+
+      // Firstly create a transaction AFTER account creation date
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        payload: {
+          ...expense,
+          time: startOfDay(addDays(new Date(), 1))
+        },
+      });
+
+      // Then create a transaction BEFORE account creation date
+      await makeRequest({
+        method: 'post',
+        url: '/transactions',
+        payload: {
+          ...income,
+          time: startOfDay(subDays(new Date(), 1))
+        },
+      });
+
+      const initialHistory = extractResponse(await callGetBalanceHistory(accountData.id));
+
+      // Firstly test that balance increase on 1000 works well
+      await makeRequest({
+        method: 'put',
+        url: `/accounts/${accountData.id}`,
+        payload: {
+          initialBalance: initialBalance + 1000,
+        },
+      });
+
+      const historyIncreaseChange = extractResponse(await callGetBalanceHistory(accountData.id));
+
+      historyIncreaseChange.forEach((item, index) => {
+        expect(item.amount).toBe(initialHistory[index].amount + 1000);
+      })
+
+      // Then test that balance decreate on 1000 works well
+      await makeRequest({
+        method: 'put',
+        url: `/accounts/${accountData.id}`,
+        payload: {
+          initialBalance,
+        },
+      });
+
+      const historyDecreaseChange = extractResponse(await callGetBalanceHistory(accountData.id));
+
+      historyDecreaseChange.forEach((item, index) => {
+        expect(item.amount).toBe(initialHistory[index].amount);
+      })
+    });
   })
 })
