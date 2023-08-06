@@ -6,7 +6,6 @@ import {
   ExternalMonobankClientInfoResponse,
   MonobankUserModel,
   ACCOUNT_TYPES,
-  API_ERROR_CODES,
 } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -113,10 +112,9 @@ export const pairMonobankAccount = async (
       });
 
       if (!result) {
-        throw new NotFoundError(
-          API_ERROR_CODES.notFound,
-          '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.'
-        )
+        throw new NotFoundError({
+          message: '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.'
+        })
       }
 
       clientInfo = result.data;
@@ -187,8 +185,18 @@ export const updateAccount = async (
   try {
     const prevAccountData = await Accounts.default.findByPk(id, { transaction });
 
+    let currentBalance = prevAccountData.currentBalance;
+
+    // If `initialBalance` is changing, it means user want to change current balance
+    // but without creating adjustment transaction, so instead we change both `initialBalance`
+    // and `currentBalance` on the same diff
+    if (payload.initialBalance && payload.initialBalance !== prevAccountData.initialBalance) {
+      const diff = payload.initialBalance - prevAccountData.initialBalance
+      currentBalance += diff;
+    }
+
     const result = await Accounts.updateAccountById(
-      { id, externalId, ...payload },
+      { id, externalId, currentBalance, ...payload },
       { transaction },
     );
 

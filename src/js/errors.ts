@@ -11,12 +11,12 @@ export enum ERROR_CODES {
 
 export class CustomError extends Error {
   public httpCode: number;
-  public code: string;
+  public code: API_ERROR_CODES;
   public details: Record<string, unknown>;
 
   constructor(
     httpCode,
-    code: string,
+    code: API_ERROR_CODES,
     message: string,
     details?: Record<string, unknown>,
   ) {
@@ -29,19 +29,25 @@ export class CustomError extends Error {
 }
 
 export class Unauthorized extends CustomError {
-  constructor(code: string, message: string) {
+  constructor(
+    { code = API_ERROR_CODES.unauthorized, message }:
+    { code?: API_ERROR_CODES; message: string },
+  ) {
     super(ERROR_CODES.Unauthorized, code, message);
   }
 }
 
 export class NotFoundError extends CustomError {
-  constructor(code: string, message: string) {
+  constructor(
+    { code = API_ERROR_CODES.notFound, message }:
+    { code?: API_ERROR_CODES; message: string },
+  ) {
     super(ERROR_CODES.NotFoundError, code, message);
   }
 }
 
 export class ConflictError extends CustomError {
-  constructor(code: string, message: string) {
+  constructor(code: API_ERROR_CODES, message: string) {
     super(ERROR_CODES.ConflictError, code, message);
   }
 }
@@ -49,20 +55,20 @@ export class ConflictError extends CustomError {
 export class ValidationError extends CustomError {
   constructor(
     { code = API_ERROR_CODES.validationError, message, details }:
-    { code?: string; message: string, details?: Record<string, unknown> }
+    { code?: API_ERROR_CODES; message: string, details?: Record<string, unknown> }
   ) {
     super(ERROR_CODES.ValidationError, code, message, details);
   }
 }
 
 export class UnexpectedError extends CustomError {
-  constructor(code: string, message: string) {
+  constructor(code: API_ERROR_CODES, message: string) {
     super(ERROR_CODES.UnexpectedError, code, message);
   }
 }
 
 export class TooManyRequests extends CustomError {
-  constructor(code: string, message: string) {
+  constructor(code: API_ERROR_CODES, message: string) {
     super(ERROR_CODES.TooManyRequests, code, message);
   }
 }

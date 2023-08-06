@@ -3,7 +3,7 @@ import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
-import { ValidationError } from '@js/errors';
+import { ValidationError, NotFoundError, Unauthorized } from '@js/errors';
 import { errorHandler } from './helpers';
 
 export const getAccounts = async (req, res: CustomResponse) => {
@@ -42,20 +42,25 @@ export const createAccount = async (req, res) => {
     accountTypeId,
     currencyId,
     name,
+    type = ACCOUNT_TYPES.system,
     initialBalance,
     creditLimit,
   }: endpointsTypes.CreateAccountBody = req.body;
   const { id: userId } = req.user;
 
   try {
+    if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
+      throw new Unauthorized({ message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.` })
+    }
+
     const account = await accountsService.createAccount({
       accountTypeId,
       currencyId,
       name,
+      type,
       creditLimit,
       initialBalance,
       userId,
-      type: ACCOUNT_TYPES.system,
     });
 
     return res.status(200).json({
@@ -80,6 +85,10 @@ export const updateAccount = async (req, res) => {
   }: endpointsTypes.UpdateAccountBody = req.body;
   try {
     const account = await Accounts.findByPk(id);
+
+    if (!account) {
+      throw new NotFoundError({ message: `Account with id "${id}" doesn't exist.` })
+    }
 
     if (account.type !== ACCOUNT_TYPES.system) {
       if (currencyId || creditLimit || initialBalance) {

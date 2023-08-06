@@ -8,6 +8,7 @@ export interface CreateAccountBody extends BodyPayload {
   initialBalance: AccountModel['initialBalance'];
   creditLimit: AccountModel['creditLimit'];
   isEnabled?: AccountModel['isEnabled'];
+  type?: AccountModel['type'];
 }
 
 export interface UpdateAccountBody extends BodyPayload {

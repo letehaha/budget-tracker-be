@@ -94,7 +94,7 @@ export default class Accounts extends Model<AccountsAttributes> {
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    defaultValue: 0,
+    defaultValue: ACCOUNT_TYPES.system,
   })
   type: ACCOUNT_TYPES;
 
