@@ -17,6 +17,7 @@ import * as Currencies from '@models/Currencies.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { redisClient } from '@root/app';
 import { NotFoundError } from '@js/errors';
+import Balances from '@models/Balances.model';
 
 export const getAccounts = async (
   payload: Accounts.GetAccountsPayload,
@@ -64,8 +65,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
       accountTypeId: 4,
       name: account.maskedPan[0] || account.iban,
       externalId: account.id,
-      currentBalance: account.balance,
-      initialBalance: 0,
+      initialBalance: account.balance,
       creditLimit: account.creditLimit,
       externalData: {
         cashbackType: account.cashbackType,
@@ -160,10 +160,7 @@ export const pairMonobankAccount = async (
 export const createAccount = async (
   payload: Accounts.CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel> => Accounts.createAccount({
-  initialBalance: payload.currentBalance,
-  ...payload,
-}, { transaction: attributes.transaction });
+): Promise<AccountModel> => Accounts.createAccount(payload, { transaction: attributes.transaction });
 
 // export async function updateAccount (
 //   payload: Accounts.UpdateAccountByIdPayload & {
@@ -183,10 +180,35 @@ export const updateAccount = async (
   { id, externalId, ...payload }:
   Accounts.UpdateAccountByIdPayload & (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>),
   attributes: GenericSequelizeModelAttributes = {},
-) => Accounts.updateAccountById(
-  { id, externalId, ...payload },
-  { transaction: attributes.transaction },
-);
+) => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+
+  try {
+    const prevAccountData = await Accounts.default.findByPk(id, { transaction });
+
+    const result = await Accounts.updateAccountById(
+      { id, externalId, ...payload },
+      { transaction },
+    );
+
+    await Balances.handleAccountChange(
+      { account: result, prevAccount: prevAccountData },
+      { transaction },
+    );
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return result;
+  } catch (err) {
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+    throw err;
+  }
+};
 
 const calculateNewBalance = (
   amount: number,

@@ -130,7 +130,7 @@ describe('Balances model', () => {
         const mockedAccount = mockedClientData.data.accounts[index];
         const resultItem = accountResult[index];
 
-        expect(resultItem.initialBalance).toBe(0);
+        expect(resultItem.initialBalance).toBe(mockedAccount.balance);
         expect(resultItem.currentBalance).toBe(mockedAccount.balance);
         expect(resultItem.type).toBe(ACCOUNT_TYPES.monobank);
         // By default all Monobank accounts should be disabled so we will load

@@ -125,7 +125,7 @@ export default class Balances extends Model<BalanceModel> {
 
         // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
         if (accountId !== prevData.accountId || +date !== +originalDate || data.transactionType !== prevData.transactionType || originalAmount !== amount) {
-          await this.updateBalance({
+          await this.updateRecord({
             accountId: prevData.accountId,
             date: originalDate,
             amount: -originalAmount,
@@ -134,7 +134,7 @@ export default class Balances extends Model<BalanceModel> {
       }
 
       // Update the balance for the current account and date
-      await this.updateBalance({
+      await this.updateRecord({
         accountId,
         date,
         amount,
@@ -170,7 +170,7 @@ export default class Balances extends Model<BalanceModel> {
   }
 
   // Update the balance for a specific system account and date
-  private static async updateBalance(
+  private static async updateRecord(
     { accountId, date, amount }: { accountId: number; date: Date; amount: number },
     attributes: GenericSequelizeModelAttributes = {}
   ) {
@@ -258,29 +258,43 @@ export default class Balances extends Model<BalanceModel> {
   }
 
   // Handle account creation
-  static async handleAccountCreation(account: Accounts, attributes: GenericSequelizeModelAttributes = {}) {
-    const { id: accountId, currentBalance } = account;
+  static async handleAccountChange(
+    { account, prevAccount }: { account: Accounts; prevAccount?: Accounts },
+    attributes: GenericSequelizeModelAttributes = {},
+  ) {
+    const { id: accountId, initialBalance } = account;
 
     // Try to find an existing balance for the account
-    const balance = await this.findOne({
+    const record = await this.findOne({
       where: {
         accountId,
       },
       transaction: attributes.transaction,
     });
 
-    // If we already have a balance for that account, it's super weird but do nothgint
-    if (balance) return
+    // If record exists, then it's account updating, otherwise account creation
+    if (record && prevAccount) {
+      const diff = initialBalance - prevAccount.initialBalance;
 
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
+      // Update history for all the records realted to that account
+      await this.update(
+        { amount: Balances.sequelize.literal(`amount + ${diff}`) },
+        {
+          where: { accountId },
+          transaction: attributes.transaction,
+        },
+      );
+    } else {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
 
-    // If no balance exists yet, create one with the account's current balance
-    await this.create({
-      accountId,
-      date,
-      amount: currentBalance,
-    }, { transaction: attributes.transaction });
+      // If no balance exists yet, create one with the account's current balance
+      await this.create({
+        accountId,
+        date,
+        amount: initialBalance,
+      }, { transaction: attributes.transaction });
+    }
   }
 }
 

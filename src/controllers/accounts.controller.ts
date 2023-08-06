@@ -1,10 +1,12 @@
 import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
-import { logger} from '@js/utils/logger';
 import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
 import { removeUndefinedKeys } from '@js/helpers';
+import Accounts from '@models/Accounts.model';
+import { ValidationError } from '@js/errors';
+import { errorHandler } from './helpers';
 
-export const getAccounts = async (req, res: CustomResponse, next) => {
+export const getAccounts = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
@@ -15,12 +17,11 @@ export const getAccounts = async (req, res: CustomResponse, next) => {
       response: accounts,
     });
   } catch (err) {
-    logger.error(err);
-    return next(err);
+    errorHandler(res, err);
   }
 };
 
-export const getAccountById = async (req, res: CustomResponse, next) => {
+export const getAccountById = async (req, res: CustomResponse) => {
   const { id } = req.params;
   const { id: userId } = req.user;
 
@@ -32,20 +33,18 @@ export const getAccountById = async (req, res: CustomResponse, next) => {
       response: account,
     });
   } catch (err) {
-    logger.error(err);
-    return next(err);
+    errorHandler(res, err);
   }
 };
 
-export const createAccount = async (req, res, next) => {
+export const createAccount = async (req, res) => {
   const {
     accountTypeId,
     currencyId,
     name,
-    currentBalance,
-    initialBalance = 0,
+    initialBalance,
     creditLimit,
-  } = req.body;
+  }: endpointsTypes.CreateAccountBody = req.body;
   const { id: userId } = req.user;
 
   try {
@@ -53,7 +52,6 @@ export const createAccount = async (req, res, next) => {
       accountTypeId,
       currencyId,
       name,
-      currentBalance,
       creditLimit,
       initialBalance,
       userId,
@@ -65,26 +63,34 @@ export const createAccount = async (req, res, next) => {
       response: account,
     });
   } catch (err) {
-    logger.error(err);
-    return next(err);
+    errorHandler(res, err);
   }
 };
 
-export const updateAccount = async (req, res, next) => {
+export const updateAccount = async (req, res) => {
   const { id } = req.params;
   const { id: userId } = req.user;
   const {
     accountTypeId,
     currencyId,
     name,
-    currentBalance,
     creditLimit,
     isEnabled,
     initialBalance,
   }: endpointsTypes.UpdateAccountBody = req.body;
-
   try {
-    const account = await accountsService.updateAccount({
+    const account = await Accounts.findByPk(id);
+
+    if (account.type !== ACCOUNT_TYPES.system) {
+      if (currencyId || creditLimit || initialBalance) {
+        throw new ValidationError({ message: `'currencyId', 'creditLimit', 'initialBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type` })
+      }
+    }
+
+    // If user wants to change currentBalance, he can do it in two ways:
+    // 1. Create an adjustment transaction
+    // 2. Update `initialBalance` field, which will automatically edit balance and balance history
+    const result = await accountsService.updateAccount({
       id,
       userId,
       ...removeUndefinedKeys({
@@ -93,22 +99,20 @@ export const updateAccount = async (req, res, next) => {
         currencyId: Number(currencyId),
         initialBalance: Number(initialBalance),
         name,
-        currentBalance: Number(currentBalance),
         creditLimit: Number(creditLimit),
       }),
     });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: account,
+      response: result,
     });
   } catch (err) {
-    logger.error(err);
-    return next(err);
+    errorHandler(res, err);
   }
 };
 
-export const deleteAccount = async (req, res, next) => {
+export const deleteAccount = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -116,7 +120,6 @@ export const deleteAccount = async (req, res, next) => {
 
     return res.status(200).json({ status: API_RESPONSE_STATUS.success });
   } catch (err) {
-    logger.error(err);
-    return next(err);
+    errorHandler(res, err);
   }
 };

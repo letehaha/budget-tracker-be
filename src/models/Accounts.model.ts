@@ -122,10 +122,10 @@ export default class Accounts extends Model<AccountsAttributes> {
     allowNull: true,
   })
   externalData: object; // JSON of any addition fields
-  // cashbackType: string; // move to additionalFields that will represent non-unified data
-  // maskedPan: string; // move to additionalFields
-  // type: string; // move to additionalFields
-  // iban: string; // move to additionalFields
+  // cashbackType: string;
+  // maskedPan: string;
+  // type: string;
+  // iban: string;
 
   // represents "if account is active and should be visible in stats"
   @Column({
@@ -137,7 +137,7 @@ export default class Accounts extends Model<AccountsAttributes> {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
-    await Balances.handleAccountCreation(instance, { transaction });
+    await Balances.handleAccountChange({ account: instance }, { transaction });
   }
 
   @BeforeUpdate
@@ -211,7 +211,6 @@ export interface CreateAccountPayload {
   accountTypeId: AccountsAttributes['accountTypeId'];
   currencyId: AccountsAttributes['currencyId'];
   name: AccountsAttributes['name'];
-  currentBalance: AccountsAttributes['currentBalance'];
   // TODO: https://github.com/letehaha/budget-tracker-fe/issues/208
   // refCurrentBalance: AccountsAttributes['refCurrentBalance'];
   // refCreditLimit: AccountsAttributes['refCreditLimit'];
@@ -234,6 +233,7 @@ export const createAccount = async (
     userId,
     type,
     isEnabled,
+    currentBalance: rest.initialBalance,
     ...rest
   }, attributes);
 
