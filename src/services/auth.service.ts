@@ -43,16 +43,13 @@ export const login = async (
         return { token: `Bearer ${token}` };
       }
 
-      throw new Unauthorized(
-        API_ERROR_CODES.invalidCredentials,
-        'User email and/or password are invalid!'
-      )
+      throw new Unauthorized({
+        code: API_ERROR_CODES.invalidCredentials,
+        message: 'User email and/or password are invalid!'
+      });
     }
 
-    throw new NotFoundError(
-      API_ERROR_CODES.notFound,
-      'User not found!'
-    )
+    throw new NotFoundError({ message: 'User not found!' })
   } catch (err) {
     logger.error(err)
     throw err
