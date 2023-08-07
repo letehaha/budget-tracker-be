@@ -7,11 +7,12 @@ const apiPrefix = config.get('apiPrefix');
 export const extractResponse = response => response.body.response;
 
 export const makeRequest = (
-  { url, method, payload = null }:
+  { url, method, payload = null, headers = {} }:
   {
     url: string;
     method: 'get' | 'post' | 'put' | 'delete';
     payload?: object;
+    headers?: object;
   }
 ) => {
   let tempUrl = url
@@ -23,6 +24,7 @@ export const makeRequest = (
   const base = request(app)[method](`${apiPrefix}${tempUrl}`)
 
   if (global.APP_AUTH_TOKEN) base.set('Authorization', global.APP_AUTH_TOKEN)
+  if (Object.keys(headers).length) base.set(headers);
   if (payload) base.send(payload);
 
   return base;
