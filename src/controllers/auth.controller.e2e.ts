@@ -104,5 +104,58 @@ describe('Auth', () => {
       expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
       expect(res.body.response.code).toEqual(API_ERROR_CODES.userExists);
     })
-  })  
+  })
+  
+  describe('Validate token', () => {
+    it ('should validate token', async () => {
+      await makeRequest({
+        method: 'post',
+        url: '/auth/register',
+        payload: {
+          username: 'test_user',
+          password: 'test_user',
+        },
+      });
+
+      await makeRequest({
+        method: 'post',
+        url: '/auth/login',
+        payload: {
+          username: 'test_user',
+          password: 'test_user',
+        },
+      });
+
+      const validateTokenRes = await makeRequest({
+        method: 'get',
+        url: '/auth/validate-token',
+      });
+
+      expect(validateTokenRes.statusCode).toEqual(200);
+    })
+
+    it('Check empty token', async () => {
+      const validateTokenRes = await makeRequest({
+        method: 'get',
+        url: '/auth/validate-token',
+        headers: {
+          'Authorization': '',
+        }
+      });
+
+      expect(validateTokenRes.statusCode).toEqual(401);
+    })
+
+    it('Check invalid token', async () => {
+      const validateTokenRes = await makeRequest({
+        method: 'get',
+        url: '/auth/validate-token',
+        headers: {
+          'Authorization': 'Bearer random token',
+        }
+      });
+
+      expect(validateTokenRes.statusCode).toEqual(401);
+    })
+  })
 })
