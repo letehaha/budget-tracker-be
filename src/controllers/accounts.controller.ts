@@ -53,6 +53,7 @@ export const createAccount = async (req, res) => {
       throw new Unauthorized({ message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.` })
     }
 
+    // TODO: check that currencyId and accountTypeId exist
     const account = await accountsService.createAccount({
       accountTypeId,
       currencyId,

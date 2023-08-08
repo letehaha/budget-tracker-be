@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from 'shared-types';
 import { addDays, startOfDay } from 'date-fns';
+import { faker } from '@faker-js/faker';
 import { ERROR_CODES } from '@js/errors';
 import { makeRequest, extractResponse } from '@tests/helpers';
 
@@ -113,5 +114,42 @@ describe('Accounts controller', () => {
 
       expect(brokenUpdate.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+  })
+
+  describe('Create Account', () => {
+    it('should successfully create an account and then retrieve it', async() =>{
+      // load account types to then use one of them to create an account
+      const accountTypes = extractResponse(await makeRequest({
+        method: 'get',
+        url: '/models/account-types',
+      }));
+  
+      const userCurrencies = extractResponse(await makeRequest({
+        method: 'get',
+        url: '/user/currencies',
+      }));
+  
+      const accountName = faker.company.name();
+      
+      const account = await createAccount(buildAccountPayload({
+        accountTypeId: accountTypes[0].id,
+        currencyId: userCurrencies[0].currencyId,
+        name: accountName,
+        initialBalance: 100,
+        creditLimit: 1000,
+      }));
+  
+      expect(account.statusCode).toEqual(200);
+      expect(account.body.response.name).toContain(accountName);
+  
+      // get all accounts and check if it exists in account list
+  
+      const accounts = extractResponse(await makeRequest({
+        method: 'get',
+        url: '/accounts',
+      }));
+  
+      expect(accounts.find(item => item.name === accountName)).not.toBe(undefined);
+    })
   })
 })

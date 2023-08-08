@@ -107,7 +107,7 @@ describe('Auth', () => {
   })
   
   describe('Validate token', () => {
-    it ('should validate token', async () => {
+    it('should validate token', async () => {
       await makeRequest({
         method: 'post',
         url: '/auth/register',
