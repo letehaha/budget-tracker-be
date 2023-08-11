@@ -1,8 +1,10 @@
 import config from 'config';
+import { Response } from 'express';
 import request from 'supertest';
 import { startOfDay } from 'date-fns';
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, endpointsTypes } from 'shared-types';
 import { app } from '@root/app';
+import Accounts from '@models/Accounts.model';
 
 const apiPrefix = config.get('apiPrefix');
 
@@ -42,15 +44,16 @@ export const randomDate = (start: Date = new Date(2020, 1, 5), end: Date = new D
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
-export const buildAccountPayload = (overrides = {}) => ({
+export const buildAccountPayload = (overrides: Partial<endpointsTypes.CreateAccountBody> = {}): endpointsTypes.CreateAccountBody => ({
   accountTypeId: 1,
   currencyId: global.BASE_CURRENCY.id,
   name: 'test',
   type: ACCOUNT_TYPES.system,
-  currentBalance: 0,
+  initialBalance: 0,
   creditLimit: 0,
   ...overrides,
 });
+type BuildAccountPayload = ReturnType<typeof buildAccountPayload>
 
 export const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
   accountId,
@@ -63,22 +66,35 @@ export const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.ex
   type: ACCOUNT_TYPES.system,
 });
 
-export const getAccount = ({ accountId, raw = false }) => makeRequest({
-  method: 'get',
-  url: `/accounts/${accountId}`,
-  raw,
-});
+export function getAccount({ id, raw }: { id: number, raw: false }): Promise<Response>;
+export function getAccount({ id, raw }: { id: number, raw: true }): Promise<Accounts>;
+export function getAccount({ id, raw = false }): Promise<Response | Accounts> {
+  return makeRequest({
+    method: 'get',
+    url: `/accounts/${id}`,
+    raw,
+  });
+}
 
-export const createAccount = ({ payload = buildAccountPayload(), raw = false } = {}) => makeRequest({
-  method: 'post',
-  url: '/accounts',
-  payload,
-  raw,
-});
+export function createAccount(): Promise<Response>;
+export function createAccount({ payload, raw }: { payload?: BuildAccountPayload, raw: false }): Promise<Response>;
+export function createAccount({ payload, raw }: { payload?: BuildAccountPayload, raw: true }): Promise<Accounts>;
+export function createAccount({ payload = buildAccountPayload(), raw = false } = {}): Promise<Response | Accounts> {
+  return makeRequest({
+    method: 'post',
+    url: '/accounts',
+    payload,
+    raw,
+  });
+}
 
-export const updateAccount = ({ id, payload = {}, raw = false })  => makeRequest({
-  method: 'put',
-  url: `/accounts/${id}`,
-  payload,
-  raw,
-});
+export function updateAccount({ id, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: false }): Promise<Response>;
+export function updateAccount({ id, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: true }): Promise<Accounts>;
+export function updateAccount({ id, payload = {}, raw = false }) {
+  return makeRequest({
+    method: 'put',
+    url: `/accounts/${id}`,
+    payload,
+    raw,
+  });
+}

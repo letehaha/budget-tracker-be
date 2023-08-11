@@ -63,7 +63,7 @@ describe('Accounts controller', () => {
         })
       }
 
-      const accountAfterTxs = await getAccount({ accountId: account.id, raw: true });
+      const accountAfterTxs = await getAccount({ id: account.id, raw: true });
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
 
