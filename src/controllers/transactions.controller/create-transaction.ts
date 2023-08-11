@@ -1,7 +1,6 @@
-import { API_ERROR_CODES, ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
+import { ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-
-import { CustomError} from '@js/errors'
+import { errorHandler } from '@controllers/helpers';
 
 import * as transactionsService from '@services/transactions';
 
@@ -58,22 +57,6 @@ export const createTransaction = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(err.httpCode).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: err.code,
-        },
-      });
-    }
-
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };

@@ -1,5 +1,6 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
+import { errorHandler } from '@controllers/helpers';
 import { getAllSystemCurrencies } from '@services/system-currencies';
 
 export const getAllCurrencies = async (req, res: CustomResponse) => {
@@ -11,12 +12,6 @@ export const getAllCurrencies = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
