@@ -24,7 +24,7 @@ const umzug = new Umzug({
   },
 });
 
-global.BASE_CURRENCY_ID = 2;
+global.BASE_CURRENCY = null;
 global.APP_AUTH_TOKEN = null;
 
 beforeEach(async () => {
@@ -53,10 +53,22 @@ beforeEach(async () => {
 
     global.APP_AUTH_TOKEN = extractResponse(res).token;
 
+    // Don't waste time, just store base_currency to the global variable to not
+    // call this request each time
+    if (!global.BASE_CURRENCY) {
+      const currencies = await makeRequest({
+        method: 'get',
+        url: '/models/currencies',
+        raw: true,
+      });
+
+      global.BASE_CURRENCY = currencies.find(item => item.code === 'USD');
+    }
+
     await makeRequest({
       method: 'post',
       url: '/user/currencies/base',
-      payload: { currencyId: global.BASE_CURRENCY_ID },
+      payload: { currencyId: global.BASE_CURRENCY.id },
     });
   } catch (err) {
     console.log(err)

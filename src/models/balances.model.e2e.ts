@@ -26,28 +26,28 @@ const callGelFullBalanceHistory = async (raw = false) => {
   return raw ? extractResponse(result) : result
 }
 
-describe('Balances model', () => {
-  const baseCurrencyId = 2
-  const buildAccountPayload = (overrides = {}) => ({
-    accountTypeId: 1,
-    currencyId: baseCurrencyId,
-    name: 'test',
-    type: ACCOUNT_TYPES.system,
-    currentBalance: 0,
-    creditLimit: 0,
-    ...overrides,
-  })
+const buildAccountPayload = (overrides = {}) => ({
+  accountTypeId: 1,
+  currencyId: global.BASE_CURRENCY.id,
+  name: 'test',
+  type: ACCOUNT_TYPES.system,
+  currentBalance: 0,
+  creditLimit: 0,
+  ...overrides,
+})
 
-  const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
-    accountId,
-    amount: 1000,
-    categoryId: 1,
-    isTransfer: false,
-    paymentType: 'creditCard',
-    time: startOfDay(new Date()),
-    transactionType: type,
-    type: ACCOUNT_TYPES.system,
-  })
+const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
+  accountId,
+  amount: 1000,
+  categoryId: 1,
+  isTransfer: false,
+  paymentType: 'creditCard',
+  time: startOfDay(new Date()),
+  transactionType: type,
+  type: ACCOUNT_TYPES.system,
+});
+
+describe('Balances model', () => {
 
   it('the balances table correctly managing account creation', async () => {
     const accountResult = await makeRequest({
