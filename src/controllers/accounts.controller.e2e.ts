@@ -1,35 +1,7 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from 'shared-types';
 import { addDays, startOfDay } from 'date-fns';
 import { ERROR_CODES } from '@js/errors';
-import { makeRequest, extractResponse } from '@tests/helpers';
-
-const baseCurrencyId = 2
-const buildAccountPayload = (overrides = {}) => ({
-  accountTypeId: 1,
-  currencyId: baseCurrencyId,
-  name: 'test',
-  type: ACCOUNT_TYPES.system,
-  currentBalance: 0,
-  creditLimit: 0,
-  ...overrides,
-});
-
-const getAccount = (accountId) => makeRequest({
-  method: 'get',
-  url: `/accounts/${accountId}`,
-});
-
-const createAccount = (payload = buildAccountPayload()) => makeRequest({
-  method: 'post',
-  url: '/accounts',
-  payload,
-});
-
-const updateAccount = (id, payload)  => makeRequest({
-  method: 'put',
-  url: `/accounts/${id}`,
-  payload,
-});
+import { makeRequest, extractResponse, createAccount, buildAccountPayload, getAccount, updateAccount } from '@tests/helpers';
 
 const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
   accountId,
@@ -49,18 +21,21 @@ const createTransaction = (payload) => (
 describe('Accounts controller', () => {
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
-      const res = await makeRequest({
-        method: 'put',
-        url: '/accounts/1',
-      });
+      const res = await updateAccount({
+        id: 1,
+      })
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
       expect(extractResponse(res).code).toEqual(API_ERROR_CODES.notFound);
     });
 
     it('should just ignore if no data passed', async () => {
-      const account = extractResponse(await createAccount());
-      const updatedAccount = extractResponse(await updateAccount(account.id, {}));
+      const account = await createAccount({ raw: true });
+      const updatedAccount = await updateAccount({
+        id: account.id,
+        payload: {},
+        raw: true,
+      });
 
       expect(account).toStrictEqual(updatedAccount);
     });
@@ -71,8 +46,12 @@ describe('Accounts controller', () => {
         name: 'new test',
         currencyId: 3,
       };
-      const account = extractResponse(await createAccount());
-      const updatedAccount = extractResponse(await updateAccount(account.id, newBasicFieldsValues));
+      const account = await createAccount({ raw: true });
+      const updatedAccount = await updateAccount({
+        id: account.id,
+        payload: newBasicFieldsValues,
+        raw: true,
+      });
 
       expect(updatedAccount).toStrictEqual({ ...account, ...newBasicFieldsValues });
 
@@ -84,31 +63,45 @@ describe('Accounts controller', () => {
         })
       }
 
-      const accountAfterTxs = extractResponse(await getAccount(account.id));
+      const accountAfterTxs = await getAccount({ accountId: account.id, raw: true });
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
 
-      const accountUpdateBalance = extractResponse(await updateAccount(account.id, {
-        initialBalance: -500,
-      }));
+      const accountUpdateBalance = await updateAccount({
+        id: account.id,
+        payload: {
+          initialBalance: -500,
+        },
+        raw: true,
+      });
 
       expect(accountUpdateBalance.initialBalance).toBe(-500);
       expect(accountUpdateBalance.currentBalance).toBe(-3500);
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
-      const account = extractResponse(await createAccount({
-        ...buildAccountPayload(),
-        type: ACCOUNT_TYPES.monobank,
-      }));
-      const updatedAccount = extractResponse(await updateAccount(account.id, {
-        name: 'test test',
-      }));
+      const account = await createAccount({
+        payload: {
+          ...buildAccountPayload(),
+          type: ACCOUNT_TYPES.monobank,
+        },
+        raw: true,
+      });
+      const updatedAccount = await updateAccount({
+        id: account.id,
+        payload: {
+          name: 'test test',
+        },
+        raw: true,
+      });
 
       expect(updatedAccount.name).toBe('test test');
 
-      const brokenUpdate = await updateAccount(account.id, {
-        initialBalance: 1000,
+      const brokenUpdate = await updateAccount({
+        id: account.id,
+        payload: {
+          initialBalance: 1000,
+        },
       });
 
       expect(brokenUpdate.statusCode).toBe(ERROR_CODES.ValidationError);
