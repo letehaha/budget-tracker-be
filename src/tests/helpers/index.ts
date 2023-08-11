@@ -1,6 +1,7 @@
 import config from 'config';
 import request from 'supertest';
-import { ACCOUNT_TYPES } from 'shared-types';
+import { startOfDay } from 'date-fns';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
 import { app } from '@root/app';
 
 const apiPrefix = config.get('apiPrefix');
@@ -49,6 +50,17 @@ export const buildAccountPayload = (overrides = {}) => ({
   currentBalance: 0,
   creditLimit: 0,
   ...overrides,
+});
+
+export const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
+  accountId,
+  amount: 1000,
+  categoryId: 1,
+  isTransfer: false,
+  paymentType: 'creditCard',
+  time: startOfDay(new Date()),
+  transactionType: type,
+  type: ACCOUNT_TYPES.system,
 });
 
 export const getAccount = ({ accountId, raw = false }) => makeRequest({

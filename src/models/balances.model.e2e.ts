@@ -1,10 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES } from 'shared-types';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Accounts from '@models/Accounts.model';
-import { makeRequest, extractResponse } from '@tests/helpers';
+import {
+  makeRequest,
+  createAccount,
+  buildAccountPayload,
+  buildTransactionPayload,
+  extractResponse,
+} from '@tests/helpers';
 
 const callGetBalanceHistory = async (accountId, raw = false) => {
   const result = await makeRequest({
@@ -26,79 +31,51 @@ const callGelFullBalanceHistory = async (raw = false) => {
   return raw ? extractResponse(result) : result
 }
 
-const buildAccountPayload = (overrides = {}) => ({
-  accountTypeId: 1,
-  currencyId: global.BASE_CURRENCY.id,
-  name: 'test',
-  type: ACCOUNT_TYPES.system,
-  currentBalance: 0,
-  creditLimit: 0,
-  ...overrides,
-})
-
-const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
-  accountId,
-  amount: 1000,
-  categoryId: 1,
-  isTransfer: false,
-  paymentType: 'creditCard',
-  time: startOfDay(new Date()),
-  transactionType: type,
-  type: ACCOUNT_TYPES.system,
-});
-
 describe('Balances model', () => {
-
   it('the balances table correctly managing account creation', async () => {
-    const accountResult = await makeRequest({
-      method: 'post',
-      url: '/accounts',
-      payload: buildAccountPayload(),
-    })
+    const account = await createAccount({ raw: true })
 
-    const balancesHistory = await callGetBalanceHistory(extractResponse(accountResult).id);
+    const balancesHistory = await callGetBalanceHistory(account.id);
 
     const result = extractResponse(balancesHistory)
 
     expect(balancesHistory.statusCode).toEqual(200);
-    expect(result[0].amount).toEqual(extractResponse(accountResult).initialBalance);
+    expect(result[0].amount).toEqual(account.initialBalance);
   })
 
   describe('the balances history table correctly updated when:', () => {
     const buildAccount = async (
       { accountInitialBalance = 0 } = {}
     ) => {
-      const accountResult = await makeRequest({
-        method: 'post',
-        url: '/accounts',
+      const account = await createAccount({
         payload: buildAccountPayload({
           initialBalance: accountInitialBalance,
           currentBalance: accountInitialBalance,
         }),
+        raw: true,
       });
 
-      const accountResponse = extractResponse(accountResult);
-      expect(accountResponse.initialBalance).toBe(accountInitialBalance);
+      expect(account.initialBalance).toBe(accountInitialBalance);
 
-      const expense = buildTransactionPayload({ accountId: accountResponse.id })
+      const expense = buildTransactionPayload({ accountId: account.id })
       const income = buildTransactionPayload({
-        accountId: accountResponse.id,
+        accountId: account.id,
         type: TRANSACTION_TYPES.income
       })
-      const initialBalancesHistory = await callGetBalanceHistory(accountResponse.id);
+      const initialBalancesHistory = await callGetBalanceHistory(account.id);
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(extractResponse(initialBalancesHistory).length).toEqual(1);
-      expect(extractResponse(initialBalancesHistory)[0].amount).toEqual(accountResponse.currentBalance);
+      expect(extractResponse(initialBalancesHistory)[0].amount).toEqual(account.currentBalance);
 
       const toReturn: {
         accountData: Accounts;
-        accountResult: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expense: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         income: any;
       } = {
-        accountResult,
-        accountData: accountResponse,
+        accountData: account,
         expense,
         income,
       }
