@@ -74,7 +74,7 @@ export interface TransactionsAttributes {
 
   // is transaction transfer?
   isTransfer: boolean;
-  // (hash, used to connect two transactions)
+  // (hash, used to connect two transactions, to easily search the opposite tx)
   transferId: string;
 
   originalId: string; // Stores the original id from external source

@@ -105,6 +105,8 @@ type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refA
         id: destinationAccountId,
       });
 
+      // "destination" tx should always have same `refAmount` so it won't produce
+      // any conflicts. TODO: improve explanation
       destinationTxParams.refAmount = generalTxParams.refAmount
       destinationTxParams.currencyId = destinationTxCurrency.id;
       destinationTxParams.currencyCode = destinationTxCurrency.code;
