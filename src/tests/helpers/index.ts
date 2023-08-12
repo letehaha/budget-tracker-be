@@ -5,21 +5,24 @@ import { startOfDay } from 'date-fns';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, endpointsTypes } from 'shared-types';
 import { app } from '@root/app';
 import Accounts from '@models/Accounts.model';
+import Transactions from '@models/Transactions.model';
+import ExchangeRates from '@models/ExchangeRates.model';
 
 const apiPrefix = config.get('apiPrefix');
 
 export const extractResponse = response => response?.body?.response;
 
-export const makeRequest = async (
-  { url, method, payload = null, headers = {}, raw = false }:
-  {
-    url: string;
-    method: 'get' | 'post' | 'put' | 'delete';
-    payload?: object;
-    headers?: object;
-    raw?: boolean;
-  }
-) => {
+interface MakeRequestParams {
+  url: string;
+  method: 'get' | 'post' | 'put' | 'delete';
+  payload?: object;
+  headers?: object;
+  raw?: boolean;
+}
+
+export async function makeRequest(
+  { url, method, payload = null, headers = {}, raw = false }: MakeRequestParams,
+) {
   let tempUrl = url
 
   if (method === 'get') {
@@ -68,7 +71,7 @@ export const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.ex
 
 export function getAccount({ id, raw }: { id: number, raw: false }): Promise<Response>;
 export function getAccount({ id, raw }: { id: number, raw: true }): Promise<Accounts>;
-export function getAccount({ id, raw = false }): Promise<Response | Accounts> {
+export function getAccount({ id, raw = false }: { id: number; raw?: boolean; }) {
   return makeRequest({
     method: 'get',
     url: `/accounts/${id}`,
@@ -79,7 +82,7 @@ export function getAccount({ id, raw = false }): Promise<Response | Accounts> {
 export function createAccount(): Promise<Response>;
 export function createAccount({ payload, raw }: { payload?: BuildAccountPayload, raw: false }): Promise<Response>;
 export function createAccount({ payload, raw }: { payload?: BuildAccountPayload, raw: true }): Promise<Accounts>;
-export function createAccount({ payload = buildAccountPayload(), raw = false } = {}): Promise<Response | Accounts> {
+export function createAccount({ payload = buildAccountPayload(), raw = false } = {}) {
   return makeRequest({
     method: 'post',
     url: '/accounts',
@@ -96,5 +99,51 @@ export function updateAccount({ id, payload = {}, raw = false }) {
     url: `/accounts/${id}`,
     payload,
     raw,
+  });
+}
+
+export function createTransaction(): Promise<Response>;
+export function createTransaction({ raw }: { raw?: true }): Promise<Transactions>
+export function createTransaction({ raw }: { raw?: false }): Promise<Response>
+export function createTransaction({ raw = false } = {}) {
+  return makeRequest({
+    method: 'post',
+    url: '/transactions',
+    raw,
+  })
+}
+
+export function getTransactions(): Promise<Response>;
+export function getTransactions({ raw }: { raw?: true }): Promise<Transactions[]>
+export function getTransactions({ raw }: { raw?: false }): Promise<Response>
+export function getTransactions({ raw = false } = {}) {
+  return makeRequest({
+    method: 'get',
+    url: '/transactions',
+    raw,
+  });
+}
+
+export function getCurrenciesRates(): Promise<ExchangeRates[]> {
+  return makeRequest({
+    method: 'get',
+    url: '/user/currencies/rates',
+    raw: true,
+  })
+}
+
+export function addUserCurrencies(
+  { currencyIds = [], currencyCodes = [] }:
+  { currencyIds?: number[]; currencyCodes?: string[] } = {}
+) {
+  return makeRequest({
+    method: 'post',
+    url: '/user/currencies',
+    payload: {
+      currencies: [
+        ...currencyIds.map(id => ({ currencyId: id })),
+        ...currencyCodes.map(code => ({ currencyId: global.MODELS_CURRENCIES.find(item => item.code === code).id }))
+      ]
+    },
   });
 }
