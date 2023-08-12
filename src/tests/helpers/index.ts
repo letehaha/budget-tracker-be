@@ -91,8 +91,8 @@ export function createAccount({ payload = buildAccountPayload(), raw = false } =
   });
 }
 
-export function updateAccount({ id, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: false }): Promise<Response>;
-export function updateAccount({ id, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: true }): Promise<Accounts>;
+export function updateAccount({ id, payload, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: false }): Promise<Response>;
+export function updateAccount({ id, payload, raw }: { id: number, payload?: Partial<BuildAccountPayload>, raw?: true }): Promise<Accounts>;
 export function updateAccount({ id, payload = {}, raw = false }) {
   return makeRequest({
     method: 'put',
@@ -102,14 +102,32 @@ export function updateAccount({ id, payload = {}, raw = false }) {
   });
 }
 
-export function createTransaction(): Promise<Response>;
-export function createTransaction({ raw }: { raw?: true }): Promise<Transactions>
-export function createTransaction({ raw }: { raw?: false }): Promise<Response>
-export function createTransaction({ raw = false } = {}) {
+interface CreateTransactionBasePayload {
+  payload?: ReturnType<typeof buildTransactionPayload>,
+}
+
+export async function createTransaction(): Promise<Response>;
+export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: false }): Promise<Response>
+export async function createTransaction({ raw = false, payload = undefined } = {}) {
+  let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
+
+  if (payload === undefined) {
+    const account = await createAccount({ raw: true });
+    txPayload = buildTransactionPayload({ accountId: account.id });
+  }
   return makeRequest({
     method: 'post',
     url: '/transactions',
+    payload: txPayload,
     raw,
+  })
+}
+
+export function deleteTransaction({ id }: { id?: number } = {}): Promise<Response> {
+  return makeRequest({
+    method: 'delete',
+    url: `/transactions/${id}`,
   })
 }
 

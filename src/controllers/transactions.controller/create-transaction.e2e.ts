@@ -1,19 +1,17 @@
+import { TRANSACTION_TYPES } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
-import { TRANSACTION_TYPES } from '@root/../shared-types';
 import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
   it('should return validation error if no data passed', async () => {
-    const res = await helpers.createTransaction();
+    const res = await helpers.createTransaction({ payload: null, raw: false });
 
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
   it('should successfully create a transaction base currency', async () => {
     const account = await helpers.createAccount({ raw: true });
     const txPayload = helpers.buildTransactionPayload({ accountId: account.id });
-    const createdTransactions = await helpers.makeRequest({
-      method: 'post',
-      url: '/transactions',
+    const createdTransactions = await helpers.createTransaction({
       payload: txPayload,
       raw: true,
     });
@@ -42,9 +40,7 @@ describe('Create transaction controller', () => {
     });
 
     const txPayload = helpers.buildTransactionPayload({ accountId: account.id });
-    const createdTransactions = await helpers.makeRequest({
-      method: 'post',
-      url: '/transactions',
+    const createdTransactions = await helpers.createTransaction({
       payload: txPayload,
       raw: true,
     });
@@ -71,9 +67,7 @@ describe('Create transaction controller', () => {
       destinationAmount: defaultTxPayload.amount,
       destinationAccountId: accountB.id,
     };
-    const createdTransactions = await helpers.makeRequest({
-      method: 'post',
-      url: '/transactions',
+    const createdTransactions = await helpers.createTransaction({
       payload: txPayload,
       raw: true,
     });
@@ -127,9 +121,7 @@ describe('Create transaction controller', () => {
       destinationAmount: DESTINATION_AMOUNT,
       destinationAccountId: accountB.id,
     };
-    const createdTransactions = await helpers.makeRequest({
-      method: 'post',
-      url: '/transactions',
+    const createdTransactions = await helpers.createTransaction({
       payload: txPayload,
       raw: true,
     });
@@ -198,15 +190,12 @@ describe('Create transaction controller', () => {
       destinationAmount: DESTINATION_AMOUNT,
       destinationAccountId: accountB.id,
     };
-    const createdTransactions = await helpers.makeRequest({
-      method: 'post',
-      url: '/transactions',
+    const createdTransactions = await helpers.createTransaction({
       payload: txPayload,
       raw: true,
     });
 
     const transactions = await helpers.getTransactions({ raw: true });
-    console.log('transactions', transactions);
 
     expect(createdTransactions[0].currencyId).toBe(currencyA.id);
     expect(createdTransactions[0].currencyCode).toBe(currencyA.code);
