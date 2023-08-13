@@ -13,6 +13,7 @@
     "seed": "npx sequelize-cli db:seed:all",
     "seed-undo": "npx sequelize-cli db:seed:undo:all",
     "db:reset": "cross-env NODE_ENV=test npx sequelize-cli db:drop && npx sequelize-cli db:create && npx sequelize-cli db:migrate",
+    "pretest": "cross-env NODE_ENV=test npm run db:reset",
     "test": "cross-env NODE_ENV=test npm run test:unit && npm run test:e2e",
     "test:unit": "cross-env NODE_ENV=test jest -c jest.config.unit.ts --passWithNoTests --forceExit --detectOpenHandles",
     "test:e2e": "cross-env NODE_ENV=test jest -c jest.config.e2e.ts --runInBand --passWithNoTests --forceExit --detectOpenHandles",

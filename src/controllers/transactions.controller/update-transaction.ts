@@ -1,10 +1,8 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import { API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
-
-import { CustomError } from '@js/errors'
-
+import { errorHandler } from '@controllers/helpers';
 import * as transactionsService from '@services/transactions';
-
+import { removeUndefinedKeys } from '@js/helpers';
 import { validateTransactionAmount } from './helpers';
 
 export const updateTransaction = async (req, res: CustomResponse) => {
@@ -21,24 +19,26 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       isTransfer,
-    } = req.body;
+    }: endpointsTypes.UpdateTransactionBody = req.body;
     const { id: userId } = req.user;
 
-    validateTransactionAmount(amount);
+    if (amount) validateTransactionAmount(amount);
 
     const data = await transactionsService.updateTransaction({
       id,
-      amount,
-      destinationAmount,
-      note,
-      time,
-      userId,
-      transactionType,
-      paymentType,
-      accountId,
-      destinationAccountId,
-      categoryId,
-      isTransfer,
+      ...removeUndefinedKeys({
+        amount,
+        destinationAmount,
+        note,
+        time: new Date(time),
+        userId,
+        transactionType,
+        paymentType,
+        accountId,
+        destinationAccountId,
+        categoryId,
+        isTransfer,
+      }),
     });
 
     return res.status(200).json({
@@ -46,22 +46,6 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(err.httpCode).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: err.code,
-        },
-      });
-    }
-
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };

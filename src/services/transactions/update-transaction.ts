@@ -8,8 +8,8 @@ import { ValidationError } from '@js/errors';
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
-import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { getTransactionById } from './get-by-id';
 
@@ -60,6 +60,7 @@ interface UpdateTransferParams {
       accountId: previousAccountId,
       isTransfer: previouslyItWasTransfer,
       currencyCode: previousCurrencyCode,
+      transactionType: previousTransactionType,
       transferId,
     } = await getTransactionById(
       { id, userId },
@@ -71,7 +72,13 @@ interface UpdateTransferParams {
       { transaction }
     );
 
-    if (isTransfer && transactionType !== TRANSACTION_TYPES.expense) {
+    if (previouslyItWasTransfer && previousTransactionType !== TRANSACTION_TYPES.expense) {
+      // We doesn't allow users to change non-source trasnaction for several reasons:
+      // 1. Most importantly – to make things simpler. For now there's no case that
+      //    exactly non-source tx should be changed, so it's just easier to not
+      //    code that logic
+      // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
+      //    Otherwise we will need to code additional logic to handle that
       throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
     }
 
@@ -106,20 +113,13 @@ interface UpdateTransferParams {
       baseTransactionUpdateParams.currencyCode = baseTxCurrency.code
     }
 
-    if (
-      defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode &&
-      baseTransactionUpdateParams.amount !== previousAmount
-    ) {
-      const { rate } = await userExchangeRateService.getExchangeRate({
+    if (defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode) {
+      baseTransactionUpdateParams.refAmount = await calculateRefAmount({
         userId,
+        amount: baseTransactionUpdateParams.amount,
         baseCode: baseTransactionUpdateParams.currencyCode,
         quoteCode: defaultUserCurrency.code,
-      }, { transaction })
-
-      baseTransactionUpdateParams.refAmount = Math.max(
-        Math.floor(baseTransactionUpdateParams.amount * rate),
-        1,
-      )
+      }, { transaction });
     }
 
     const baseTransaction = await Transactions.updateTransactionById(
