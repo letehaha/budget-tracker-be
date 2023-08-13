@@ -34,6 +34,7 @@ describe('Accounts controller', () => {
       });
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
+      expect(account.refInitialBalance).toStrictEqual(initialBalance);
       expect(account.currentBalance).toStrictEqual(initialBalance);
       expect(account.refCurrentBalance).toStrictEqual(initialBalance);
       expect(account.creditLimit).toStrictEqual(creditLimit);
@@ -55,6 +56,7 @@ describe('Accounts controller', () => {
       const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
+      expect(account.refInitialBalance).toStrictEqual(Math.floor(initialBalance * currencyRate.rate));
       expect(account.currentBalance).toStrictEqual(initialBalance);
       expect(account.refCurrentBalance).toStrictEqual(Math.floor(initialBalance * currencyRate.rate));
       expect(account.creditLimit).toStrictEqual(creditLimit);
