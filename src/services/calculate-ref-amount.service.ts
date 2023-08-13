@@ -8,6 +8,7 @@ import Currencies from '@models/Currencies.model';
 /**
  * Calculates the reference amount for passed provided currencies and parameters.
  * If the quote currency code is not provided, the default user currency is used.
+ * If the base currency code is the same as the user's default currency, the original amount is returned.
  *
  * @async
  * @export
@@ -37,9 +38,17 @@ export const calculateRefAmount = async (
     if (!quoteCode) {
       const { currency } = await UsersCurrencies.getCurrency(
         { userId, isDefaultCurrency: true },
-        { transaction }
+        { transaction },
       );
       defaultUserCurrency = currency;
+    }
+
+    // If baseCade same as default currency code no need to calculate anything
+    if (defaultUserCurrency?.code === baseCode || quoteCode === baseCode) {
+      if (!isTxPassedFromAbove) {
+        await transaction.commit();
+      }
+      return amount;
     }
 
     const { rate } = await userExchangeRateService.getExchangeRate({
