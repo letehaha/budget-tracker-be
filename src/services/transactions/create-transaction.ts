@@ -7,8 +7,8 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
-import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'>
 
@@ -64,13 +64,12 @@ type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refA
     generalTxParams.currencyCode = generalTxCurrency.code;
 
     if (defaultUserCurrency.code !== generalTxCurrency.code) {
-      const { rate } = await userExchangeRateService.getExchangeRate({
+      generalTxParams.refAmount = await calculateRefAmount({
         userId,
+        amount: generalTxParams.amount,
         baseCode: generalTxCurrency.code,
         quoteCode: defaultUserCurrency.code,
-      }, { transaction })
-
-      generalTxParams.refAmount = Math.max(Math.floor(generalTxParams.amount * rate), 1)
+      }, { transaction });
     }
 
     let mainTxParams = { ...generalTxParams }
