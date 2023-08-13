@@ -1,22 +1,7 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from 'shared-types';
-import { addDays, startOfDay } from 'date-fns';
+import { ACCOUNT_TYPES, API_ERROR_CODES } from 'shared-types';
+import { addDays } from 'date-fns';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
-
-const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
-  accountId,
-  amount: 1000,
-  categoryId: 1,
-  isTransfer: false,
-  paymentType: 'creditCard',
-  time: startOfDay(new Date()),
-  transactionType: type,
-  type: ACCOUNT_TYPES.system,
-});
-
-const createTransaction = (payload) => (
-  helpers.makeRequest({ method: 'post', url: '/transactions', payload })
-);
 
 describe('Accounts controller', () => {
   describe('create account', () => {
@@ -84,11 +69,9 @@ describe('Accounts controller', () => {
       expect(account).toStrictEqual(updatedAccount);
     });
 
-    it.todo('when currencyId is changed, ref fields updated correctly');
-    it('updates fields correctly', async () => {
+    it('updates account correctly with default user currency', async () => {
       const newBasicFieldsValues = {
         name: 'new test',
-        currencyId: 3,
       };
       const account = await helpers.createAccount({ raw: true });
       const updatedAccount = await helpers.updateAccount({
@@ -101,26 +84,82 @@ describe('Accounts controller', () => {
 
       // Create 3 expense transactions with -1000 each
       for (const index in Array(3).fill(0)) {
-        await createTransaction({
-          ...buildTransactionPayload({ accountId: account.id }),
-          time: addDays(new Date(), +index + 1),
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: account.id }),
+            time: addDays(new Date(), +index + 1),
+          },
         })
       }
 
       const accountAfterTxs = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountAfterTxs.initialBalance).toBe(0);
+      expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
+      expect(accountAfterTxs.refCurrentBalance).toBe(-3000);
 
+      // Update account balance directly, with no tx usage. In that case balance should
+      // be changed as well as initialBalance
       const accountUpdateBalance = await helpers.updateAccount({
         id: account.id,
         payload: {
-          initialBalance: -500,
+          currentBalance: -500,
         },
         raw: true,
       });
 
-      expect(accountUpdateBalance.initialBalance).toBe(-500);
-      expect(accountUpdateBalance.currentBalance).toBe(-3500);
+      // We changed currentBalance from -3000 to -500, so it means that
+      // initialbalance should be increased on 2500
+      expect(accountUpdateBalance.initialBalance).toBe(2500);
+      expect(accountUpdateBalance.refInitialBalance).toBe(2500);
+      expect(accountUpdateBalance.currentBalance).toBe(-500);
+      expect(accountUpdateBalance.refCurrentBalance).toBe(-500);
+    });
+    it('updates account correctly with non-default user currency', async () => {
+      const newCurrency = 'UAH';
+      const currency = (await helpers.addUserCurrencies({ currencyCodes: [newCurrency], raw: true }))[0];
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          currencyId: currency.currencyId,
+        },
+        raw: true,
+      });
+      const currencyRate = (await helpers.getCurrenciesRates({ codes: [newCurrency] }))[0];
+
+      // Create 3 expense transactions with -1000 each
+      for (const index in Array(3).fill(0)) {
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: account.id }),
+            time: addDays(new Date(), +index + 1),
+          },
+        })
+      }
+
+      const accountAfterTxs = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfterTxs.initialBalance).toBe(0);
+      expect(accountAfterTxs.refInitialBalance).toBe(0);
+      expect(accountAfterTxs.currentBalance).toBe(-3000);
+      expect(accountAfterTxs.refCurrentBalance).toBe(-Math.floor(3000 * currencyRate.rate));
+
+      // Update account balance directly, with no tx usage. In that case balance should
+      // be changed as well as initialBalance
+      const accountUpdateBalance = await helpers.updateAccount({
+        id: account.id,
+        payload: {
+          currentBalance: -500,
+        },
+        raw: true,
+      });
+
+      // We changed currentBalance from -3000 to -500, so it means that
+      // initialbalance should be increased on 2500
+      expect(accountUpdateBalance.initialBalance).toBe(2500);
+      expect(accountUpdateBalance.refInitialBalance).toBe(Math.floor(2500 * currencyRate.rate));
+      expect(accountUpdateBalance.currentBalance).toBe(-500);
+      // Because of the rounding issues it might be that value might be wrong on 1 in any direction
+      expect(accountUpdateBalance.refCurrentBalance).toBe(-Math.floor(500 * currencyRate.rate) - 1);
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
@@ -144,7 +183,7 @@ describe('Accounts controller', () => {
       const brokenUpdate = await helpers.updateAccount({
         id: account.id,
         payload: {
-          initialBalance: 1000,
+          currentBalance: 1000,
         },
       });
 

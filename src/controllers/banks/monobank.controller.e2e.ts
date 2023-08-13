@@ -9,7 +9,7 @@ import {
   API_ERROR_CODES,
 } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
-import { makeRequest, extractResponse, sleep, randomDate } from '@tests/helpers';
+import * as helpers from '@tests/helpers';
 
 const getMockedClientData = (): { data: ExternalMonobankClientInfoResponse } => ({
   data: {
@@ -49,7 +49,7 @@ const getMockedTransactionData = (
   amount = 1,
   { initialBalance }: { initialBalance?: number } = {},
 ): { data: ExternalMonobankTransactionResponse[] } => {
-  const currentDate = randomDate();
+  const currentDate = helpers.randomDate();
   // To make balance change realistic, we store initial one here and the sub below
   let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
@@ -87,7 +87,7 @@ const getMockedTransactionData = (
 const DUMB_MONOBANK_API_TOKEN = '234234234234';
 
 const callPairMonobankUser = () => {
-  return makeRequest({
+  return helpers.makeRequest({
     method: 'post',
     url: '/banks/monobank/pair-user',
     payload: {
@@ -105,7 +105,7 @@ const pairMonobankUser = () => {
 describe('Balances model', () => {
   describe('Pair Monobank account', () => {
     it('throws validation error if no "token" passed', async () => {
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'post',
         url: '/banks/monobank/pair-user',
       });
@@ -121,22 +121,37 @@ describe('Balances model', () => {
       const mockedClientData = getMockedClientData();
       const createdMonoUserRestult = await pairMonobankUser();
 
-      expect(extractResponse(createdMonoUserRestult).apiToken).toBe(DUMB_MONOBANK_API_TOKEN);
-      expect(extractResponse(createdMonoUserRestult).accounts.length).toBe(mockedClientData.data.accounts.length);
+      expect(helpers.extractResponse(createdMonoUserRestult).apiToken).toBe(DUMB_MONOBANK_API_TOKEN);
+      expect(helpers.extractResponse(createdMonoUserRestult).accounts.length).toBe(mockedClientData.data.accounts.length);
 
-      const accountResult = extractResponse(await makeRequest({ method: 'get', url: '/accounts' }));
+      const accountResult = helpers.extractResponse(
+        await helpers.makeRequest({ method: 'get', url: '/accounts' }),
+      );
 
-      mockedClientData.data.accounts.forEach((item, index) => {
-        const mockedAccount = mockedClientData.data.accounts[index];
-        const resultItem = accountResult[index];
+      // temp hack to not rewrite API hard
+      const CURRENCY_NUMBER_TO_CODE = {
+        980: 'UAH',
+        840: 'USD',
+      }
+
+      for (const item of mockedClientData.data.accounts) {
+        const mockedAccount = item;
+        const resultItem = accountResult.find(acc => acc.externalId === item.id);
+
+        const rates = await helpers.getCurrenciesRates();
+        const rate = rates.find(r => r.baseCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode]).rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
+        expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));
         expect(resultItem.currentBalance).toBe(mockedAccount.balance);
+        expect(resultItem.refCurrentBalance).toBe(Math.floor(mockedAccount.balance * rate));
+        expect(resultItem.creditLimit).toBe(mockedAccount.creditLimit);
+        expect(resultItem.refCreditLimit).toBe(Math.floor(mockedAccount.creditLimit * rate));
         expect(resultItem.type).toBe(ACCOUNT_TYPES.monobank);
         // By default all Monobank accounts should be disabled so we will load
         // new transactions only to accounts that user choosed
         expect(resultItem.isEnabled).toBe(false);
-      })
+      }
     });
     it('handles case when trying to pair existing account', async () => {
       const result = await pairMonobankUser();
@@ -145,32 +160,32 @@ describe('Balances model', () => {
 
       const oneMoreResult = await callPairMonobankUser();
 
-      expect(extractResponse(oneMoreResult).code).toBe(API_ERROR_CODES.monobankUserAlreadyConnected);
+      expect(helpers.extractResponse(oneMoreResult).code).toBe(API_ERROR_CODES.monobankUserAlreadyConnected);
     });
   });
   describe('[getUser] to get monobank user', () => {
     it('Returns correct error when user not found', async () => {
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'get',
         url: '/banks/monobank/user',
       });
 
-      expect(extractResponse(result).code).toEqual(API_ERROR_CODES.monobankUserNotPaired);
+      expect(helpers.extractResponse(result).code).toEqual(API_ERROR_CODES.monobankUserNotPaired);
     });
     it('Returns correct user', async () => {
       await pairMonobankUser();
 
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'get',
         url: '/banks/monobank/user',
       });
 
-      expect(extractResponse(result).apiToken).toEqual(DUMB_MONOBANK_API_TOKEN);
+      expect(helpers.extractResponse(result).apiToken).toEqual(DUMB_MONOBANK_API_TOKEN);
     });
   })
   describe('[loadTransactions]', () => {
     it('returns validation error if some field is missing', async () => {
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'get',
         url: '/banks/monobank/load-transactions',
       });
@@ -178,7 +193,7 @@ describe('Balances model', () => {
       expect(result.status).toEqual(ERROR_CODES.ValidationError);
     });
     it('returns 404 if user is not paired', async () => {
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'get',
         url: '/banks/monobank/load-transactions',
         payload: {
@@ -193,7 +208,7 @@ describe('Balances model', () => {
     it('returns 404 if calling for unexisting account', async () => {
       await pairMonobankUser();
 
-      const result = await makeRequest({
+      const result = await helpers.makeRequest({
         method: 'get',
         url: '/banks/monobank/load-transactions',
         payload: {
@@ -213,10 +228,10 @@ describe('Balances model', () => {
       beforeEach(async () => {
         jest.clearAllMocks();
         // To prevent DB deadlock. Dunno why it happens
-        await sleep(500);
+        await helpers.sleep(500);
 
         await pairMonobankUser();
-        const accounts = extractResponse(await makeRequest({
+        const accounts = helpers.extractResponse(await helpers.makeRequest({
           method: 'get',
           url: '/accounts',
         }));
@@ -228,7 +243,7 @@ describe('Balances model', () => {
 
         (axios as any).mockResolvedValueOnce(mockedTransactions);
 
-        await makeRequest({
+        await helpers.makeRequest({
           method: 'get',
           url: '/banks/monobank/load-transactions',
           payload: {
@@ -241,14 +256,14 @@ describe('Balances model', () => {
 
       it('creates transactions from loaded ones', async () => {
         // Since there's a queue inside and it's async
-        await sleep(500);
+        await helpers.sleep(500);
 
-        const transactions = extractResponse(await makeRequest({
+        const transactions = helpers.extractResponse(await helpers.makeRequest({
           method: 'get',
           url: '/transactions',
         }));
 
-        let balanceHistory = extractResponse(await makeRequest({
+        let balanceHistory = helpers.extractResponse(await helpers.makeRequest({
           method: 'get',
           url: '/stats/balance-history',
           payload: {
@@ -271,7 +286,7 @@ describe('Balances model', () => {
       });
 
       it('returns tooManyRequests if trying to load transactions while previous queue exists', async () => {
-        const result = await makeRequest({
+        const result = await helpers.makeRequest({
           method: 'get',
           url: '/banks/monobank/load-transactions',
           payload: {
@@ -286,7 +301,7 @@ describe('Balances model', () => {
 
       it('returns tooManyRequests if trying to load transactions right after previous load', async () => {
         // Make sure that queue is empty
-        await sleep(500);
+        await helpers.sleep(500);
 
         (axios as any).mockRejectedValueOnce({
           response: {
@@ -296,7 +311,7 @@ describe('Balances model', () => {
 
         // First call throws an error and stores blocker to Redis, but returns 200
         // because the error occurs asynchronously
-        const result1 = await makeRequest({
+        const result1 = await helpers.makeRequest({
           method: 'get',
           url: '/banks/monobank/load-transactions',
           payload: {
@@ -309,7 +324,7 @@ describe('Balances model', () => {
         expect(result1.status).toEqual(200);
 
         // Second call checks that now we have correct error
-        const result = await makeRequest({
+        const result = await helpers.makeRequest({
           method: 'get',
           url: '/banks/monobank/load-transactions',
           payload: {

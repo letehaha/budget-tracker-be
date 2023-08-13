@@ -77,11 +77,10 @@ export const updateAccount = async (req, res) => {
   const { id: userId } = req.user;
   const {
     accountTypeId,
-    currencyId,
     name,
     creditLimit,
     isEnabled,
-    initialBalance,
+    currentBalance,
   }: endpointsTypes.UpdateAccountBody = req.body;
   try {
     const account = await Accounts.findByPk(id);
@@ -91,22 +90,21 @@ export const updateAccount = async (req, res) => {
     }
 
     if (account.type !== ACCOUNT_TYPES.system) {
-      if (currencyId || creditLimit || initialBalance) {
-        throw new ValidationError({ message: `'currencyId', 'creditLimit', 'initialBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type` })
+      if (creditLimit || currentBalance) {
+        throw new ValidationError({ message: `'creditLimit', 'currentBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type` })
       }
     }
 
     // If user wants to change currentBalance, he can do it in two ways:
     // 1. Create an adjustment transaction
-    // 2. Update `initialBalance` field, which will automatically edit balance and balance history
+    // 2. Update `currentBalance` field, which will automatically edit initialBalance and balance history
     const result = await accountsService.updateAccount({
       id,
       userId,
       ...removeUndefinedKeys({
         isEnabled,
         accountTypeId: Number(accountTypeId),
-        currencyId: Number(currencyId),
-        initialBalance: Number(initialBalance),
+        currentBalance: Number(currentBalance),
         name,
         creditLimit: Number(creditLimit),
       }),

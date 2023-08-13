@@ -267,34 +267,25 @@ export interface UpdateAccountByIdPayload {
   // currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
   initialBalance?: AccountsAttributes['initialBalance'];
+  refInitialBalance?: AccountsAttributes['refInitialBalance'];
   currentBalance?: AccountsAttributes['currentBalance'];
   refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
   creditLimit?: AccountsAttributes['creditLimit'];
+  refCreditLimit?: AccountsAttributes['refCreditLimit'];
   isEnabled?: AccountsAttributes['isEnabled'];
 }
 
-// TODO: Do we need to allow initialBalance editing here?
 export async function updateAccountById(
   {
     id,
     userId,
-    refCurrentBalance,
-    currentBalance,
-    ...rest
+    ...payload
   }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) {
   const where = { id, userId };
 
-  await Accounts.update(
-    {
-      currentBalance,
-      // TODO: fix
-      refCurrentBalance: refCurrentBalance ?? currentBalance,
-      ...rest,
-    },
-    { where, ...attributes },
-  );
+  await Accounts.update(payload, { where, ...attributes });
 
   const account = await getAccountById(where, { ...attributes });
 
@@ -309,13 +300,7 @@ export const deleteAccountById = (
 };
 
 export const getAccountCurrency = async (
-  {
-    userId,
-    id,
-  }: {
-    userId: number;
-    id: number;
-  },
+  { userId, id }: { userId: number; id: number },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const account = await Accounts.findOne({

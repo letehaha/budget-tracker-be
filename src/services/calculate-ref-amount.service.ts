@@ -1,5 +1,5 @@
 import { connection } from '@models/index';
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';

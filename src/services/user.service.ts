@@ -228,19 +228,12 @@ export const addUserCurrencies = async (
     }
 
     const existingCurrencies = await UsersCurrencies.getCurrencies({ userId: currencies[0].userId });
-    const duplicatedCurrencies = [];
 
     existingCurrencies.forEach(item => {
-      const duplicated = currencies.find(currency => currency.currencyId === item.currencyId);
+      const index = currencies.findIndex(currency => currency.currencyId === item.currencyId);
 
-      if (duplicated) duplicatedCurrencies.push(duplicated)
+      if (index >= 0) currencies.splice(index, 1)
     });
-
-    if (duplicatedCurrencies.length) {
-      throw new ValidationError({
-        message: `Duplicated currencies. Ids: [${duplicatedCurrencies.map(i => i.currencyId)}]`,
-      });
-    }
 
     const result = await Promise.all(
       currencies.map(item => UsersCurrencies.addCurrency(item, { transaction }))

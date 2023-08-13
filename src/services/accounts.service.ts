@@ -13,6 +13,7 @@ import * as Accounts from '@models/Accounts.model';
 import { connection } from '@models/index';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
+import * as userService from '@services/user.service';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { redisClient } from '@root/app';
 import { NotFoundError } from '@js/errors';
@@ -43,7 +44,7 @@ export const getAccountById = async (
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
 export const createSystemAccountsFromMonobankAccounts = async (
-  { userId, monoAccounts },
+  { userId, monoAccounts }: { userId: number; monoAccounts: ExternalMonobankClientInfoResponse['accounts'] },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   // TODO: wrap createCurrency and createAccount into single transactions
@@ -57,6 +58,11 @@ export const createSystemAccountsFromMonobankAccounts = async (
   currencies.forEach((item) => {
     accountCurrencyCodes[item.number] = item.id;
   });
+
+  await userService.addUserCurrencies(currencies.map(item => ({
+    userId,
+    currencyId: item.id,
+  })), { transaction: attributes.transaction });
 
   await Promise.all(
     monoAccounts.map((account) => createAccount({
@@ -136,7 +142,7 @@ export const pairMonobankAccount = async (
 
     await createSystemAccountsFromMonobankAccounts({
       userId,
-      monoAccounts: clientInfo.accounts
+      monoAccounts: clientInfo.accounts,
     });
 
     (user as MonobankUserModel & {
@@ -203,25 +209,52 @@ export const updateAccount = async (
   const transaction = attributes.transaction ?? await connection.sequelize.transaction();
 
   try {
-    const prevAccountData = await Accounts.default.findByPk(id, { transaction });
+    const accountData = await Accounts.default.findByPk(id, { transaction });
 
-    let currentBalance = prevAccountData.currentBalance;
+    const currentBalanceIsChanging = payload.currentBalance && payload.currentBalance !== accountData.currentBalance;
+    let initialBalance = accountData.initialBalance;
+    let refInitialBalance = accountData.refInitialBalance;
+    let refCurrentBalance = accountData.refCurrentBalance;
 
-    // If `initialBalance` is changing, it means user want to change current balance
-    // but without creating adjustment transaction, so instead we change both `initialBalance`
-    // and `currentBalance` on the same diff
-    if (payload.initialBalance && payload.initialBalance !== prevAccountData.initialBalance) {
-      const diff = payload.initialBalance - prevAccountData.initialBalance
-      currentBalance += diff;
+    /**
+     * If `currentBalance` is changing, it means user want to change current balance
+     * but without creating adjustment transaction, so instead we change both `initialBalance`
+     * and `currentBalance` on the same diff
+     */
+    if (currentBalanceIsChanging) {
+      const diff = payload.currentBalance - accountData.currentBalance;
+      const refDiff = await calculateRefAmount({
+        userId: accountData.userId,
+        amount: diff,
+        baseId: accountData.currencyId,
+      }, { transaction: attributes.transaction });
+
+      // --- for system accounts
+      // change currentBalance => change initialBalance
+      // change currentBalance => recalculate refInitialBalance
+      // --- for all accounts
+      // change currentBalance => recalculate refCurrentBalance
+      if (accountData.type === ACCOUNT_TYPES.system) {
+        initialBalance += diff;
+        refInitialBalance += refDiff;
+      }
+      refCurrentBalance += refDiff;
     }
 
     const result = await Accounts.updateAccountById(
-      { id, externalId, currentBalance, ...payload },
+      {
+        id,
+        externalId,
+        initialBalance,
+        refInitialBalance,
+        refCurrentBalance,
+        ...payload,
+      },
       { transaction },
     );
 
     await Balances.handleAccountChange(
-      { account: result, prevAccount: prevAccountData },
+      { account: result, prevAccount: accountData },
       { transaction },
     );
 

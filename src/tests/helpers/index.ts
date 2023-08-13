@@ -166,7 +166,7 @@ export async function getCurrenciesRates(
     method: 'get',
     url: '/user/currencies/rates',
     raw: true,
-  })
+  });
 
   return codes ? data.filter(item => codes.includes(item.baseCode)) : data;
 }
