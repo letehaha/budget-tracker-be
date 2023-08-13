@@ -60,6 +60,7 @@ interface UpdateTransferParams {
       accountId: previousAccountId,
       isTransfer: previouslyItWasTransfer,
       currencyCode: previousCurrencyCode,
+      transactionType: previousTransactionType,
       transferId,
     } = await getTransactionById(
       { id, userId },
@@ -71,7 +72,7 @@ interface UpdateTransferParams {
       { transaction }
     );
 
-    if (isTransfer && transactionType !== TRANSACTION_TYPES.expense) {
+    if (previouslyItWasTransfer && previousTransactionType !== TRANSACTION_TYPES.expense) {
       throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
     }
 
@@ -107,8 +108,8 @@ interface UpdateTransferParams {
     }
 
     if (
-      defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode &&
-      baseTransactionUpdateParams.amount !== previousAmount
+      defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode
+      // baseTransactionUpdateParams.amount !== previousAmount
     ) {
       const { rate } = await userExchangeRateService.getExchangeRate({
         userId,
@@ -116,6 +117,9 @@ interface UpdateTransferParams {
         quoteCode: defaultUserCurrency.code,
       }, { transaction })
 
+      // TODO: move `userExchangeRateService.getExchangeRate` and Math.max logic
+      // to some separate function so we will only do somethin like:
+      // baseTransactionUpdateParams.refAmount = await calcRefAmount(params)
       baseTransactionUpdateParams.refAmount = Math.max(
         Math.floor(baseTransactionUpdateParams.amount * rate),
         1,

@@ -107,8 +107,8 @@ interface CreateTransactionBasePayload {
 }
 
 export async function createTransaction(): Promise<Response>;
-export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
 export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: false }): Promise<Response>
+export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
 export async function createTransaction({ raw = false, payload = undefined } = {}) {
   let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
 
@@ -124,6 +124,22 @@ export async function createTransaction({ raw = false, payload = undefined } = {
   })
 }
 
+interface UpdateTransactionBasePayload {
+  id: number;
+  payload?: Partial<ReturnType<typeof buildTransactionPayload>> & { destinationAmount?: number; destinationAccountId?: number },
+}
+
+export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: false }): Promise<Response>
+export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export function updateTransaction({ raw = false, id, payload = {} }) {
+  return makeRequest({
+    method: 'put',
+    url: `/transactions/${id}`,
+    payload,
+    raw,
+  })
+}
+
 export function deleteTransaction({ id }: { id?: number } = {}): Promise<Response> {
   return makeRequest({
     method: 'delete',
@@ -132,8 +148,8 @@ export function deleteTransaction({ id }: { id?: number } = {}): Promise<Respons
 }
 
 export function getTransactions(): Promise<Response>;
-export function getTransactions({ raw }: { raw?: true }): Promise<Transactions[]>
 export function getTransactions({ raw }: { raw?: false }): Promise<Response>
+export function getTransactions({ raw }: { raw?: true }): Promise<Transactions[]>
 export function getTransactions({ raw = false } = {}) {
   return makeRequest({
     method: 'get',
@@ -142,12 +158,16 @@ export function getTransactions({ raw = false } = {}) {
   });
 }
 
-export function getCurrenciesRates(): Promise<ExchangeRates[]> {
-  return makeRequest({
+export async function getCurrenciesRates(
+  { codes }: { codes?: string[] } = {},
+): Promise<ExchangeRates[]> {
+  const data = await makeRequest({
     method: 'get',
     url: '/user/currencies/rates',
     raw: true,
   })
+
+  return codes ? data.filter(item => codes.includes(item.baseCode)) : data;
 }
 
 export function addUserCurrencies(
