@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from 'shared-types';
 import { addDays, startOfDay } from 'date-fns';
 import { ERROR_CODES } from '@js/errors';
-import { makeRequest, extractResponse, createAccount, buildAccountPayload, getAccount, updateAccount } from '@tests/helpers';
+import * as helpers from '@tests/helpers';
 
 const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
   accountId,
@@ -15,23 +15,65 @@ const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }
 });
 
 const createTransaction = (payload) => (
-  makeRequest({ method: 'post', url: '/transactions', payload })
+  helpers.makeRequest({ method: 'post', url: '/transactions', payload })
 );
 
 describe('Accounts controller', () => {
+  describe('create account', () => {
+    const initialBalance = 1000;
+    const creditLimit = 500;
+
+    it('should correctly create account with correct balance for default currency', async () => {
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          initialBalance,
+          creditLimit
+        },
+        raw: true,
+      });
+
+      expect(account.initialBalance).toStrictEqual(initialBalance);
+      expect(account.currentBalance).toStrictEqual(initialBalance);
+      expect(account.refCurrentBalance).toStrictEqual(initialBalance);
+      expect(account.creditLimit).toStrictEqual(creditLimit);
+      expect(account.refCreditLimit).toStrictEqual(creditLimit);
+    });
+    it('should correctly create account with correct balance for external currency', async () => {
+      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))[0];
+
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          initialBalance,
+          creditLimit,
+          currencyId: currency.currencyId,
+        },
+        raw: true,
+      });
+
+      const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
+
+      expect(account.initialBalance).toStrictEqual(initialBalance);
+      expect(account.currentBalance).toStrictEqual(initialBalance);
+      expect(account.refCurrentBalance).toStrictEqual(Math.floor(initialBalance * currencyRate.rate));
+      expect(account.creditLimit).toStrictEqual(creditLimit);
+      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate.rate));
+    });
+  })
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
-      const res = await updateAccount({
+      const res = await helpers.updateAccount({
         id: 1,
       })
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
-      expect(extractResponse(res).code).toEqual(API_ERROR_CODES.notFound);
+      expect(helpers.extractResponse(res).code).toEqual(API_ERROR_CODES.notFound);
     });
 
     it('should just ignore if no data passed', async () => {
-      const account = await createAccount({ raw: true });
-      const updatedAccount = await updateAccount({
+      const account = await helpers.createAccount({ raw: true });
+      const updatedAccount = await helpers.updateAccount({
         id: account.id,
         payload: {},
         raw: true,
@@ -46,8 +88,8 @@ describe('Accounts controller', () => {
         name: 'new test',
         currencyId: 3,
       };
-      const account = await createAccount({ raw: true });
-      const updatedAccount = await updateAccount({
+      const account = await helpers.createAccount({ raw: true });
+      const updatedAccount = await helpers.updateAccount({
         id: account.id,
         payload: newBasicFieldsValues,
         raw: true,
@@ -63,11 +105,11 @@ describe('Accounts controller', () => {
         })
       }
 
-      const accountAfterTxs = await getAccount({ id: account.id, raw: true });
+      const accountAfterTxs = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
 
-      const accountUpdateBalance = await updateAccount({
+      const accountUpdateBalance = await helpers.updateAccount({
         id: account.id,
         payload: {
           initialBalance: -500,
@@ -80,14 +122,14 @@ describe('Accounts controller', () => {
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
-      const account = await createAccount({
+      const account = await helpers.createAccount({
         payload: {
-          ...buildAccountPayload(),
+          ...helpers.buildAccountPayload(),
           type: ACCOUNT_TYPES.monobank,
         },
         raw: true,
       });
-      const updatedAccount = await updateAccount({
+      const updatedAccount = await helpers.updateAccount({
         id: account.id,
         payload: {
           name: 'test test',
@@ -97,7 +139,7 @@ describe('Accounts controller', () => {
 
       expect(updatedAccount.name).toBe('test test');
 
-      const brokenUpdate = await updateAccount({
+      const brokenUpdate = await helpers.updateAccount({
         id: account.id,
         payload: {
           initialBalance: 1000,

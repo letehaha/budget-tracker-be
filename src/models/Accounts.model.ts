@@ -15,6 +15,7 @@ import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 export interface AccountsAttributes {
   id: number;
@@ -25,6 +26,7 @@ export interface AccountsAttributes {
   creditLimit: number;
   refCreditLimit: number;
   type: ACCOUNT_TYPES;
+  // general, creditCard, etc. TODO: delete it
   accountTypeId: number;
   currencyId: number;
   userId: number;
@@ -229,11 +231,27 @@ export const createAccount = async (
   }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
+  const currentBalance = rest.initialBalance;
+
+  const refCreditLimit = await calculateRefAmount({
+    userId,
+    amount: rest.creditLimit,
+    baseId: rest.currencyId,
+  }, { transaction: attributes.transaction });
+
+  const refCurrentBalance = await calculateRefAmount({
+    userId,
+    amount: currentBalance,
+    baseId: rest.currencyId,
+  }, { transaction: attributes.transaction });
+
   const response = await Accounts.create({
     userId,
     type,
     isEnabled,
-    currentBalance: rest.initialBalance,
+    currentBalance,
+    refCreditLimit,
+    refCurrentBalance,
     ...rest
   }, attributes);
 
