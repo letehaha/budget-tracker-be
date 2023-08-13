@@ -1,7 +1,12 @@
 const isExist = (v) => v !== undefined;
-const removeUndefinedKeys = (obj: Record<string, unknown>): Record<string, unknown> => {
+const removeUndefinedKeys = <T>(obj: T): T => {
   for (const key in obj) {
-    if (obj[key] === undefined || (typeof obj[key] === 'number' && isNaN(obj[key] as number))) {
+    if (
+      obj[key] === undefined
+      || (typeof obj[key] === 'number' && isNaN(obj[key] as number))
+      // Test for Invalid Date object
+      || (obj[key] instanceof Date && isNaN(obj[key] as number))
+    ) {
       delete obj[key]
     }
   }
