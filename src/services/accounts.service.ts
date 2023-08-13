@@ -17,6 +17,7 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import { redisClient } from '@root/app';
 import { NotFoundError } from '@js/errors';
 import Balances from '@models/Balances.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 export const getAccounts = async (
   payload: Accounts.GetAccountsPayload,
@@ -156,9 +157,28 @@ export const pairMonobankAccount = async (
 }
 
 export const createAccount = async (
-  payload: Accounts.CreateAccountPayload,
+  payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel> => Accounts.createAccount(payload, { transaction: attributes.transaction });
+): Promise<AccountModel> => {
+  const { userId, creditLimit, currencyId, initialBalance } = payload;
+  const refCreditLimit = await calculateRefAmount({
+    userId: userId,
+    amount: creditLimit,
+    baseId: currencyId,
+  }, { transaction: attributes.transaction });
+
+  const refInitialBalance = await calculateRefAmount({
+    userId,
+    amount: initialBalance,
+    baseId: currencyId,
+  }, { transaction: attributes.transaction });
+
+  return Accounts.createAccount({
+    ...payload,
+    refCreditLimit,
+    refInitialBalance,
+  }, { transaction: attributes.transaction });
+}
 
 // export async function updateAccount (
 //   payload: Accounts.UpdateAccountByIdPayload & {

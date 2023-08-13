@@ -15,12 +15,12 @@ import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 export interface AccountsAttributes {
   id: number;
   name: string;
   initialBalance: number;
+  refInitialBalance: number;
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
@@ -72,24 +72,35 @@ export default class Accounts extends Model<AccountsAttributes> {
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
+  })
+  refInitialBalance: number;
+
+  @Column({
+    allowNull: false,
+    defaultValue: 0,
+    type: DataType.INTEGER,
   })
   currentBalance: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   refCurrentBalance: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   creditLimit: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   refCreditLimit: number;
 
@@ -213,11 +224,10 @@ export interface CreateAccountPayload {
   accountTypeId: AccountsAttributes['accountTypeId'];
   currencyId: AccountsAttributes['currencyId'];
   name: AccountsAttributes['name'];
-  // TODO: https://github.com/letehaha/budget-tracker-fe/issues/208
-  // refCurrentBalance: AccountsAttributes['refCurrentBalance'];
-  // refCreditLimit: AccountsAttributes['refCreditLimit'];
   initialBalance: AccountsAttributes['initialBalance'];
+  refInitialBalance: AccountsAttributes['refInitialBalance'];
   creditLimit: AccountsAttributes['creditLimit'];
+  refCreditLimit: AccountsAttributes['refCreditLimit'];
   userId: AccountsAttributes['userId'];
   type: AccountsAttributes['type'];
 }
@@ -231,27 +241,12 @@ export const createAccount = async (
   }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const currentBalance = rest.initialBalance;
-
-  const refCreditLimit = await calculateRefAmount({
-    userId,
-    amount: rest.creditLimit,
-    baseId: rest.currencyId,
-  }, { transaction: attributes.transaction });
-
-  const refCurrentBalance = await calculateRefAmount({
-    userId,
-    amount: currentBalance,
-    baseId: rest.currencyId,
-  }, { transaction: attributes.transaction });
-
   const response = await Accounts.create({
     userId,
     type,
     isEnabled,
-    currentBalance,
-    refCreditLimit,
-    refCurrentBalance,
+    currentBalance: rest.initialBalance,
+    refCurrentBalance: rest.refInitialBalance,
     ...rest
   }, attributes);
 
@@ -268,7 +263,8 @@ export interface UpdateAccountByIdPayload {
   userId: AccountsAttributes['userId'];
   externalId?: AccountsAttributes['externalId'];
   accountTypeId?: AccountsAttributes['accountTypeId'];
-  currencyId?: AccountsAttributes['currencyId'];
+  // currency updating is disabled
+  // currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
   initialBalance?: AccountsAttributes['initialBalance'];
   currentBalance?: AccountsAttributes['currentBalance'];
@@ -288,7 +284,7 @@ export async function updateAccountById(
   }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) {
-  const where = { id, userId }
+  const where = { id, userId };
 
   await Accounts.update(
     {
