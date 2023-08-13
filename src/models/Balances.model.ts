@@ -109,7 +109,9 @@ export default class Balances extends Model<BalanceModel> {
     attributes: GenericSequelizeModelAttributes = {},
   ) {
     const { accountId, time } = data;
-    let amount = data.transactionType === TRANSACTION_TYPES.income ? data.amount : data.amount * -1
+    let amount = data.transactionType === TRANSACTION_TYPES.income
+      ? data.refAmount
+      : data.refAmount * -1
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
@@ -119,8 +121,8 @@ export default class Balances extends Model<BalanceModel> {
       } else if (prevData) {
         const originalDate = new Date(prevData.time);
         const originalAmount = prevData.transactionType === TRANSACTION_TYPES.income
-          ? prevData.amount
-          : prevData.amount * -1
+          ? prevData.refAmount
+          : prevData.refAmount * -1
         originalDate.setHours(0, 0, 0, 0);
 
         // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
@@ -257,12 +259,11 @@ export default class Balances extends Model<BalanceModel> {
     );
   }
 
-  // Handle account creation
   static async handleAccountChange(
     { account, prevAccount }: { account: Accounts; prevAccount?: Accounts },
     attributes: GenericSequelizeModelAttributes = {},
   ) {
-    const { id: accountId, initialBalance } = account;
+    const { id: accountId, refInitialBalance } = account;
 
     // Try to find an existing balance for the account
     const record = await this.findOne({
@@ -274,7 +275,7 @@ export default class Balances extends Model<BalanceModel> {
 
     // If record exists, then it's account updating, otherwise account creation
     if (record && prevAccount) {
-      const diff = initialBalance - prevAccount.initialBalance;
+      const diff = refInitialBalance - prevAccount.refInitialBalance;
 
       // Update history for all the records realted to that account
       await this.update(
@@ -292,7 +293,7 @@ export default class Balances extends Model<BalanceModel> {
       await this.create({
         accountId,
         date,
-        amount: initialBalance,
+        amount: refInitialBalance,
       }, { transaction: attributes.transaction });
     }
   }

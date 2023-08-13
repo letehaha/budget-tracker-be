@@ -13,9 +13,8 @@ export interface CreateAccountBody extends BodyPayload {
 
 export interface UpdateAccountBody extends BodyPayload {
   accountTypeId?: AccountModel['accountTypeId'];
-  currencyId?: AccountModel['currencyId'];
   name?: AccountModel['name'];
-  initialBalance?: AccountModel['initialBalance'];
+  currentBalance?: AccountModel['currentBalance'];
   creditLimit?: AccountModel['creditLimit'];
   isEnabled?: AccountModel['isEnabled'];
 }

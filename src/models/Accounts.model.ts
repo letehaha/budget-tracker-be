@@ -20,11 +20,13 @@ export interface AccountsAttributes {
   id: number;
   name: string;
   initialBalance: number;
+  refInitialBalance: number;
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
   refCreditLimit: number;
   type: ACCOUNT_TYPES;
+  // general, creditCard, etc. TODO: delete it
   accountTypeId: number;
   currencyId: number;
   userId: number;
@@ -70,24 +72,35 @@ export default class Accounts extends Model<AccountsAttributes> {
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
+  })
+  refInitialBalance: number;
+
+  @Column({
+    allowNull: false,
+    defaultValue: 0,
+    type: DataType.INTEGER,
   })
   currentBalance: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   refCurrentBalance: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   creditLimit: number;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
+    type: DataType.INTEGER,
   })
   refCreditLimit: number;
 
@@ -211,11 +224,10 @@ export interface CreateAccountPayload {
   accountTypeId: AccountsAttributes['accountTypeId'];
   currencyId: AccountsAttributes['currencyId'];
   name: AccountsAttributes['name'];
-  // TODO: https://github.com/letehaha/budget-tracker-fe/issues/208
-  // refCurrentBalance: AccountsAttributes['refCurrentBalance'];
-  // refCreditLimit: AccountsAttributes['refCreditLimit'];
   initialBalance: AccountsAttributes['initialBalance'];
+  refInitialBalance: AccountsAttributes['refInitialBalance'];
   creditLimit: AccountsAttributes['creditLimit'];
+  refCreditLimit: AccountsAttributes['refCreditLimit'];
   userId: AccountsAttributes['userId'];
   type: AccountsAttributes['type'];
 }
@@ -234,6 +246,7 @@ export const createAccount = async (
     type,
     isEnabled,
     currentBalance: rest.initialBalance,
+    refCurrentBalance: rest.refInitialBalance,
     ...rest
   }, attributes);
 
@@ -250,37 +263,29 @@ export interface UpdateAccountByIdPayload {
   userId: AccountsAttributes['userId'];
   externalId?: AccountsAttributes['externalId'];
   accountTypeId?: AccountsAttributes['accountTypeId'];
-  currencyId?: AccountsAttributes['currencyId'];
+  // currency updating is disabled
+  // currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
   initialBalance?: AccountsAttributes['initialBalance'];
+  refInitialBalance?: AccountsAttributes['refInitialBalance'];
   currentBalance?: AccountsAttributes['currentBalance'];
   refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
   creditLimit?: AccountsAttributes['creditLimit'];
+  refCreditLimit?: AccountsAttributes['refCreditLimit'];
   isEnabled?: AccountsAttributes['isEnabled'];
 }
 
-// TODO: Do we need to allow initialBalance editing here?
 export async function updateAccountById(
   {
     id,
     userId,
-    refCurrentBalance,
-    currentBalance,
-    ...rest
+    ...payload
   }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) {
-  const where = { id, userId }
+  const where = { id, userId };
 
-  await Accounts.update(
-    {
-      currentBalance,
-      // TODO: fix
-      refCurrentBalance: refCurrentBalance ?? currentBalance,
-      ...rest,
-    },
-    { where, ...attributes },
-  );
+  await Accounts.update(payload, { where, ...attributes });
 
   const account = await getAccountById(where, { ...attributes });
 
@@ -295,13 +300,7 @@ export const deleteAccountById = (
 };
 
 export const getAccountCurrency = async (
-  {
-    userId,
-    id,
-  }: {
-    userId: number;
-    id: number;
-  },
+  { userId, id }: { userId: number; id: number },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const account = await Accounts.findOne({

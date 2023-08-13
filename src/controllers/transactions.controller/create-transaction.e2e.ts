@@ -29,7 +29,7 @@ describe('Create transaction controller', () => {
   it('should successfully create a transaction for account with currency different from base one', async () => {
     // Create account with non-default currency
     const currency = global.MODELS_CURRENCIES.find(item => item.code === 'UAH');
-    await helpers.addUserCurrencies({ currencyCodes: ['UAH'] })
+    await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
 
     const account = await helpers.createAccount({
       payload: {

@@ -7,6 +7,7 @@ import { app } from '@root/app';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
 import ExchangeRates from '@models/ExchangeRates.model';
+import UsersCurrencies from '@models/UsersCurrencies.model';
 
 const apiPrefix = config.get('apiPrefix');
 
@@ -165,14 +166,20 @@ export async function getCurrenciesRates(
     method: 'get',
     url: '/user/currencies/rates',
     raw: true,
-  })
+  });
 
   return codes ? data.filter(item => codes.includes(item.baseCode)) : data;
 }
 
+interface AddUserCurrenciesBaseParams {
+  currencyIds?: number[];
+  currencyCodes?: string[];
+  raw?: true | false;
+}
+export function addUserCurrencies({ currencyIds, currencyCodes, raw }: AddUserCurrenciesBaseParams & { raw?: false }): Promise<Response>
+export function addUserCurrencies({ currencyIds, currencyCodes,raw }: AddUserCurrenciesBaseParams & { raw?: true }): Promise<UsersCurrencies[]>
 export function addUserCurrencies(
-  { currencyIds = [], currencyCodes = [] }:
-  { currencyIds?: number[]; currencyCodes?: string[] } = {}
+  { currencyIds = [], currencyCodes = [], raw = false }: AddUserCurrenciesBaseParams = {}
 ) {
   return makeRequest({
     method: 'post',
@@ -183,5 +190,6 @@ export function addUserCurrencies(
         ...currencyCodes.map(code => ({ currencyId: global.MODELS_CURRENCIES.find(item => item.code === code).id }))
       ]
     },
+    raw,
   });
 }
