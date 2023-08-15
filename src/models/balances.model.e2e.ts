@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from 'shared-types';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
-import Accounts from '@models/Accounts.model';
+import Currencies from '@models/Currencies.model';
 import * as helpers from '@tests/helpers';
 
 const callGetBalanceHistory = async (accountId, raw = false) => {
@@ -39,10 +39,20 @@ describe('Balances model', () => {
 
   describe('the balances history table correctly updated when:', () => {
     const buildAccount = async (
-      { accountInitialBalance = 0 } = {}
+      { accountInitialBalance = 0, currencyCode = null } = {}
     ) => {
+      let newCurrency: Currencies = undefined;
+      let currencyRate = 1;
+
+      if (currencyCode) {
+        newCurrency = global.MODELS_CURRENCIES.find(item => item.code === currencyCode);
+        await helpers.addUserCurrencies({ currencyCodes: [currencyCode] });
+        currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0].rate;
+      }
+
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({
+          currencyId: newCurrency?.id || global.BASE_CURRENCY.id,
           initialBalance: accountInitialBalance,
           currentBalance: accountInitialBalance,
         }),
@@ -50,6 +60,7 @@ describe('Balances model', () => {
       });
 
       expect(account.initialBalance).toBe(accountInitialBalance);
+      expect(account.refInitialBalance).toBe(Math.floor(accountInitialBalance * currencyRate));
 
       const expense = helpers.buildTransactionPayload({ accountId: account.id })
       const income = helpers.buildTransactionPayload({
@@ -60,21 +71,14 @@ describe('Balances model', () => {
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(helpers.extractResponse(initialBalancesHistory).length).toEqual(1);
-      expect(helpers.extractResponse(initialBalancesHistory)[0].amount).toEqual(account.currentBalance);
+      expect(helpers.extractResponse(initialBalancesHistory)[0].amount).toEqual(Math.floor(account.currentBalance * currencyRate));
 
-      const toReturn: {
-        accountData: Accounts;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expense: any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        income: any;
-      } = {
+      return {
         accountData: account,
+        currencyRate,
         expense,
         income,
       }
-
-      return toReturn
     }
 
     it('– adding transactions at the same date', async () => {
@@ -360,53 +364,42 @@ describe('Balances model', () => {
     })
 
     it("updating account's balance directly, without transactions", async () => {
-      const initialBalance = 1000;
-      const { accountData, expense, income } = await buildAccount({ accountInitialBalance: initialBalance })
-
-      // Firstly create a transaction AFTER account creation date
-      await helpers.createTransaction({
-        payload: {
-          ...expense,
-          time: startOfDay(addDays(new Date(), 1))
-        }
-      });
-
-      // Then create a transaction BEFORE account creation date
-      await helpers.createTransaction({
-        payload: {
-          ...income,
-          time: startOfDay(subDays(new Date(), 1))
-        }
+      const initialBalance = 10000;
+      const { accountData, currencyRate } = await buildAccount({
+        accountInitialBalance: initialBalance,
+        currencyCode: 'UAH',
       });
 
       const initialHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
-      // Firstly test that balance increase on 1000 works well
+      expect(initialHistory[0].amount).toBe(Math.floor(initialBalance * currencyRate));
+
+      // Firstly test that balance increase works well
       await helpers.updateAccount({
         id: accountData.id,
         payload: {
-          currentBalance: initialBalance + 1000,
+          currentBalance: initialBalance + 5000,
         }
       });
 
       const historyIncreaseChange = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
-      historyIncreaseChange.forEach((item, index) => {
-        expect(item.amount).toBe(initialHistory[index].amount + 1000);
+      historyIncreaseChange.forEach(item => {
+        expect(item.amount).toBe(Math.floor((initialBalance + 5000) * currencyRate) - 1);
       })
 
-      // Then test that balance decreate on 1000 works well
+      // Then test that balance decreate works well
       await helpers.updateAccount({
         id: accountData.id,
         payload: {
-          currentBalance: initialBalance,
+          currentBalance: 0,
         }
       });
 
       const historyDecreaseChange = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
-      historyDecreaseChange.forEach((item, index) => {
-        expect(item.amount).toBe(initialHistory[index].amount);
+      historyDecreaseChange.forEach(item => {
+        expect(item.amount).toBe(0);
       })
     });
   })
