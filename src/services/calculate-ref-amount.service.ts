@@ -84,13 +84,14 @@ export async function calculateRefAmount(
       quoteCode: quoteCode || defaultUserCurrency.code,
     }, { transaction })
 
-    const refAmount = amount === 0 ? 0 : Math.max(Math.floor(amount * rate), 1)
+    const isNegative = amount < 0;
+    const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate)
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
     }
 
-    return refAmount;
+    return isNegative ? refAmount * -1 : refAmount;
   } catch (e) {
     if (process.env.NODE_ENV !== 'test') {
       logger.error(e);

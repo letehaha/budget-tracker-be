@@ -211,7 +211,7 @@ export const updateAccount = async (
   try {
     const accountData = await Accounts.default.findByPk(id, { transaction });
 
-    const currentBalanceIsChanging = payload.currentBalance && payload.currentBalance !== accountData.currentBalance;
+    const currentBalanceIsChanging = payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
     let initialBalance = accountData.initialBalance;
     let refInitialBalance = accountData.refInitialBalance;
     let refCurrentBalance = accountData.refCurrentBalance;
