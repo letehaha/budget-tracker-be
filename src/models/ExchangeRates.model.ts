@@ -5,20 +5,18 @@ import {
   ForeignKey,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { Transaction } from 'sequelize/types';
+import { ExchangeRatesModel } from 'shared-types';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import Currencies from './Currencies.model';
 
-interface ModelOptions {
-  transaction?: Transaction,
-  raw?: boolean,
-}
+interface ExchangeRatesAttributes extends ExchangeRatesModel {}
 
 @Table({
   timestamps: true,
   createdAt: 'date',
   updatedAt: false,
 })
-export default class ExchangeRates extends Model {
+export default class ExchangeRates extends Model<ExchangeRatesAttributes> {
   @Column({
     unique: true,
     allowNull: false,
@@ -50,7 +48,7 @@ export async function getRatesForCurrenciesPairs(
     baseCode: string;
     quoteCode: string;
   }[],
-  modelOptions: ModelOptions,
+  { transaction, raw = true }: GenericSequelizeModelAttributes,
 ) {
   return ExchangeRates.findAll({
     where: {
@@ -61,6 +59,7 @@ export async function getRatesForCurrenciesPairs(
         }
       }))
     },
-    ...modelOptions,
+    raw,
+    transaction,
   })
 }

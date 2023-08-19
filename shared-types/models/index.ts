@@ -96,3 +96,37 @@ export interface TransactionModel {
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
 }
+
+export interface CurrencyModel {
+  id: number;
+  currency: string;
+  digits: number;
+  number: number;
+  code: string;
+  isDisabled: boolean;
+}
+
+export interface UserCurrencyModel {
+  id: number;
+  userId: number;
+  currencyId: number;
+  exchangeRate: number;
+  liveRateUpdate: boolean;
+  isDefaultCurrency: boolean;
+  currency?: CurrencyModel;
+  user?: UserModel;
+}
+
+export interface ExchangeRatesModel {
+  id: number;
+  baseId: number;
+  baseCode: string;
+  quoteId: number;
+  quoteCode: string;
+  rate: number;
+}
+
+export interface UserExchangeRatesModel extends ExchangeRatesModel {
+  userId: number;
+  custom?: boolean;
+}
