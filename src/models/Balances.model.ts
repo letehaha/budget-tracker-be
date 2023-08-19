@@ -298,22 +298,3 @@ export default class Balances extends Model<BalanceModel> {
     }
   }
 }
-
-// TODO: Recode. Look at "getBalanceHistory" in services
-// Method to get the balance for a specific account
-// export const getAccountBalanceHistory = async (
-//   { accountId, userId, from, to }: { accountId: number; userId: number; } & DateQuery,
-//   attributes: GenericSequelizeModelAttributes = {},
-// ): Promise<Balances[]> => {
-//   return Balances.findAll({
-//     where: getWhereConditionForTime({ from, to }),
-//     order: [['date', 'ASC']],
-//     include: [{
-//       model: Accounts,
-//       where: { userId, id: accountId },
-//       attributes: [],
-//     }],
-//     attributes: ['date', 'amount'],
-//     ...attributes,
-//   });
-// }
