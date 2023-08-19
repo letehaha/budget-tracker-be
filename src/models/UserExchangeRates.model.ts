@@ -5,18 +5,16 @@ import {
   ForeignKey,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { Transaction } from 'sequelize/types';
+import { UserExchangeRatesModel } from 'shared-types';
 import Currencies, { getCurrencies } from './Currencies.model';
 import Users from './Users.model';
 import { ValidationError } from '@js/errors';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
-interface ModelOptions {
-  transaction?: Transaction,
-  raw?: boolean,
-}
+type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>
 
 @Table({ timestamps: true })
-export default class UserExchangeRates extends Model {
+export default class UserExchangeRates extends Model<UserExchangeRatesAttributes> {
   @Column({
     unique: true,
     allowNull: false,
@@ -47,17 +45,15 @@ export default class UserExchangeRates extends Model {
   rate: number;
 }
 
-export interface ExchangeRatePair {
-  baseCode: string;
-  quoteCode: string;
-}
+export type ExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode'>
+
 export async function getRates(
-  { userId, pair }: { userId: number; pair: ExchangeRatePair },
-  modelOptions: ModelOptions,
+  { userId, pair }: { userId: UserExchangeRatesAttributes['userId']; pair: ExchangeRatePair },
+  attributes: GenericSequelizeModelAttributes,
 );
 export async function getRates(
-  { userId, pairs }: { userId: number; pairs: ExchangeRatePair[] },
-  modelOptions: ModelOptions,
+  { userId, pairs }: { userId: UserExchangeRatesAttributes['userId']; pairs: ExchangeRatePair[] },
+  attributes: GenericSequelizeModelAttributes,
 );
 export async function getRates(
   {
@@ -65,11 +61,11 @@ export async function getRates(
     pair,
     pairs,
   }: {
-    userId: number;
+    userId: UserExchangeRatesAttributes['userId'];
     pair?: ExchangeRatePair,
     pairs?: ExchangeRatePair[],
   },
-  modelOptions: ModelOptions,
+  attributes: GenericSequelizeModelAttributes,
 ) {
   const where: Record<string|symbol, unknown> = {
     userId,
@@ -101,31 +97,27 @@ export async function getRates(
   return UserExchangeRates.findAll({
     where,
     attributes: { exclude: ['userId'] },
-    ...modelOptions,
+    ...attributes,
   })
 }
 
-export interface UpdateExchangeRatePair {
-  baseCode: string;
-  quoteCode: string;
-  rate: number;
-}
+export type UpdateExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode' | 'rate'>
 
 export async function updateRates(
-  { userId, pair }: { userId: number; pair: UpdateExchangeRatePair },
-  { transaction }: { transaction?: Transaction },
+  { userId, pair }: { userId: UserExchangeRatesAttributes['userId']; pair: UpdateExchangeRatePair },
+  { transaction }: GenericSequelizeModelAttributes,
 ): Promise<UserExchangeRates[]>;
 export async function updateRates(
-  { userId, pairs }: { userId: number; pairs: UpdateExchangeRatePair[] },
-  { transaction }: { transaction?: Transaction },
+  { userId, pairs }: { userId: UserExchangeRatesAttributes['userId']; pairs: UpdateExchangeRatePair[] },
+  { transaction }: GenericSequelizeModelAttributes,
 ): Promise<UserExchangeRates[]>;
 export async function updateRates(
   { userId, pair, pairs }: {
-    userId: number;
+    userId: UserExchangeRatesAttributes['userId'];
     pair?: UpdateExchangeRatePair;
     pairs?: UpdateExchangeRatePair[]
   },
-  { transaction }: { transaction?: Transaction },
+  { transaction }: GenericSequelizeModelAttributes,
 ): Promise<UserExchangeRates[]> {
   const iterations = pairs ?? [pair]
   const returningValues = []
@@ -180,10 +172,10 @@ export async function updateRates(
 
 export async function removeRates(
   { userId, pairs }: {
-    userId: number;
+    userId: UserExchangeRatesAttributes['userId'];
     pairs: ExchangeRatePair[]
   },
-  { transaction }: { transaction?: Transaction },
+  { transaction }: GenericSequelizeModelAttributes,
 ): Promise<void> {
   await UserExchangeRates.destroy({
     where: {

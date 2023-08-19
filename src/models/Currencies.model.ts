@@ -11,16 +11,19 @@ import {
   PrimaryKey,
   BelongsToMany,
 } from 'sequelize-typescript';
+import { CurrencyModel } from 'shared-types';
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { removeUndefinedKeys } from '@js/helpers';
 
+interface CurrenciesAttributes extends CurrencyModel {}
+
 @Table({
   timestamps: false,
 })
-export default class Currencies extends Model {
+export default class Currencies extends Model<CurrenciesAttributes> {
   @BelongsToMany(
     () => Users,
     {
