@@ -7,7 +7,7 @@ import { ValidationError } from '@js/errors';
 
 export const getBalanceHistory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { accountId, from, to }: endpointsTypes.GetBalanceHistoryPayload = req.query;
+  const { from, to }: endpointsTypes.GetBalanceHistoryPayload = req.query;
 
   try {
     if (from && !isValid(new Date(from))) throw new ValidationError({ message: '"from" is invalid date.' })
@@ -16,10 +16,8 @@ export const getBalanceHistory = async (req, res: CustomResponse) => {
       throw new ValidationError({ message: '"from" cannot be greater than "to" date.' })
     }
 
-    // TODO:L validation for "from" and "to"
     const balanceHistory = await statsService.getBalanceHistory({
       userId,
-      accountId: Number(accountId),
       from,
       to,
     });
