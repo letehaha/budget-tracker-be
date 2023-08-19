@@ -6,5 +6,6 @@ const router = Router({});
 
 router.get('/balance-history', authenticateJwt, statsController.getBalanceHistory);
 // TODO: router.get('/balance-history/:account-id', authenticateJwt, statsController.getBalanceHistoryForAccount);
+router.get('/total-balance', authenticateJwt, statsController.getTotalBalance);
 
 export default router;

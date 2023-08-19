@@ -30,3 +30,25 @@ export const getBalanceHistory = async (req, res: CustomResponse) => {
     errorHandler(res, err);
   }
 };
+
+export const getTotalBalance = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { date }: endpointsTypes.GetTotalBalancePayload = req.query;
+
+  try {
+    if (!isValid(new Date(date))) throw new ValidationError({ message: '"date" is invalid date.' })
+
+    const totalBalance = await statsService.getTotalBalance({
+      userId,
+      date,
+    });
+
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+      response: totalBalance,
+    });
+
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
