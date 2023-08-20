@@ -145,7 +145,8 @@ export const getBalanceHistory = async (
           // or "from" otherwise, so it will behave logically correctly
           date: new Date(to ?? from ?? new Date()),
         }))
-      ];
+      // Sort the result ASC
+      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
 
     if (!isTxPassedFromAbove) {
