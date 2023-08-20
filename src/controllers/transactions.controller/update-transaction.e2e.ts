@@ -56,6 +56,7 @@ describe('Update transaction controller', () => {
     expect(txsAfterUpdation[0].amount).toStrictEqual(createdTransaction.amount);
     expect(txsAfterUpdation[0].refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate.rate));
   });
+  it.todo('throw an validation error when trying to edit readonly fields of the external account');
   describe('should change expense to transfer and vice versa', () => {
     let createdTransactions = [];
     let accountA = null;
