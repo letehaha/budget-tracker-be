@@ -34,13 +34,14 @@ const getWhereConditionForTime = ({ from, to }: DateQuery) => {
 };
 
 /**
- * Retrieves the balances for all the accounts for a user within a specified date range.
+ * Retrieves the balances for the requested account for a user within a specified date range.
  * If no balance record is found for an account between the "from" and "to" dates,
  * and also no record before the "from" date, it checks for records after the "to" date
  * that have a positive balance.
  *
  * @param {Object} params - The parameters for fetching balances.
  * @param {number} params.userId - The ID of the user for whom balances are to be fetched.
+ * @param {number} params.accountId - The ID of the account for which balances are to be fetched.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {GenericSequelizeModelAttributes} [attributes={}] - Additional Sequelize model attributes for the query.
@@ -48,11 +49,12 @@ const getWhereConditionForTime = ({ from, to }: DateQuery) => {
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
- * const balances = await getBalanceHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
+ * const balances = await getBalanceHistoryForAccount({ userId: 1, accountId: 1 from: '2023-01-01', to: '2023-12-31' });
  */
-export const getBalanceHistory = async (
-  { userId, from, to }: {
+export const getBalanceHistoryForAccount = async (
+  { userId, from, to, accountId }: {
     userId: number;
+    accountId: number;
     from?: string;
     to?: string;
   },
@@ -64,13 +66,13 @@ export const getBalanceHistory = async (
   try {
     let data: BalanceModel[] = []
 
-    const dataAttributes = ['date', 'amount', 'accountId'];
+    const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
       where: getWhereConditionForTime({ from, to }),
       order: [['date', 'ASC']],
       include: [{
         model: Accounts.default,
-        where: { userId },
+        where: { userId, id: accountId },
         attributes: [],
       }],
       raw: attributes.raw || true,
@@ -80,73 +82,54 @@ export const getBalanceHistory = async (
 
     data = balancesInRange;
 
-    const accountIdsInRange = balancesInRange.map(b => b.accountId);
+    if (!balancesInRange.length) {
+      let balanceRecord: BalanceModel;
 
-    // Fetch all accounts for the user
-    const allUserAccounts = await Accounts.default.findAll({
-      where: { userId },
-      attributes: ['id'],
-    });
-    const allAccountIds = allUserAccounts.map(acc => acc.id);
-    const accountIdsNotInRange = allAccountIds.filter(id => !accountIdsInRange.includes(id));
-
-    if (accountIdsNotInRange.length) {
-      const latestBalancesPromises = accountIdsNotInRange.map(async accountId => {
-        let balanceRecord;
-
-        if (from) {
-          // Check for records before "from" date
-          balanceRecord = await Balances.default.findOne({
-            where: {
-              date: {
-                [Op.lt]: new Date(from),
-              },
-              accountId,
+      if (from) {
+        // Check for records before "from" date
+        balanceRecord = await Balances.default.findOne({
+          where: {
+            date: {
+              [Op.lt]: new Date(from),
             },
-            order: [['date', 'DESC']],
-            attributes: dataAttributes,
-            raw: attributes.raw ?? true,
-            transaction,
-          });
-        }
+            accountId,
+          },
+          order: [['date', 'DESC']],
+          attributes: dataAttributes,
+          raw: attributes.raw ?? true,
+          transaction,
+        });
+      }
 
-        if (!balanceRecord && to) {
-          // If no record found before "from" date, check for records after "to"
-          // date with amount > 0
-          balanceRecord = await Balances.default.findOne({
-            where: {
-              accountId,
-              date: {
-                [Op.gt]: new Date(to)
-              },
-              amount: {
-                [Op.gt]: 0
-              }
+      if (!balanceRecord && to) {
+        // If no record found before "from" date, check for records after "to"
+        // date with amount > 0
+        balanceRecord = await Balances.default.findOne({
+          where: {
+            accountId,
+            date: {
+              [Op.gt]: new Date(to)
             },
-            order: [['date', 'ASC']],
-            attributes: dataAttributes,
-            raw: attributes.raw ?? true,
-            transaction,
-          });
-        }
-
-        return balanceRecord;
-      });
-
-      const latestBalances = await Promise.all(latestBalancesPromises);
+            amount: {
+              [Op.gt]: 0
+            }
+          },
+          order: [['date', 'ASC']],
+          attributes: dataAttributes,
+          raw: attributes.raw ?? true,
+          transaction,
+        });
+      }
 
       // Combine the results
       data = [
         ...data,
         // filter(Boolean) to remove any null values
-        ...latestBalances.filter(Boolean).map(item => ({
-          ...item,
-          // since date is lower than "from", we need to hard-rewrite it to "to" if provided,
-          // or "from" otherwise, so it will behave logically correctly
+        {
+          ...balanceRecord,
           date: new Date(to ?? from ?? new Date()),
-        }))
-      // Sort the result ASC
-      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        },
+      ];
     }
 
     if (!isTxPassedFromAbove) {

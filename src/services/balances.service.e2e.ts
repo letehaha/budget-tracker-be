@@ -25,7 +25,7 @@ const callGelFullBalanceHistory = async (raw = false) => {
   return raw ? helpers.extractResponse(result) : result
 }
 
-describe('Balances model', () => {
+describe('Balances service', () => {
   it('the balances table correctly managing account creation', async () => {
     const account = await helpers.createAccount({ raw: true })
 
