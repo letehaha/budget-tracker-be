@@ -1,4 +1,4 @@
-import { PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types'
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types'
 
 import { Transaction } from 'sequelize/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -61,11 +61,18 @@ interface UpdateTransferParams {
       isTransfer: previouslyItWasTransfer,
       currencyCode: previousCurrencyCode,
       transactionType: previousTransactionType,
+      accountType: previousAccountType,
       transferId,
     } = await getTransactionById(
       { id, userId },
       { transaction },
     );
+
+    if (previousAccountType !== ACCOUNT_TYPES.system) {
+      if (amount || destinationAmount || time || transactionType || accountId || destinationAccountId) {
+        throw new ValidationError({ message: 'Attempt to edit readonly fields of the external account' });
+      }
+    }
 
     const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
       { userId, isDefaultCurrency: true },
