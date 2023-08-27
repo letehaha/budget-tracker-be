@@ -1,5 +1,4 @@
-import { GetSpendingsByCategoriesReturnType } from '../../src/services/stats/get-spendings-by-categories';
-import { AccountModel } from '../models';
+import { AccountModel, TransactionModel } from '../models';
 import { QueryPayload } from './index'
 
 export interface GetBalanceHistoryPayload extends QueryPayload {
@@ -23,4 +22,15 @@ export interface GetSpendingCategoriesPayload extends QueryPayload {
   raw?: boolean;
 }
 
-export { GetSpendingsByCategoriesReturnType }
+// TODO: Improve that logic and expose type from the source-code.
+// Currently frontend (vite) complains about it and trying to import source code
+type TransactionEntity = Pick<
+  TransactionModel,
+  'accountId' | 'time' | 'amount' | 'refAmount' | 'currencyId' | 'currencyCode' | 'categoryId'
+>[];
+
+interface TransactionGroup {
+  transactions: TransactionEntity;
+  nestedCategories: { [categoryId: number]: TransactionGroup };
+}
+export type GetSpendingsByCategoriesReturnType = { [categoryId: number]: TransactionGroup }

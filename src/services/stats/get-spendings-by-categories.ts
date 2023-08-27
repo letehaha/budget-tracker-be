@@ -11,7 +11,6 @@ interface TransactionGroup {
   nestedCategories: { [categoryId: number]: TransactionGroup };
 }
 type GroupedData = { [categoryId: number]: TransactionGroup }
-export type GetSpendingsByCategoriesReturnType = GroupedData;
 
 const groupData = (categories: Categories.default[], transactions: TransactionEntity) => {
   const categoryMap = new Map<number, Categories.default>();
