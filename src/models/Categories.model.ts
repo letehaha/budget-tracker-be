@@ -8,6 +8,7 @@ import {
   DataType,
   BelongsToMany,
 } from 'sequelize-typescript';
+import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
@@ -57,8 +58,15 @@ export default class Categories extends Model {
   categoryId: number;
 }
 
-export const getCategories = async ({ id }) => {
-  const categories = await Categories.findAll({ where: { userId: id }, raw: true });
+export const getCategories = async (
+  { userId }: { userId: number; },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const categories = await Categories.findAll({
+    where: { userId },
+    raw: attributes.raw ?? true,
+    transaction: attributes.transaction,
+  });
 
   return categories;
 };

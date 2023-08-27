@@ -19,3 +19,6 @@ export interface GenericSequelizeModelAttributes {
   transaction?: Transaction;
   raw?: boolean;
 }
+
+export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
+export type UnwrapArray<T> = T extends (infer U)[] ? U : T;

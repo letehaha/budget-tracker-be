@@ -7,6 +7,7 @@ import {
   DataType,
   AfterCreate,
   BeforeUpdate,
+  HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { ACCOUNT_TYPES } from 'shared-types';
@@ -15,6 +16,7 @@ import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
+import Transactions from '@models/Transactions.model';
 
 export interface AccountsAttributes {
   id: number;
@@ -43,13 +45,13 @@ export interface AccountsAttributes {
   timestamps: false,
 })
 export default class Accounts extends Model<AccountsAttributes> {
-  @BelongsTo(
-    () => Currencies,
-    {
-      as: 'currency',
-      foreignKey: 'currencyId',
-    }
-  )
+  @BelongsTo(() => Currencies, {
+    as: 'currency',
+    foreignKey: 'currencyId',
+  })
+
+  @HasMany(() => Transactions)
+  transactions: Transactions[];;
 
   @Column({
     unique: true,
