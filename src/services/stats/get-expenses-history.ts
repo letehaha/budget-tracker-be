@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { TransactionModel } from 'shared-types';
+import { TransactionModel, TRANSACTION_TYPES } from 'shared-types';
 import { removeUndefinedKeys } from '@js/helpers';
 import { GenericSequelizeModelAttributes } from '@common/types';
 
@@ -74,6 +74,7 @@ export const getExpensesHistory = async (
         accountId,
         userId,
         isTransfer: false,
+        transactionType: TRANSACTION_TYPES.expense,
         ...getWhereConditionForTime({ from, to }),
       }),
       order: [['time', 'ASC']],
