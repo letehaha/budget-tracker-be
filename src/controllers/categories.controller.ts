@@ -32,7 +32,7 @@ export const getCategories = async (req, res: CustomResponse) => {
   const { rawCategories } = req.query;
 
   try {
-    const data = await Categories.getCategories({ id });
+    const data = await Categories.getCategories({ userId: id });
 
     if (rawCategories !== undefined) {
       return res.status(200).json({

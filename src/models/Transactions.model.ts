@@ -13,6 +13,7 @@ import {
   Length,
   ForeignKey,
   DataType,
+  BelongsTo,
 } from 'sequelize-typescript';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors'
@@ -132,6 +133,9 @@ export default class Transactions extends Model<TransactionsAttributes> {
   @ForeignKey(() => Accounts)
   @Column({ allowNull: false })
   accountId: number;
+
+  @BelongsTo(() => Accounts)
+  account: Accounts;
 
   @ForeignKey(() => Categories)
   @Column
