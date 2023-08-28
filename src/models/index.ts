@@ -13,6 +13,10 @@ const DBConfig: Record<string, unknown> = config.get('db');
 const sequelize = new Sequelize({
   ...DBConfig,
   models: [__dirname + '/**/*.model.ts'],
+  pool: {
+    max: 50,
+    evict: 10000,
+  },
 });
 
 if (['development'].includes(process.env.NODE_ENV)) {
