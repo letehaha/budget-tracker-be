@@ -125,8 +125,17 @@ export default class Balances extends Model<BalanceModel> {
           : prevData.refAmount * -1
         originalDate.setHours(0, 0, 0, 0);
 
-        // If the account ID changed, the date changed, the transaction type changed, or only the amount changed, remove the original transaction
-        if (accountId !== prevData.accountId || +date !== +originalDate || data.transactionType !== prevData.transactionType || originalAmount !== amount) {
+        if (
+          // If the account ID changed,
+          accountId !== prevData.accountId
+          // the date changed,
+          || +date !== +originalDate
+          // the transaction type changed,
+          || data.transactionType !== prevData.transactionType
+          // or the amount changed
+          || amount
+          // THEN remove the original transaction
+        ) {
           await this.updateRecord({
             accountId: prevData.accountId,
             date: originalDate,
