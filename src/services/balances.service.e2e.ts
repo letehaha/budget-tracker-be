@@ -404,5 +404,33 @@ describe('Balances service', () => {
         expect(item.amount).toBe(-1);
       })
     });
+
+    it("updating a transaction with the same amount shouldn't affect the balance", async () => {
+      // Initial setup: create an account and transaction
+      const initialBalance = 1000;
+      const { accountData } = await buildAccount({ accountInitialBalance: initialBalance });
+
+      // Create a transaction and verify the balance after the transaction
+      const expenseAmount = 100;
+      const transactionPayload = {
+        ...helpers.buildTransactionPayload({ accountId: accountData.id }),
+        amount: expenseAmount,
+      };
+      const transactionResponse = await helpers.createTransaction({ payload: transactionPayload, raw: true });
+      const transactionId = transactionResponse[0].id;
+
+      const initialHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
+      expect(initialHistory[0].amount).toBe(initialBalance - expenseAmount);
+
+      // Update the transaction with the same amount
+      await helpers.updateTransaction({
+        id: transactionId,
+        payload: { amount: expenseAmount },
+      });
+
+      // Verify the balance is unchanged
+      const updatedHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
+      expect(updatedHistory[0].amount).toBe(initialBalance - expenseAmount);
+  });
   })
 })
