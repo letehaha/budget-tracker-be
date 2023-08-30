@@ -65,6 +65,7 @@ export const getBalanceHistory = async (
     let data: BalanceModel[] = []
 
     const dataAttributes = ['date', 'amount', 'accountId'];
+    // Fetch all balance records within the specified date range for the user
     const balancesInRange = await Balances.default.findAll({
       where: getWhereConditionForTime({ from, to }),
       order: [['date', 'ASC']],
@@ -80,7 +81,12 @@ export const getBalanceHistory = async (
 
     data = balancesInRange;
 
-    const accountIdsInRange = balancesInRange.map(b => b.accountId);
+    // Extract account IDs for balance records which have the same date as the
+    // first record in the range. This is needed to make sure that we know the
+    // balance for each account for the beginning of the date range
+    const accountIdsInRange = balancesInRange
+      .filter(item => item.date === balancesInRange[0].date)
+      .map(b => b.accountId);
 
     // Fetch all accounts for the user
     const allUserAccounts = await Accounts.default.findAll({
