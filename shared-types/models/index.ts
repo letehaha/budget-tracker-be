@@ -36,6 +36,7 @@ export interface AccountModel {
   id: number;
   name: string;
   initialBalance: number;
+  refInitialBalance: number;
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
