@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -50,5 +50,4 @@ jobs:
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
             docker-compose pull
-            docker-compose down
-            docker-compose up -d
+            docker-compose up -d --no-deps
