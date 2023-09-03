@@ -71,20 +71,22 @@ export const getCategories = async (
   return categories;
 };
 
+export interface CreateCategoryPayload {
+  userId: number;
+  name?: string;
+  imageUrl?: string;
+  color?: string;
+  parentId?: number;
+  type?: CATEGORY_TYPES;
+}
+
 export const createCategory = async (
   {
     parentId,
     color,
     userId,
     ...params
-  }: {
-    name: string;
-    imageUrl?: string;
-    color?: string;
-    type?: CATEGORY_TYPES;
-    parentId?: number;
-    userId: number;
-  },
+  }: CreateCategoryPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   if (parentId) {
