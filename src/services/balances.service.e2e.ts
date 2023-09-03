@@ -431,6 +431,8 @@ describe('Balances service', () => {
       // Verify the balance is unchanged
       const updatedHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
       expect(updatedHistory[0].amount).toBe(initialBalance - expenseAmount);
-  });
+    });
+    it.todo('creation transfer transactions')
+    it.todo('updating expense/income => transfer => expense/income')
   })
 })

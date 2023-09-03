@@ -46,7 +46,7 @@ export const createUser = async (
     avatar?: string;
     totalBalance?: number;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   try {
     const user = await Users.createUser(
@@ -109,7 +109,7 @@ export const updateUser = async (
     totalBalance?: number;
     defaultCategoryId?: number;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   try {
     const user = await Users.updateUserById(
@@ -154,7 +154,7 @@ export const getUserCurrencies = async ({ userId }: { userId: number }) => {
 
 export const getUserBaseCurrency = (
   { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   return UsersCurrencies.getBaseCurrency({ userId }, { transaction });
 };
@@ -216,7 +216,7 @@ export const addUserCurrencies = async (
     exchangeRate?: number;
     liveRateUpdate?: boolean;
   }[],
-  { transaction }: { transaction?: Transaction } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
 
@@ -305,7 +305,7 @@ export const setDefaultUserCurrency = async (
     userId: number;
     currencyId: number;
   },
-  { transaction }: { transaction?: Transaction } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
   transaction = transaction ?? await connection.sequelize.transaction();
