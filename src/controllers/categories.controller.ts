@@ -113,7 +113,20 @@ export const editCategory = async (req, res: CustomResponse) => {
   }
 }
 
-// TODO: Delete category
-// When deleting, make all transactions related to that category being related
-// to parentId if exists. If no parent, then to Other category (or maybe create Unknown)
-// Disallow deleting parent if children exist (for now)
+export const deleteCategory = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { id: categoryId } = req.params;
+
+  try {
+    await categoriesService.deleteCategory({
+      categoryId,
+      userId,
+    });
+
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}

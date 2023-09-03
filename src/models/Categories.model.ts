@@ -145,6 +145,21 @@ export const editCategory = async (
   return categories;
 };
 
+export interface DeleteCategoryPayload {
+  userId: number;
+  categoryId: number;
+}
+
+export const deleteCategory = async (
+  { userId, categoryId }: DeleteCategoryPayload,
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  return Categories.destroy({
+    where: { userId, id: categoryId },
+    transaction,
+  });
+};
+
 export const bulkCreate = (
   { data },
   {

@@ -7,5 +7,6 @@ const router = Router({});
 router.get('/', authenticateJwt, categoriesController.getCategories);
 router.post('/', authenticateJwt, categoriesController.createCategory);
 router.put('/:id', authenticateJwt, categoriesController.editCategory);
+router.delete('/:id', authenticateJwt, categoriesController.deleteCategory);
 
 export default router;
