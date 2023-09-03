@@ -26,7 +26,6 @@ export interface CategoryModel {
   imageUrl: null | string;
   name: string;
   parentId: null | number;
-  subCategories: CategoryModel[];
   type: CATEGORY_TYPES;
   userId: number;
 }

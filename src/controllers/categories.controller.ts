@@ -1,61 +1,20 @@
-import { API_RESPONSE_STATUS, API_ERROR_CODES, CategoryModel, endpointsTypes } from 'shared-types';
+import { API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import * as Categories from '@models/Categories.model';
 import * as categoriesService from '@services/categories.service';
 import { errorHandler } from './helpers';
 
-// TODO: test it
-export const buildCategiesObjectGraph = (items: Categories.default[]): CategoryModel[] => {
-  const itemsById: Record<string, CategoryModel> = {};
-  const roots = [];
-  const tempItems: CategoryModel[] = items.map(item => {
-    const tempItem = {
-      ...item,
-      subCategories: [],
-    }
-    // build an id->object mapping, so we don't have to go hunting for parents
-    itemsById[item.id] = tempItem;
-
-    return tempItem
-  })
-
-  tempItems.forEach((item) => {
-    const { parentId } = item;
-    // if parentId is null, this is a root; otherwise, it's parentId's kid
-    const nodes = !parentId ? roots : itemsById[parentId].subCategories;
-    nodes.push(item);
-  });
-
-  return roots;
-};
-
 export const getCategories = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-  const { rawCategories } = req.query;
+  const { id: userId } = req.user;
 
   try {
-    const data = await Categories.getCategories({ userId: id });
-
-    if (rawCategories !== undefined) {
-      return res.status(200).json({
-        status: API_RESPONSE_STATUS.success,
-        response: data,
-      });
-    }
+    const data = await categoriesService.getCategories({ userId });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: buildCategiesObjectGraph(data),
+      response: data,
     });
   } catch (err) {
-    console.error(err)
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 

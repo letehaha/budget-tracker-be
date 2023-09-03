@@ -20,6 +20,30 @@ export const bulkCreate = (
   return Categories.bulkCreate({ data }, { transaction, validate, returning });
 }
 
+export const getCategories = async (
+  payload: { userId: number; },
+  { transaction }: GenericSequelizeModelAttributes = {},
+) => {
+  const isTxPassedFromAbove = transaction !== undefined;
+  transaction = transaction ?? await connection.sequelize.transaction();
+
+  try {
+    const result = await Categories.getCategories(payload);
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return result;
+  } catch (err) {
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+
+    throw err;
+  }
+}
+
 export const createCategory = async (
   payload: Categories.CreateCategoryPayload,
   { transaction }: GenericSequelizeModelAttributes = {},
