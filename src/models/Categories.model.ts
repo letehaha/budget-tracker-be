@@ -73,12 +73,10 @@ export const getCategories = async (
 
 export const createCategory = async (
   {
-    name,
-    imageUrl,
-    color,
-    type = CATEGORY_TYPES.custom,
     parentId,
+    color,
     userId,
+    ...params
   }: {
     name: string;
     imageUrl?: string;
@@ -90,12 +88,6 @@ export const createCategory = async (
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   if (parentId) {
-    if (!color) {
-      throw ({
-        code: API_ERROR_CODES.validationError,
-        message: '"color" is required for subcategories. Use the parent color, or define a custom one',
-      })
-    }
     const parent = await Categories.findOne(
       {
         where: { id: parentId, userId },
@@ -109,21 +101,46 @@ export const createCategory = async (
         message: "Category with such parentId doesn't exist.",
       })
     }
+
+    if (!color) color = parent.get('color');
   }
 
-  const category = await Categories.create(
-    {
-      name,
-      imageUrl,
-      color,
-      type,
-      parentId,
-      userId,
-    },
-    { transaction },
-  );
+  const category = await Categories.create({
+    parentId,
+    color,
+    userId,
+    ...params
+  }, { transaction });
 
   return category;
+};
+
+export interface EditCategoryPayload {
+  userId: number;
+  categoryId: number;
+  name?: string;
+  imageUrl?: string;
+  color?: string;
+}
+
+export const editCategory = async (
+  {
+    userId,
+    categoryId,
+    ...params
+  }: EditCategoryPayload,
+  { transaction }: { transaction?: Transaction } = {},
+) => {
+  const [, categories] = await Categories.update(params, {
+    where: {
+      id: categoryId,
+      userId,
+    },
+    returning: true,
+    transaction,
+  });
+
+  return categories;
 };
 
 export const bulkCreate = (

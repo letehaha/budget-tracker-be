@@ -1,6 +1,8 @@
-import { API_RESPONSE_STATUS, API_ERROR_CODES, CategoryModel } from 'shared-types';
+import { API_RESPONSE_STATUS, API_ERROR_CODES, CategoryModel, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as Categories from '@models/Categories.model';
+import * as categoriesService from '@services/categories.service';
+import { errorHandler } from './helpers';
 
 // TODO: test it
 export const buildCategiesObjectGraph = (items: Categories.default[]): CategoryModel[] => {
@@ -82,21 +84,38 @@ export const createCategory = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    if (err.code === API_ERROR_CODES.validationError) {
-      return res.status(500).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: err.message,
-          code: API_ERROR_CODES.validationError,
-        },
-      });
-    }
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
+
+export const editCategory = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { id: categoryId } = req.params;
+  const {
+    name,
+    imageUrl,
+    color,
+  }: endpointsTypes.EditCategoryBody = req.body;
+
+  try {
+    const data = await categoriesService.editCategory({
+      categoryId,
+      userId,
+      name,
+      imageUrl,
+      color,
+    });
+
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+      response: data,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+}
+
+// TODO: Delete category
+// When deleting, make all transactions related to that category being related
+// to parentId if exists. If no parent, then to Other category (or maybe create Unknown)
+// Disallow deleting parent if children exist (for now)
