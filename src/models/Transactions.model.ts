@@ -319,6 +319,7 @@ export const getTransactions = async ({
   from = 0,
   limit = 20,
   accountType,
+  accountId,
   userId,
   sortDirection = 'DESC',
   includeUser,
@@ -340,7 +341,7 @@ export const getTransactions = async ({
     include,
     where: {
       userId,
-      ...removeUndefinedKeys({ accountType }),
+      ...removeUndefinedKeys({ accountType, accountId }),
     },
     offset: from,
     limit: limit,
