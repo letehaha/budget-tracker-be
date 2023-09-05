@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
 
 import { ValidationError } from '@js/errors'
@@ -27,12 +27,14 @@ export const getTransactions = async (req, res: CustomResponse) => {
       limit,
       from = 0,
       accountType,
-    } = req.query;
+      accountId,
+    }: endpointsTypes.GetTransactionsQuery = req.query;
 
     const transactions = await Transactions.getTransactions({
       userId,
       from,
       accountType,
+      accountId,
       limit,
       sortDirection: sort,
       includeUser,
