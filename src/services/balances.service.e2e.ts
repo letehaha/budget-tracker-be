@@ -65,7 +65,7 @@ describe('Balances service', () => {
       const expense = helpers.buildTransactionPayload({ accountId: account.id })
       const income = helpers.buildTransactionPayload({
         accountId: account.id,
-        type: TRANSACTION_TYPES.income
+        transactionType: TRANSACTION_TYPES.income
       })
       const initialBalancesHistory = await callGetBalanceHistory(account.id);
 
