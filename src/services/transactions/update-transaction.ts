@@ -62,6 +62,62 @@ const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevD
   }
 };
 
+const makeBasicBaseTxUpdation = async (
+  newData: UpdateParams & UpdateTransferParams,
+  prevData: Transactions.default,
+  transaction: Transaction,
+) => {
+  const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
+    { userId: newData.userId, isDefaultCurrency: true },
+    { transaction },
+  );
+
+  const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
+    id: newData.id,
+    amount: newData.amount ?? prevData.amount,
+    refAmount: newData.amount ?? prevData.refAmount,
+    note: newData.note,
+    time: newData.time,
+    userId: newData.userId,
+    // When transfer, base tx can only be "expense'
+    transactionType: newData.isTransfer ? TRANSACTION_TYPES.expense : newData.transactionType,
+    paymentType: newData.paymentType,
+    accountId: newData.accountId,
+    categoryId: newData.categoryId,
+    isTransfer: newData.isTransfer,
+    currencyCode: prevData.currencyCode,
+  }
+
+  const isBaseTxAccountChanged = newData.accountId && newData.accountId !== prevData.accountId;
+
+  if (isBaseTxAccountChanged) {
+    // Since accountId is changed, we need to change currency too
+    const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
+      userId: newData.userId,
+      id: newData.accountId,
+    });
+
+    baseTransactionUpdateParams.currencyId = baseTxCurrency.id
+    baseTransactionUpdateParams.currencyCode = baseTxCurrency.code
+  }
+
+  if (defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode) {
+    baseTransactionUpdateParams.refAmount = await calculateRefAmount({
+      userId: newData.userId,
+      amount: baseTransactionUpdateParams.amount,
+      baseCode: baseTransactionUpdateParams.currencyCode,
+      quoteCode: defaultUserCurrency.code,
+    }, { transaction });
+  }
+
+  const baseTransaction = await Transactions.updateTransactionById(
+    baseTransactionUpdateParams,
+    { transaction },
+  );
+
+  return baseTransaction;
+};
+
 /**
  * Updates transaction and updates account balance.
  */
@@ -74,11 +130,9 @@ const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevD
     const {
       id,
       userId,
-      amount,
       destinationAmount,
       note,
       time,
-      transactionType,
       paymentType,
       accountId,
       categoryId,
@@ -91,63 +145,13 @@ const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevD
     validateTransaction(payload, prevData);
 
     const {
-      amount: previousAmount,
-      refAmount: previousRefAmount,
-      accountId: previousAccountId,
       isTransfer: previouslyItWasTransfer,
-      currencyCode: previousCurrencyCode,
       transferId,
     } = prevData;
 
-    const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
-      { userId, isDefaultCurrency: true },
-      { transaction }
-    );
-
     const updatedTransactions = []
 
-    const isBaseTxAccountChanged = accountId && accountId !== previousAccountId
-
-    const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
-      id,
-      amount: amount ?? previousAmount,
-      refAmount: amount ?? previousRefAmount,
-      note,
-      time,
-      userId,
-      // When transfer, base tx can only be "expense'
-      transactionType: isTransfer ? TRANSACTION_TYPES.expense : transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-      isTransfer,
-      currencyCode: previousCurrencyCode,
-    }
-
-    if (isBaseTxAccountChanged) {
-      // Since accountId is changed, we need to change currency too
-      const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
-        userId,
-        id: accountId,
-      });
-
-      baseTransactionUpdateParams.currencyId = baseTxCurrency.id
-      baseTransactionUpdateParams.currencyCode = baseTxCurrency.code
-    }
-
-    if (defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode) {
-      baseTransactionUpdateParams.refAmount = await calculateRefAmount({
-        userId,
-        amount: baseTransactionUpdateParams.amount,
-        baseCode: baseTransactionUpdateParams.currencyCode,
-        quoteCode: defaultUserCurrency.code,
-      }, { transaction });
-    }
-
-    const baseTransaction = await Transactions.updateTransactionById(
-      baseTransactionUpdateParams,
-      { transaction },
-    );
+    const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
 
     updatedTransactions.push(baseTransaction)
 
@@ -168,7 +172,7 @@ const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevD
             id: notBaseTransaction.id,
             userId,
             amount: destinationAmount,
-            refAmount: baseTransactionUpdateParams.refAmount,
+            refAmount: baseTransaction.refAmount,
             note,
             time,
             transactionType: TRANSACTION_TYPES.income,
