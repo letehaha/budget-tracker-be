@@ -118,6 +118,69 @@ const makeBasicBaseTxUpdation = async (
   return baseTransaction;
 };
 
+const updateTransferTransaction = async (
+  newData: UpdateParams & UpdateTransferParams,
+  prevData: Transactions.default,
+  baseTransaction: Transactions.default,
+  transaction: Transaction,
+) => {
+  const {
+    userId,
+    destinationAmount,
+    note,
+    time,
+    accountId,
+    paymentType,
+    destinationAccountId,
+    categoryId,
+  } = newData;
+  // If previously the base tx was transfer, we need to:
+  // 1. Find opposite tx to get access to old tx data
+  // 2. Update opposite tx data
+
+  const oppositeTx = (await Transactions.getTransactionsByArrayOfField({
+    fieldValues: [prevData.transferId],
+    fieldName: 'transferId',
+    userId,
+  })).find(item => Number(item.id) !== Number(newData.id));
+
+  const destinationTransaction = await Transactions.updateTransactionById(
+    {
+      id: oppositeTx.id,
+      userId,
+      amount: destinationAmount,
+      refAmount: baseTransaction.refAmount,
+      transactionType: TRANSACTION_TYPES.income,
+      accountId: destinationAccountId,
+      note,
+      time,
+      paymentType,
+      categoryId,
+    },
+    { transaction },
+  );
+
+  // If accountId was changed to a new one
+  if (destinationAccountId && destinationAccountId !== oppositeTx.accountId) {
+    // Since accountId is changed, we need to change currency too
+    const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
+      userId,
+      id: accountId,
+    });
+    await Transactions.updateTransactionById(
+      {
+        id: oppositeTx.id,
+        userId,
+        currencyId: oppositeTxCurrency.id,
+        currencyCode: oppositeTxCurrency.code,
+      },
+      { transaction },
+    );
+  }
+
+  return destinationTransaction;
+}
+
 /**
  * Updates transaction and updates account balance.
  */
@@ -131,11 +194,6 @@ const makeBasicBaseTxUpdation = async (
       id,
       userId,
       destinationAmount,
-      note,
-      time,
-      paymentType,
-      accountId,
-      categoryId,
       isTransfer = false,
       destinationAccountId,
     } = payload;
@@ -157,50 +215,12 @@ const makeBasicBaseTxUpdation = async (
 
     if (isTransfer) {
       if (previouslyItWasTransfer) {
-        // If previously the base tx was transfer, we need to:
-        // 1. Find opposite tx to get access to old tx data
-        // 2. Update opposite tx data
-
-        const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
-          fieldValues: [transferId],
-          fieldName: 'transferId',
-          userId,
-        })).find(item => Number(item.id) !== Number(id));
-
-        const destinationTransaction = await Transactions.updateTransactionById(
-          {
-            id: notBaseTransaction.id,
-            userId,
-            amount: destinationAmount,
-            refAmount: baseTransaction.refAmount,
-            note,
-            time,
-            transactionType: TRANSACTION_TYPES.income,
-            paymentType: paymentType,
-            accountId: destinationAccountId,
-            categoryId,
-          },
-          { transaction },
+        const destinationTransaction = await updateTransferTransaction(
+          payload,
+          prevData,
+          baseTransaction,
+          transaction,
         );
-
-        // If accountId was changed to a new one
-        if (destinationAccountId && destinationAccountId !== notBaseTransaction.accountId) {
-          // Since accountId is changed, we need to change currency too
-          const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-            userId,
-            id: accountId,
-          });
-          await Transactions.updateTransactionById(
-            {
-              id: notBaseTransaction.id,
-              userId,
-              currencyId: oppositeTxCurrency.id,
-              currencyCode: oppositeTxCurrency.code,
-            },
-            { transaction },
-          );
-        }
-
         updatedTransactions.push(destinationTransaction)
       } else {
         // If previously the base tx wasn't transfer, so it was income or expense,
