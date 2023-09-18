@@ -118,12 +118,17 @@ const makeBasicBaseTxUpdation = async (
   return baseTransaction;
 };
 
-const updateTransferTransaction = async (
-  newData: UpdateParams & UpdateTransferParams,
-  prevData: Transactions.default,
-  baseTransaction: Transactions.default,
-  transaction: Transaction,
-) => {
+type HelperFunctionsArgs = [UpdateParams & UpdateTransferParams, Transactions.default, Transactions.default, Transaction];
+
+/**
+ * If previously the base tx was transfer, we need to::
+ *
+ * 1. Find opposite tx to get access to old tx data
+ * 2. Update opposite tx data
+ */
+const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
+  const [newData, prevData, baseTransaction, transaction] = params;
+
   const {
     userId,
     destinationAmount,
@@ -134,9 +139,6 @@ const updateTransferTransaction = async (
     destinationAccountId,
     categoryId,
   } = newData;
-  // If previously the base tx was transfer, we need to:
-  // 1. Find opposite tx to get access to old tx data
-  // 2. Update opposite tx data
 
   const oppositeTx = (await Transactions.getTransactionsByArrayOfField({
     fieldValues: [prevData.transferId],
@@ -182,6 +184,92 @@ const updateTransferTransaction = async (
 }
 
 /**
+ * If previously the base tx wasn't transfer, so it was income or expense, we need to:
+ *
+ * 1. create an opposite tx
+ * 2. generate "transferId" and put it to both transactions
+ */
+const createOppositeTransaction = async (params: HelperFunctionsArgs) => {
+  const [newData,, baseTransaction, transaction] = params;
+
+  const { destinationAmount, destinationAccountId, userId } = newData;
+
+  if (!destinationAmount || !destinationAccountId) {
+    throw new ValidationError({
+      message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
+    })
+  }
+
+  const transferId = uuidv4();
+
+  await Transactions.updateTransactionById({
+    id: baseTransaction.id,
+    userId: baseTransaction.userId,
+    transferId,
+    isTransfer: true,
+  }, { transaction });
+
+  const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
+    userId,
+    id: destinationAccountId,
+  });
+
+  const createdTx = await Transactions.createTransaction(
+    {
+      userId: baseTransaction.userId,
+      amount: destinationAmount,
+      refAmount: destinationAmount,
+      note: baseTransaction.note,
+      time: new Date(baseTransaction.time),
+      // opposite tx can only be income
+      transactionType: TRANSACTION_TYPES.income,
+      paymentType: baseTransaction.paymentType,
+      accountId: destinationAccountId,
+      categoryId: baseTransaction.categoryId,
+      accountType: baseTransaction.accountType,
+      currencyId: oppositeTxCurrency.id,
+      currencyCode: oppositeTxCurrency.code,
+      isTransfer: true,
+      transferId,
+    },
+    { transaction },
+  );
+
+  return createdTx;
+}
+
+/**
+ * If right now base tx is not transfer, but previously it was one, we need to:
+ *
+ * 1. remove old opposite tx
+ * 2. remove "trasferId" from base tx
+ */
+const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
+  const [newData, prevData, baseTransaction, transaction] = params;
+
+  const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
+    fieldValues: [prevData.transferId],
+    fieldName: 'transferId',
+    userId: newData.userId,
+  })).find(item => Number(item.id) !== Number(newData.id));
+
+  await Transactions.deleteTransactionById({
+    id: notBaseTransaction.id,
+    userId: notBaseTransaction.userId
+  }, { transaction });
+
+  await Transactions.updateTransactionById(
+    {
+      id: baseTransaction.id,
+      userId: baseTransaction.userId,
+      transferId: null,
+      isTransfer: false,
+    },
+    { transaction },
+  );
+};
+
+/**
  * Updates transaction and updates account balance.
  */
  export const updateTransaction = async (payload: UpdateParams & UpdateTransferParams) => {
@@ -189,114 +277,31 @@ const updateTransferTransaction = async (
 
   try {
     transaction = await connection.sequelize.transaction();
+    const updatedTransactions = [];
 
-    const {
-      id,
-      userId,
-      destinationAmount,
-      isTransfer = false,
-      destinationAccountId,
-    } = payload;
+    const prevData = await getTransactionById(
+      { id: payload.id, userId: payload.userId },
+      { transaction },
+    );
 
-    const prevData = await getTransactionById({ id, userId }, { transaction });
-
+    // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
 
-    const {
-      isTransfer: previouslyItWasTransfer,
-      transferId,
-    } = prevData;
-
-    const updatedTransactions = []
-
+    // Make basic updation to the base transaction. "Transfer" transactions
+    // handled down in the code
     const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
-
     updatedTransactions.push(baseTransaction)
 
-    if (isTransfer) {
-      if (previouslyItWasTransfer) {
-        const destinationTransaction = await updateTransferTransaction(
-          payload,
-          prevData,
-          baseTransaction,
-          transaction,
-        );
-        updatedTransactions.push(destinationTransaction)
-      } else {
-        // If previously the base tx wasn't transfer, so it was income or expense,
-        // we need to:
-        // 1. create an opposite tx
-        // 2. generate "transferId" and put it to both transactions
+    const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction, transaction];
 
-        if (!destinationAmount || !destinationAccountId) {
-          throw new ValidationError({
-            message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
-          })
-        }
+    if (payload.isTransfer) {
+      const oppositeTx = prevData.isTransfer
+        ? await updateTransferTransaction(helperFunctionsArgs)
+        : await createOppositeTransaction(helperFunctionsArgs);
 
-        const transferId = uuidv4();
-
-        await Transactions.updateTransactionById({
-          id: baseTransaction.id,
-          userId: baseTransaction.userId,
-          transferId,
-          isTransfer: true,
-        }, { transaction });
-
-        const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-          userId,
-          id: destinationAccountId,
-        });
-
-        const createdTx = await Transactions.createTransaction(
-          {
-            userId: baseTransaction.userId,
-            amount: destinationAmount,
-            refAmount: destinationAmount,
-            note: baseTransaction.note,
-            time: new Date(baseTransaction.time),
-            // opposite tx can only be income
-            transactionType: TRANSACTION_TYPES.income,
-            paymentType: baseTransaction.paymentType,
-            accountId: destinationAccountId,
-            categoryId: baseTransaction.categoryId,
-            accountType: baseTransaction.accountType,
-            currencyId: oppositeTxCurrency.id,
-            currencyCode: oppositeTxCurrency.code,
-            isTransfer: true,
-            transferId,
-          },
-          { transaction },
-        );
-
-        updatedTransactions.push(createdTx);
-      }
-    } else if (!isTransfer && previouslyItWasTransfer) {
-      // If right now base tx is not transfer, but previously it was one, we need
-      // to:
-      // 1. remove old opposite tx
-      // 2. remove "trasferId" from base tx
-
-      const notBaseTransaction = (await Transactions.getTransactionsByArrayOfField({
-        fieldValues: [transferId],
-        fieldName: 'transferId',
-        userId,
-      })).find(item => Number(item.id) !== Number(id));
-
-      await Transactions.deleteTransactionById({
-        id: notBaseTransaction.id,
-        userId: notBaseTransaction.userId
-      }, { transaction });
-
-      await Transactions.updateTransactionById(
-        {
-          id: baseTransaction.id,
-          userId: baseTransaction.userId,
-          transferId: null,
-          isTransfer: false,
-        },
-        { transaction },
-      );
+      updatedTransactions.push(oppositeTx)
+    } else if (!payload.isTransfer && prevData.isTransfer) {
+      await deleteOppositeTransaction(helperFunctionsArgs);
     }
 
     await transaction.commit();
