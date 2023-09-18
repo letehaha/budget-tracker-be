@@ -101,6 +101,13 @@ const pairMonobankUser = () => {
   return callPairMonobankUser();
 }
 
+const getTransactions = async () => {
+  return helpers.extractResponse(await helpers.makeRequest({
+    method: 'get',
+    url: '/transactions',
+  }));
+}
+
 const addTransactions = async (
   { amount = 10 }: { amount?: number } = {},
 ): Promise<{ account: Accounts, transactions: Transactions[] }> => {
@@ -108,7 +115,7 @@ const addTransactions = async (
     method: 'get',
     url: '/accounts',
   }));
-  const account = accounts[0];
+  const account = accounts[1];
 
   const mockedTransactions = helpers.monobank.mockedTransactions(amount, {
     initialBalance: account.initialBalance,
@@ -126,19 +133,12 @@ const addTransactions = async (
     },
   });
 
-  const transactions = helpers.extractResponse(await helpers.makeRequest({
-    method: 'get',
-    url: '/transactions',
-  }));
+  // Let server some time to process transactions
+  await helpers.sleep(500);
+
+  const transactions = await getTransactions();
 
   return { account, transactions };
-}
-
-const getTransactions = async () => {
-  return helpers.extractResponse(await helpers.makeRequest({
-    method: 'get',
-    url: '/transactions',
-  }));
 }
 
 export default {

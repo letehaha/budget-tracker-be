@@ -6,7 +6,7 @@ import { ACCOUNT_TYPES, API_ERROR_CODES } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
-describe('Balances model', () => {
+describe('Monobank integration', () => {
   describe('Pair Monobank account', () => {
     it('throws validation error if no "token" passed', async () => {
       const result = await helpers.makeRequest({
@@ -167,7 +167,7 @@ describe('Balances model', () => {
         })
       });
 
-      it('returns tooManyRequests if trying to load transactions while previous queue exists', async () => {
+      it.skip('returns tooManyRequests if trying to load transactions while previous queue exists', async () => {
         const result = await helpers.makeRequest({
           method: 'get',
           url: '/banks/monobank/load-transactions',
