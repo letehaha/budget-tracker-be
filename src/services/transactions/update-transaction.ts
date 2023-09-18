@@ -33,26 +33,62 @@ interface UpdateTransferParams {
 }
 
 /**
+ * 1. Do not allow editing specified fields
+ * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
+ */
+const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevData: Transactions.default) => {
+  if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' })
+  if (prevData.accountType !== ACCOUNT_TYPES.system) {
+    if (
+      newData.amount
+      || newData.destinationAmount
+      || newData.time
+      || newData.transactionType
+      || newData.accountId
+      || newData.destinationAccountId
+    ) {
+      throw new ValidationError({ message: 'Attempt to edit readonly fields of the external account' });
+    }
+  }
+
+  // We doesn't allow users to change non-source trasnaction for several reasons:
+  // 1. Most importantly – to make things simpler. For now there's no case that
+  //    exactly non-source tx should be changed, so it's just easier to not
+  //    code that logic
+  // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
+  //    Otherwise we will need to code additional logic to handle that
+  if (prevData.isTransfer && prevData.transactionType !== TRANSACTION_TYPES.expense) {
+    throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
+  }
+};
+
+/**
  * Updates transaction and updates account balance.
  */
- export const updateTransaction = async ({
-  id,
-  userId,
-  amount,
-  destinationAmount,
-  note,
-  time,
-  transactionType,
-  paymentType,
-  accountId,
-  categoryId,
-  isTransfer = false,
-  destinationAccountId,
-}: UpdateParams & UpdateTransferParams) => {
+ export const updateTransaction = async (payload: UpdateParams & UpdateTransferParams) => {
   let transaction: Transaction = null;
 
   try {
     transaction = await connection.sequelize.transaction();
+
+    const {
+      id,
+      userId,
+      amount,
+      destinationAmount,
+      note,
+      time,
+      transactionType,
+      paymentType,
+      accountId,
+      categoryId,
+      isTransfer = false,
+      destinationAccountId,
+    } = payload;
+
+    const prevData = await getTransactionById({ id, userId }, { transaction });
+
+    validateTransaction(payload, prevData);
 
     const {
       amount: previousAmount,
@@ -60,34 +96,13 @@ interface UpdateTransferParams {
       accountId: previousAccountId,
       isTransfer: previouslyItWasTransfer,
       currencyCode: previousCurrencyCode,
-      transactionType: previousTransactionType,
-      accountType: previousAccountType,
       transferId,
-    } = await getTransactionById(
-      { id, userId },
-      { transaction },
-    );
-
-    if (previousAccountType !== ACCOUNT_TYPES.system) {
-      if (amount || destinationAmount || time || transactionType || accountId || destinationAccountId) {
-        throw new ValidationError({ message: 'Attempt to edit readonly fields of the external account' });
-      }
-    }
+    } = prevData;
 
     const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
       { userId, isDefaultCurrency: true },
       { transaction }
     );
-
-    if (previouslyItWasTransfer && previousTransactionType !== TRANSACTION_TYPES.expense) {
-      // We doesn't allow users to change non-source trasnaction for several reasons:
-      // 1. Most importantly – to make things simpler. For now there's no case that
-      //    exactly non-source tx should be changed, so it's just easier to not
-      //    code that logic
-      // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
-      //    Otherwise we will need to code additional logic to handle that
-      throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
-    }
 
     const updatedTransactions = []
 
