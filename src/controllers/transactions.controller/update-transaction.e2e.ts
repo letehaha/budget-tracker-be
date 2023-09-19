@@ -154,11 +154,14 @@ describe('Update transaction controller', () => {
     });
   });
   describe('updates external transactions to transfer and vice versa', () => {
-    it('updates from expense to transfer and back', async () => {
+    it.each([
+      [TRANSACTION_TYPES.expense],
+      [TRANSACTION_TYPES.income],
+    ])('updates from %s to transfer and back', async (transactionType) => {
       await helpers.monobank.pair();
       const { transactions } = await helpers.monobank.mockTransactions();
 
-      const externalTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.expense);
+      const externalTransaction = transactions.find(item => item.transactionType === transactionType);
       const accountB = await helpers.createAccount({
         raw: true,
       });
@@ -185,94 +188,28 @@ describe('Update transaction controller', () => {
         const newTxBalanceRecord = balanceHistory
           .find(item => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId);
 
-        expect(newTxBalanceRecord.amount).toBe(expected);
+          expect(newTxBalanceRecord.amount).toBe(
+            expected === 0
+              ? 0
+              : oppositeTx.transactionType === TRANSACTION_TYPES.expense
+                ? -expected
+                : expected
+          );
       }
 
       expect(baseTx).toMatchObject({
         amount: externalTransaction.amount,
         refAmount: externalTransaction.refAmount,
         transferId,
-        transactionType: TRANSACTION_TYPES.expense,
+        transactionType: transactionType,
       });
       expect(oppositeTx).toMatchObject({
         amount: externalTransaction.refAmount,
         refAmount: externalTransaction.refAmount,
         transferId,
-        transactionType: TRANSACTION_TYPES.income,
-      });
-
-      await checkBalanceIsCorrect(externalTransaction.refAmount)
-
-      // Now update it back to be non-transfer one
-      await helpers.updateTransaction({
-        id: externalTransaction.id,
-        payload: {
-          isTransfer: false,
-        },
-        raw: true,
-      });
-
-      await checkBalanceIsCorrect(0);
-
-      const transactionsAfterUpdate = await helpers.getTransactions({ raw: true });
-
-      // Check that opposite tx is deleted
-      expect(transactionsAfterUpdate.find(i => i.id === oppositeTx.id)).toBe(undefined);
-      // Check that base tx doesn't have transferId anymore
-      expect(transactionsAfterUpdate.find(i => i.id === baseTx.id).transferId).toBe(null);
-    });
-    it('updates from income to transfer and back', async () => {
-      await helpers.monobank.pair();
-      const { transactions } = await helpers.monobank.mockTransactions();
-
-      const externalTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.income);
-      const accountB = await helpers.createAccount({
-        raw: true,
-      });
-
-      const result = await helpers.updateTransaction({
-        id: externalTransaction.id,
-        payload: {
-          isTransfer: true,
-          destinationAccountId: accountB.id,
-          destinationAmount: externalTransaction.refAmount,
-        },
-        raw: true,
-      });
-      const [baseTx, oppositeTx] = result;
-      const transferId = baseTx.transferId;
-
-      const checkBalanceIsCorrect = async (expected) => {
-        const balanceHistory = helpers.extractResponse(await helpers.makeRequest({
-          method: 'get',
-          url: '/stats/balance-history',
-        }));
-        // Find opposite tx that should be created at the same date as the base tx
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const externalTxBalanceRecord = balanceHistory.find(item => item.amount === (externalTransaction.externalData as any).balance);
-        const newTxBalanceRecord = balanceHistory
-          .find(item => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId);
-
-        expect(newTxBalanceRecord.amount).toBe(
-          expected === 0
-            ? 0
-            : oppositeTx.transactionType === TRANSACTION_TYPES.expense
-              ? -expected
-              : expected
-        );
-      }
-
-      expect(baseTx).toMatchObject({
-        amount: externalTransaction.amount,
-        refAmount: externalTransaction.refAmount,
-        transferId,
-        transactionType: TRANSACTION_TYPES.income,
-      });
-      expect(oppositeTx).toMatchObject({
-        amount: externalTransaction.refAmount,
-        refAmount: externalTransaction.refAmount,
-        transferId,
-        transactionType: TRANSACTION_TYPES.expense,
+        transactionType: transactionType === TRANSACTION_TYPES.expense
+          ? TRANSACTION_TYPES.income
+          : TRANSACTION_TYPES.expense,
       });
 
       await checkBalanceIsCorrect(externalTransaction.refAmount)
