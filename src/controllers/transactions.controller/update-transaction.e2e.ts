@@ -200,6 +200,7 @@ describe('Update transaction controller', () => {
       expect(baseTx).toMatchObject({
         amount: externalTransaction.amount,
         refAmount: externalTransaction.refAmount,
+        accountId: externalTransaction.accountId,
         transferId,
         transactionType: transactionType,
       });
@@ -207,6 +208,7 @@ describe('Update transaction controller', () => {
         amount: externalTransaction.refAmount,
         refAmount: externalTransaction.refAmount,
         transferId,
+        accountId: accountB.id,
         transactionType: transactionType === TRANSACTION_TYPES.expense
           ? TRANSACTION_TYPES.income
           : TRANSACTION_TYPES.expense,

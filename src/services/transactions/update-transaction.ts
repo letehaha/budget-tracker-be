@@ -233,7 +233,9 @@ const createOppositeTransaction = async (
     {
       userId: baseTransaction.userId,
       amount: destinationAmount,
-      refAmount: destinationAmount,
+      // opposite_tx should always have refAmount same as base_tx refAmount, because
+      // only the base_tx in the source of truth for the analytics
+      refAmount: baseTransaction.refAmount,
       note: baseTransaction.note,
       time: new Date(baseTransaction.time),
       transactionType: prevData.transactionType === TRANSACTION_TYPES.income
