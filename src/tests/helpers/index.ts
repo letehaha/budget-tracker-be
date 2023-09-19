@@ -145,7 +145,7 @@ interface UpdateTransactionBasePayload {
 }
 
 export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: false }): Promise<Response>
-export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>
 export function updateTransaction({ raw = false, id, payload = {} }) {
   return makeRequest({
     method: 'put',

@@ -1,6 +1,8 @@
 import { TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
+import { faker } from '@faker-js/faker';
+import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
 
 describe('Update transaction controller', () => {
   it('should make basic updation', async () => {
@@ -56,7 +58,6 @@ describe('Update transaction controller', () => {
     expect(txsAfterUpdation[0].amount).toStrictEqual(createdTransaction.amount);
     expect(txsAfterUpdation[0].refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate.rate));
   });
-  it.todo('throw an validation error when trying to edit readonly fields of the external account');
   describe('should change expense to transfer and vice versa', () => {
     let createdTransactions = [];
     let accountA = null;
@@ -152,4 +153,183 @@ describe('Update transaction controller', () => {
       expect(createdTransactions).toStrictEqual(txsAfterUpdation);
     });
   });
+  describe('updates external transactions to transfer and vice versa', () => {
+    it('updates from expense to transfer and back', async () => {
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
+
+      const externalTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.expense);
+      const accountB = await helpers.createAccount({
+        raw: true,
+      });
+
+      const [baseTx, oppositeTx] = await helpers.updateTransaction({
+        id: externalTransaction.id,
+        payload: {
+          isTransfer: true,
+          destinationAccountId: accountB.id,
+          destinationAmount: externalTransaction.refAmount,
+        },
+        raw: true,
+      });
+      const transferId = baseTx.transferId;
+
+      const checkBalanceIsCorrect = async (expected) => {
+        const balanceHistory = helpers.extractResponse(await helpers.makeRequest({
+          method: 'get',
+          url: '/stats/balance-history',
+        }));
+        // Find opposite tx that should be created at the same date as the base tx
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const externalTxBalanceRecord = balanceHistory.find(item => item.amount === (externalTransaction.externalData as any).balance);
+        const newTxBalanceRecord = balanceHistory
+          .find(item => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId);
+
+        expect(newTxBalanceRecord.amount).toBe(expected);
+      }
+
+      expect(baseTx).toMatchObject({
+        amount: externalTransaction.amount,
+        refAmount: externalTransaction.refAmount,
+        transferId,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      expect(oppositeTx).toMatchObject({
+        amount: externalTransaction.refAmount,
+        refAmount: externalTransaction.refAmount,
+        transferId,
+        transactionType: TRANSACTION_TYPES.income,
+      });
+
+      await checkBalanceIsCorrect(externalTransaction.refAmount)
+
+      // Now update it back to be non-transfer one
+      await helpers.updateTransaction({
+        id: externalTransaction.id,
+        payload: {
+          isTransfer: false,
+        },
+        raw: true,
+      });
+
+      await checkBalanceIsCorrect(0);
+
+      const transactionsAfterUpdate = await helpers.getTransactions({ raw: true });
+
+      // Check that opposite tx is deleted
+      expect(transactionsAfterUpdate.find(i => i.id === oppositeTx.id)).toBe(undefined);
+      // Check that base tx doesn't have transferId anymore
+      expect(transactionsAfterUpdate.find(i => i.id === baseTx.id).transferId).toBe(null);
+    });
+    it('updates from income to transfer and back', async () => {
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
+
+      const externalTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.income);
+      const accountB = await helpers.createAccount({
+        raw: true,
+      });
+
+      const result = await helpers.updateTransaction({
+        id: externalTransaction.id,
+        payload: {
+          isTransfer: true,
+          destinationAccountId: accountB.id,
+          destinationAmount: externalTransaction.refAmount,
+        },
+        raw: true,
+      });
+      const [baseTx, oppositeTx] = result;
+      const transferId = baseTx.transferId;
+
+      const checkBalanceIsCorrect = async (expected) => {
+        const balanceHistory = helpers.extractResponse(await helpers.makeRequest({
+          method: 'get',
+          url: '/stats/balance-history',
+        }));
+        // Find opposite tx that should be created at the same date as the base tx
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const externalTxBalanceRecord = balanceHistory.find(item => item.amount === (externalTransaction.externalData as any).balance);
+        const newTxBalanceRecord = balanceHistory
+          .find(item => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId);
+
+        expect(newTxBalanceRecord.amount).toBe(
+          expected === 0
+            ? 0
+            : oppositeTx.transactionType === TRANSACTION_TYPES.expense
+              ? -expected
+              : expected
+        );
+      }
+
+      expect(baseTx).toMatchObject({
+        amount: externalTransaction.amount,
+        refAmount: externalTransaction.refAmount,
+        transferId,
+        transactionType: TRANSACTION_TYPES.income,
+      });
+      expect(oppositeTx).toMatchObject({
+        amount: externalTransaction.refAmount,
+        refAmount: externalTransaction.refAmount,
+        transferId,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+
+      await checkBalanceIsCorrect(externalTransaction.refAmount)
+
+      // Now update it back to be non-transfer one
+      await helpers.updateTransaction({
+        id: externalTransaction.id,
+        payload: {
+          isTransfer: false,
+        },
+        raw: true,
+      });
+
+      await checkBalanceIsCorrect(0);
+
+      const transactionsAfterUpdate = await helpers.getTransactions({ raw: true });
+
+      // Check that opposite tx is deleted
+      expect(transactionsAfterUpdate.find(i => i.id === oppositeTx.id)).toBe(undefined);
+      // Check that base tx doesn't have transferId anymore
+      expect(transactionsAfterUpdate.find(i => i.id === baseTx.id).transferId).toBe(null);
+    });
+    it('throws error when trying to make invalid actions', async () => {
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
+
+      const incomeTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.income);
+      const expenseTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.expense);
+
+      // when trying to update "transactionType" of the external account
+      const result_a = await helpers.updateTransaction({
+        id: incomeTransaction.id,
+        payload: { transactionType: TRANSACTION_TYPES.expense },
+      });
+      expect(result_a.statusCode).toEqual(ERROR_CODES.ValidationError);
+
+      const result_b = await helpers.updateTransaction({
+        id: expenseTransaction.id,
+        payload: { transactionType: TRANSACTION_TYPES.income },
+      });
+      expect(result_b.statusCode).toEqual(ERROR_CODES.ValidationError);
+
+      const mockedData = {
+        amount: faker.number.int({ max: 10000, min: 0 }),
+        time: faker.date.anytime(),
+        transactionType: TRANSACTION_TYPES.expense,
+        accountId: faker.number.int({ max: 10000, min: 0 }),
+      }
+
+      // Trying to update some of restricted fields
+      for (const field of EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS) {
+        const res = await helpers.updateTransaction({
+          id: expenseTransaction.id,
+          payload: { [field]: mockedData[field] },
+        });
+        expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+      }
+    })
+  })
 })

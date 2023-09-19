@@ -32,23 +32,27 @@ interface UpdateTransferParams {
   isTransfer?: boolean;
 }
 
+export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 'transactionType', 'accountId'];
+
 /**
  * 1. Do not allow editing specified fields
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
 const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevData: Transactions.default) => {
   if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' })
+
   if (prevData.accountType !== ACCOUNT_TYPES.system) {
-    if (
-      newData.amount
-      || newData.destinationAmount
-      || newData.time
-      || newData.transactionType
-      || newData.accountId
-      || newData.destinationAccountId
-    ) {
+    if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some(field => newData[field] !== undefined)) {
       throw new ValidationError({ message: 'Attempt to edit readonly fields of the external account' });
     }
+  }
+
+  if (
+    newData.transactionType
+    && prevData.accountType !== ACCOUNT_TYPES.system
+    && newData.transactionType !== prevData.transactionType
+  ) {
+    throw new ValidationError({ message: 'It\'s disallowed to change "transactionType" of the non-system account' });
   }
 
   // We doesn't allow users to change non-source trasnaction for several reasons:
@@ -57,7 +61,12 @@ const validateTransaction = (newData: UpdateParams & UpdateTransferParams, prevD
   //    code that logic
   // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
   //    Otherwise we will need to code additional logic to handle that
-  if (prevData.isTransfer && prevData.transactionType !== TRANSACTION_TYPES.expense) {
+  // For now keep that logic only for system transactions
+  if (
+    prevData.accountType === ACCOUNT_TYPES.system
+    && prevData.isTransfer
+    && prevData.transactionType !== TRANSACTION_TYPES.expense
+  ) {
     throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
   }
 };
@@ -72,6 +81,11 @@ const makeBasicBaseTxUpdation = async (
     { transaction },
   );
 
+  const transactionType = prevData.accountType === ACCOUNT_TYPES.system
+    // For system
+    ? newData.isTransfer ? TRANSACTION_TYPES.expense : newData.transactionType
+    : prevData.transactionType;
+
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
     id: newData.id,
     amount: newData.amount ?? prevData.amount,
@@ -79,8 +93,7 @@ const makeBasicBaseTxUpdation = async (
     note: newData.note,
     time: newData.time,
     userId: newData.userId,
-    // When transfer, base tx can only be "expense'
-    transactionType: newData.isTransfer ? TRANSACTION_TYPES.expense : newData.transactionType,
+    transactionType,
     paymentType: newData.paymentType,
     accountId: newData.accountId,
     categoryId: newData.categoryId,
@@ -189,8 +202,10 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
  * 1. create an opposite tx
  * 2. generate "transferId" and put it to both transactions
  */
-const createOppositeTransaction = async (params: HelperFunctionsArgs) => {
-  const [newData,, baseTransaction, transaction] = params;
+const createOppositeTransaction = async (
+  params: HelperFunctionsArgs,
+): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default]> => {
+  const [newData, prevData, baseTransaction, transaction] = params;
 
   const { destinationAmount, destinationAccountId, userId } = newData;
 
@@ -202,7 +217,7 @@ const createOppositeTransaction = async (params: HelperFunctionsArgs) => {
 
   const transferId = uuidv4();
 
-  await Transactions.updateTransactionById({
+  const baseTx = await Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId,
@@ -214,19 +229,20 @@ const createOppositeTransaction = async (params: HelperFunctionsArgs) => {
     id: destinationAccountId,
   });
 
-  const createdTx = await Transactions.createTransaction(
+  const oppositeTx = await Transactions.createTransaction(
     {
       userId: baseTransaction.userId,
       amount: destinationAmount,
       refAmount: destinationAmount,
       note: baseTransaction.note,
       time: new Date(baseTransaction.time),
-      // opposite tx can only be income
-      transactionType: TRANSACTION_TYPES.income,
+      transactionType: prevData.transactionType === TRANSACTION_TYPES.income
+        ? TRANSACTION_TYPES.expense
+        : TRANSACTION_TYPES.income,
       paymentType: baseTransaction.paymentType,
       accountId: destinationAccountId,
       categoryId: baseTransaction.categoryId,
-      accountType: baseTransaction.accountType,
+      accountType: ACCOUNT_TYPES.system,
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
       isTransfer: true,
@@ -235,7 +251,7 @@ const createOppositeTransaction = async (params: HelperFunctionsArgs) => {
     { transaction },
   );
 
-  return createdTx;
+  return [baseTx, oppositeTx];
 }
 
 /**
@@ -288,15 +304,17 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
     // handled down in the code
     const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
 
-    const updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
+    let updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
 
     const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction, transaction];
     if (payload.isTransfer) {
-      const oppositeTx = prevData.isTransfer
-        ? await updateTransferTransaction(helperFunctionsArgs)
-        : await createOppositeTransaction(helperFunctionsArgs);
-
-      updatedTransactions[1] = oppositeTx;
+      if (prevData.isTransfer) {
+        const oppositeTx = await updateTransferTransaction(helperFunctionsArgs);
+        updatedTransactions[1] = oppositeTx;
+      } else {
+        const [baseTx, oppositeTx] = await createOppositeTransaction(helperFunctionsArgs);
+        updatedTransactions = [baseTx, oppositeTx];
+      }
     } else if (!payload.isTransfer && prevData.isTransfer) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
