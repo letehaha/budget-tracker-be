@@ -6,6 +6,8 @@ import { logger} from '@js/utils/logger';
 import * as Transactions from '@models/Transactions.model';
 
 import { getTransactionById } from './get-by-id';
+import { ACCOUNT_TYPES } from 'shared-types';
+import { ValidationError } from '@js/errors';
 
 export const deleteTransaction = async ({
   id,
@@ -14,12 +16,14 @@ export const deleteTransaction = async ({
   id: number;
   userId: number;
 }): Promise<void> => {
-  let transaction: Transaction = null;
+  const transaction: Transaction = await connection.sequelize.transaction();
 
   try {
-    transaction = await connection.sequelize.transaction();
+    const { accountType, isTransfer, transferId } = await getTransactionById({ id, userId }, { transaction });
 
-    const { isTransfer, transferId } = await getTransactionById({ id, userId }, { transaction });
+    if (accountType !== ACCOUNT_TYPES.system) {
+      throw new ValidationError({ message: "It's not possible to manually delete external transactions" });
+    }
 
     if (!isTransfer) {
       await Transactions.deleteTransactionById({ id, userId }, { transaction });

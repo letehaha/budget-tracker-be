@@ -622,10 +622,16 @@ export const updateTransactions = (
   );
 };
 
-export const deleteTransactionById = (
+export const deleteTransactionById = async (
   { id, userId }: { id: number; userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
+  const tx = await getTransactionById({ id, userId }, { transaction });
+
+  if (tx.accountType !== ACCOUNT_TYPES.system) {
+    throw new ValidationError({ message: "It's not possible to manually delete external transactions" });
+  }
+
   return Transactions.destroy({
     where: { id, userId },
     transaction,
