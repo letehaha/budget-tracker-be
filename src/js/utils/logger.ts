@@ -34,13 +34,13 @@ const createLogger =
 const formatErrorToString = (error: string | Error) => {
   let message = '';
 
-  if (error instanceof Error) {
+  if (error instanceof Error && error.stack) {
     // An error object is not 100% like a normal object, so
     // we have to jump through hoops to get needed info out
     // of error objects for logging.
     message = error.stack;
   } else {
-    message = error;
+    message = String(error);
   }
 
   return message
@@ -51,7 +51,7 @@ function loggerErrorHandler(error: Error, ...extra: Record<string, unknown>[]): 
 function loggerErrorHandler(messageParam: { message: string, error?: Error }, ...extra: Record<string, unknown>[]): void;
 function loggerErrorHandler(messageParam: { message?: string, error: Error }, ...extra: Record<string, unknown>[]): void;
 function loggerErrorHandler(messageParam: { message?: string, error?: Error } | string | Error, ...extra: Record<string, unknown>[]): void {
-  let messageReult = ''
+  let messageReult = 'Default error message from logger';
 
   if (typeof messageParam === 'string') {
     messageReult = messageParam
@@ -64,7 +64,7 @@ function loggerErrorHandler(messageParam: { message?: string, error?: Error } | 
       messageReult = formatErrorToString(error);
     } else if (message && error === undefined) {
       messageReult = message
-    } else {
+    } else if (error) {
       messageReult = `${message} \n ${formatErrorToString(error)}`
     }
   }

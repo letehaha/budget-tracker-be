@@ -94,7 +94,7 @@ const makeBasicBaseTxUpdation = async (
     // Since accountId is changed, we need to change currency too
     const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
       userId: newData.userId,
-      id: newData.accountId,
+      id: Number(newData.accountId),
     });
 
     baseTransactionUpdateParams.currencyId = baseTxCurrency.id
@@ -273,12 +273,9 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
  * Updates transaction and updates account balance.
  */
  export const updateTransaction = async (payload: UpdateParams & UpdateTransferParams) => {
-  let transaction: Transaction = null;
+  const transaction: Transaction = await connection.sequelize.transaction();
 
   try {
-    transaction = await connection.sequelize.transaction();
-    const updatedTransactions = [];
-
     const prevData = await getTransactionById(
       { id: payload.id, userId: payload.userId },
       { transaction },
@@ -290,16 +287,16 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
     // Make basic updation to the base transaction. "Transfer" transactions
     // handled down in the code
     const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
-    updatedTransactions.push(baseTransaction)
+
+    const updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
 
     const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction, transaction];
-
     if (payload.isTransfer) {
       const oppositeTx = prevData.isTransfer
         ? await updateTransferTransaction(helperFunctionsArgs)
         : await createOppositeTransaction(helperFunctionsArgs);
 
-      updatedTransactions.push(oppositeTx)
+      updatedTransactions[1] = oppositeTx;
     } else if (!payload.isTransfer && prevData.isTransfer) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }

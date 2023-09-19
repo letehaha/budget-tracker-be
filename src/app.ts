@@ -60,7 +60,7 @@ app.use(cors({
     const ALLOWED_HOSTS = ['budget-tracker.com:8100', 'gamanets.money']
 
     if (process.env.NODE_ENV !== 'test') {
-      if (!ALLOWED_HOSTS.some(value => requestOrigin.includes(value))) {
+      if (!requestOrigin || !ALLOWED_HOSTS.some(value => requestOrigin.includes(value))) {
         return callback(null, false);
       }
     }
