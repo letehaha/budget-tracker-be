@@ -11,6 +11,7 @@ import UsersCurrencies from '@models/UsersCurrencies.model';
 import monobank from './monobank';
 
 export { monobank }
+export * from './account';
 
 const apiPrefix = config.get('apiPrefix');
 

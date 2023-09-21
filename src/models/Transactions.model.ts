@@ -530,64 +530,22 @@ export interface UpdateTransactionByIdParams {
 }
 
 export const updateTransactionById = async (
-  {
-    id,
-    userId,
-    amount,
-    refAmount,
-    note,
-    time,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    currencyId,
-    currencyCode,
-    refCurrencyCode,
-    isTransfer,
-    transferId,
-  }: UpdateTransactionByIdParams,
+  { id, userId, ...payload }: UpdateTransactionByIdParams,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const where = { id, userId };
-  await Transactions.update(
-    {
-      amount,
-      refAmount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-      currencyCode,
-      refCurrencyCode,
-      isTransfer,
-      transferId,
-      currencyId,
-    },
-    {
-      where,
-      transaction,
-      individualHooks: true,
-    },
-  );
+
+  await Transactions.update(removeUndefinedKeys(payload), {
+    where,
+    transaction,
+    individualHooks: true,
+  });
 
   return getTransactionById({ id, userId }, { transaction });
 };
 
 export const updateTransactions = (
-  {
-    amount,
-    note,
-    time,
-    transactionType,
-    paymentType,
-    accountId,
-    categoryId,
-    currencyId,
-    refCurrencyCode,
-  }: {
+  payload: {
     amount?: number;
     note?: string;
     time?: Date;
@@ -603,17 +561,7 @@ export const updateTransactions = (
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   return Transactions.update(
-    {
-      amount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      categoryId,
-      currencyId,
-      refCurrencyCode,
-    },
+    removeUndefinedKeys(payload),
     {
       where,
       transaction,

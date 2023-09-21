@@ -58,6 +58,46 @@ describe('Update transaction controller', () => {
     expect(txsAfterUpdation[0].amount).toStrictEqual(createdTransaction.amount);
     expect(txsAfterUpdation[0].refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate.rate));
   });
+  it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
+    const baseAccount = await helpers.createAccount({ raw: true });
+    const { account: accountUAH } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+
+    const [baseTx, oppositeTx] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: baseAccount.id,
+          amount: 10,
+          isTransfer: true,
+          destinationAmount: 20,
+          destinationAccountId: accountUAH.id,
+        }),
+      },
+      raw: true,
+    });
+
+    // Even if the currencyRate between USD and UAH has a huge difference, non-ref
+    // tx should always have refAmount same as ref tx in case of transfer
+    expect(oppositeTx.refAmount).toEqual(baseTx.refAmount);
+
+    const { account: accountEUR, currency: currencyEUR } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+    const [, newOppositeTx] = await helpers.updateTransaction({
+      id: baseTx.id,
+      payload: {
+        destinationAccountId: accountEUR.id,
+      },
+      raw: true,
+    });
+
+    expect(newOppositeTx).toMatchObject({
+      // We only changed account, so amounts should stay same
+      amount: oppositeTx.amount,
+      refAmount: oppositeTx.refAmount,
+      // accountId and currencyCode are changed
+      accountId: accountEUR.id,
+      currencyId: currencyEUR.id,
+      currencyCode: currencyEUR.code,
+    });
+  });
   describe('should change expense to transfer and vice versa', () => {
     let createdTransactions = [];
     let accountA = null;
