@@ -26,37 +26,25 @@ describe('Update transaction controller', () => {
     expect(res[0].transactionType).toStrictEqual(TRANSACTION_TYPES.income);
   });
   it('should change account (so and currency) and update refAmount correctly', async () => {
-    // Create transaction
-    const createdTransaction = (await helpers.createTransaction({ raw: true }))[0];
+    const [createdTransaction] = await helpers.createTransaction({ raw: true });
 
-    // Create account with a new currency
-    const ANOTHER_ACCOUNT_CURRENCY = 'UAH';
-    const currencyA = global.MODELS_CURRENCIES.find(item => item.code === ANOTHER_ACCOUNT_CURRENCY);
-    await helpers.addUserCurrencies({ currencyCodes: [currencyA.code] })
-    const newAccount = await helpers.createAccount({
-      payload: {
-        ...helpers.buildAccountPayload(),
-        currencyId: currencyA.id,
-      },
-      raw: true,
-    });
-    const currencyRate = (await helpers.getCurrenciesRates({ codes: [ANOTHER_ACCOUNT_CURRENCY] }))[0];
+    const {
+      account: accountUAH,
+      currencyRate,
+    } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
 
-    const res = await helpers.updateTransaction({
+    const [baseTx] = await helpers.updateTransaction({
       id: createdTransaction.id,
       payload: {
         transactionType: TRANSACTION_TYPES.income,
-        accountId: newAccount.id,
+        accountId: accountUAH.id,
       },
       raw: true,
     });
 
-    const txsAfterUpdation = await helpers.getTransactions({ raw: true });
-
-    expect(res[0]).toStrictEqual(txsAfterUpdation[0]);
-    expect(txsAfterUpdation[0].accountId).toStrictEqual(newAccount.id);
-    expect(txsAfterUpdation[0].amount).toStrictEqual(createdTransaction.amount);
-    expect(txsAfterUpdation[0].refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate.rate));
+    expect(baseTx.accountId).toStrictEqual(accountUAH.id);
+    expect(baseTx.amount).toStrictEqual(createdTransaction.amount);
+    expect(baseTx.refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate.rate));
   });
   it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
     const baseAccount = await helpers.createAccount({ raw: true });
@@ -191,6 +179,71 @@ describe('Update transaction controller', () => {
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
       // Check that after updation try nothing changed
       expect(createdTransactions).toStrictEqual(txsAfterUpdation);
+    });
+  });
+  describe('test refAmount is correct when changing transfer transaction accounts to ref account', () => {
+    it('EUR->UAH to EUR->USD, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
+      const { account: accountEUR } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+      const accountUSD = await helpers.createAccount({ raw: true });
+
+      const [baseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountEUR.id,
+            amount: 1000,
+            isTransfer: true,
+            destinationAmount: 2000,
+            destinationAccountId: accountUAH.id,
+          }),
+        },
+        raw: true,
+      });
+
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: {
+          destinationAccountId: accountUSD.id,
+          destinationAmount: 1000,
+        },
+        raw: true,
+      });
+
+      expect(updatedOppositeTx.amount).toEqual(updatedOppositeTx.refAmount);
+      expect(updatedBaseTx.refAmount).toEqual(updatedOppositeTx.refAmount);
+    });
+    it('UAH->EUR to USD->EUR, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
+      const { account: accountEUR } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+      const accountUSD = await helpers.createAccount({ raw: true });
+
+      const [baseTx, oppositeTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountUAH.id,
+            amount: 40000,
+            isTransfer: true,
+            destinationAmount: 1000,
+            destinationAccountId: accountEUR.id,
+          }),
+        },
+        raw: true,
+      });
+
+      // Change base tx account to USD, amount makes same as refAmount
+      // opposite tx amount stays as previous, but refAmount makes same as base tx
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: {
+          accountId: accountUSD.id,
+          amount: 2500,
+        },
+        raw: true,
+      });
+
+      expect(updatedBaseTx.amount).toEqual(updatedBaseTx.refAmount);
+      expect(updatedOppositeTx.amount).toEqual(oppositeTx.amount);
+      expect(updatedOppositeTx.refAmount).toEqual(updatedBaseTx.refAmount);
     });
   });
   describe('updates external transactions to transfer and vice versa', () => {

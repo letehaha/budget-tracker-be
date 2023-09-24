@@ -124,7 +124,7 @@ interface CreateTransactionBasePayload {
 
 export async function createTransaction(): Promise<Response>;
 export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: false }): Promise<Response>
-export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>
 export async function createTransaction({ raw = false, payload = undefined } = {}) {
   let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
 

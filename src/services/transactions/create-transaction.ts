@@ -106,6 +106,7 @@ export const createOppositeTransaction = async (
       accountType: ACCOUNT_TYPES.system,
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
+      refCurrencyCode: defaultUserCurrency.code,
       isTransfer: true,
       transferId,
     },

@@ -204,8 +204,6 @@ export const getAccountsByExternalIds = async (
   { userId, externalIds }: GetAccountsByExternalIdsPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  console.log('getAccountsByExternalIds', { userId, externalIds })
-
   const account = await Accounts.findAll({
     where: {
       userId,

@@ -13,6 +13,8 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { getTransactionById } from './get-by-id';
 import { createOppositeTransaction } from './create-transaction';
 import { type UpdateTransactionParams } from './types';
+import { removeUndefinedKeys } from '@js/helpers';
+import * as UserCurrencies from '@models/UsersCurrencies.model';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 'transactionType', 'accountId'];
 
@@ -121,8 +123,11 @@ type HelperFunctionsArgs = [UpdateTransactionParams, Transactions.default, Trans
  * 1. Find opposite tx to get access to old tx data
  * 2. Update opposite tx data
  */
-const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
-  const [newData, prevData, baseTransaction, transaction] = params;
+const updateTransferTransaction = async (
+  params: HelperFunctionsArgs
+): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default]> => {
+  const [newData, prevData,, transaction] = params;
+  let [,, baseTransaction] = params;
 
   const {
     userId,
@@ -134,27 +139,28 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     categoryId,
   } = newData;
 
+  const baseCurrency = await UserCurrencies.getBaseCurrency({ userId }, { transaction });
+
   const oppositeTx = (await Transactions.getTransactionsByArrayOfField({
     fieldValues: [prevData.transferId],
     fieldName: 'transferId',
     userId,
   })).find(item => Number(item.id) !== Number(newData.id));
 
-  let destinationTransaction = await Transactions.updateTransactionById(
-    {
-      id: oppositeTx.id,
-      userId,
-      amount: destinationAmount ?? oppositeTx.amount,
-      refAmount: baseTransaction.refAmount,
-      transactionType: TRANSACTION_TYPES.income,
-      accountId: destinationAccountId,
-      note,
-      time,
-      paymentType,
-      categoryId,
-    },
-    { transaction },
-  );
+  let updateOppositeTxParams = removeUndefinedKeys({
+    id: oppositeTx.id,
+    userId,
+    amount: destinationAmount,
+    refAmount: baseTransaction.refAmount,
+    transactionType: TRANSACTION_TYPES.income,
+    accountId: destinationAccountId,
+    note,
+    time,
+    paymentType,
+    categoryId,
+    currencyId: oppositeTx.currencyId,
+    currencyCode: oppositeTx.currencyCode,
+  });
 
   // If accountId was changed to a new one
   if (destinationAccountId && destinationAccountId !== oppositeTx.accountId) {
@@ -163,18 +169,46 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
       userId,
       id: destinationAccountId,
     });
-    destinationTransaction = await Transactions.updateTransactionById(
+
+    updateOppositeTxParams = {
+      ...updateOppositeTxParams,
+      currencyId: oppositeTxCurrency.id,
+      currencyCode: oppositeTxCurrency.code,
+    }
+  }
+
+  const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
+  const isOppositeRef = updateOppositeTxParams.currencyCode === baseCurrency.currency.code;
+
+  if (isSourceRef && !isOppositeRef) {
+    updateOppositeTxParams.refAmount = baseTransaction.refAmount;
+  } else if (!isSourceRef && isOppositeRef) {
+    baseTransaction = await Transactions.updateTransactionById(
       {
-        id: oppositeTx.id,
+        id: baseTransaction.id,
         userId,
-        currencyId: oppositeTxCurrency.id,
-        currencyCode: oppositeTxCurrency.code,
+        refAmount: updateOppositeTxParams.amount,
       },
       { transaction },
     );
+    updateOppositeTxParams.refAmount = updateOppositeTxParams.amount;
+  } else if (isSourceRef && isOppositeRef) {
+    updateOppositeTxParams.refAmount = baseTransaction.refAmount;
+  } else if (!isSourceRef && !isOppositeRef) {
+    updateOppositeTxParams.refAmount = await calculateRefAmount({
+      userId,
+      amount: updateOppositeTxParams.amount,
+      baseCode: updateOppositeTxParams.currencyCode,
+      quoteCode: baseCurrency.currency.code,
+    }, { transaction });
   }
 
-  return destinationTransaction;
+  const destinationTransaction = await Transactions.updateTransactionById(
+    updateOppositeTxParams,
+    { transaction },
+  );
+
+  return [baseTransaction, destinationTransaction];
 }
 
 /**
@@ -220,6 +254,11 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       { transaction },
     );
 
+    console.log({
+      payload,
+      prevData: prevData.dataValues,
+    })
+
     // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
 
@@ -244,8 +283,9 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
         await deleteOppositeTransaction(helperFunctionsArgs);
       }
 
-      const oppositeTx = await updateTransferTransaction(helperFunctionsArgs);
-      updatedTransactions[1] = oppositeTx;
+      const [baseTx, oppositeTx] = await updateTransferTransaction(helperFunctionsArgs);
+      updatedTransactions = [baseTx, oppositeTx];
+
     } else if (payload.isTransfer && !prevData.isTransfer) {
       const [baseTx, oppositeTx] = await createOppositeTransaction([
         // When updating existing tx we usually don't pass transactionType, so
