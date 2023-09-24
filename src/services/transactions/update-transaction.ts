@@ -11,10 +11,9 @@ import * as Accounts from '@models/Accounts.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { getTransactionById } from './get-by-id';
-import { createOppositeTransaction } from './create-transaction';
+import { createOppositeTransaction, calcTransferTransactionRefAmount } from './create-transaction';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
-import * as UserCurrencies from '@models/UsersCurrencies.model';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 'transactionType', 'accountId'];
 
@@ -139,8 +138,6 @@ const updateTransferTransaction = async (
     categoryId,
   } = newData;
 
-  const baseCurrency = await UserCurrencies.getBaseCurrency({ userId }, { transaction });
-
   const oppositeTx = (await Transactions.getTransactionsByArrayOfField({
     fieldValues: [prevData.transferId],
     fieldName: 'transferId',
@@ -177,31 +174,18 @@ const updateTransferTransaction = async (
     }
   }
 
-  const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
-  const isOppositeRef = updateOppositeTxParams.currencyCode === baseCurrency.currency.code;
-
-  if (isSourceRef && !isOppositeRef) {
-    updateOppositeTxParams.refAmount = baseTransaction.refAmount;
-  } else if (!isSourceRef && isOppositeRef) {
-    baseTransaction = await Transactions.updateTransactionById(
-      {
-        id: baseTransaction.id,
-        userId,
-        refAmount: updateOppositeTxParams.amount,
-      },
-      { transaction },
-    );
-    updateOppositeTxParams.refAmount = updateOppositeTxParams.amount;
-  } else if (isSourceRef && isOppositeRef) {
-    updateOppositeTxParams.refAmount = baseTransaction.refAmount;
-  } else if (!isSourceRef && !isOppositeRef) {
-    updateOppositeTxParams.refAmount = await calculateRefAmount({
+  const [oppositeRefAmount, updatedBaseTransaction] = await calcTransferTransactionRefAmount(
+    {
       userId,
-      amount: updateOppositeTxParams.amount,
-      baseCode: updateOppositeTxParams.currencyCode,
-      quoteCode: baseCurrency.currency.code,
-    }, { transaction });
-  }
+      baseTransaction,
+      destinationAmount: updateOppositeTxParams.amount,
+      oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
+    },
+    { transaction },
+  );
+
+  updateOppositeTxParams.refAmount = oppositeRefAmount;
+  baseTransaction = updatedBaseTransaction;
 
   const destinationTransaction = await Transactions.updateTransactionById(
     updateOppositeTxParams,

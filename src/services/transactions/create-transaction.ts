@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { connection } from '@models/index';
 import { Transaction } from 'sequelize/types';
 import { logger} from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
+import { GenericSequelizeModelAttributes, UnwrapPromise } from '@common/types';
 import { ValidationError } from '@js/errors';
 
 import * as Transactions from '@models/Transactions.model';
@@ -19,6 +19,72 @@ type CreateOppositeTransactionParams = [
   baseTransaction: Transactions.default,
   sequelizeTransaction: Transaction,
 ];
+
+/**
+ * Calculate oppositeTx based on baseTx amount and currency.
+ *
+ * *ref-transaction - transaction with ref-currency, means user's base currency
+ *
+ * 1. If source transaction is a ref-transaction, and opposite is non-ref,
+ *    then opposite's refAmount should be the same as of source
+ * 2. If source tx is a non-ref, and opposite is ref - then source's
+ *    refAmount should be the same as opposite. We update its value right in that
+ *    helper and return it back
+ * 3. If both are ref, then they both should have same refAmount
+ * 4. If both are non-ref, then each of them has separate refAmount. So we don't
+ *    touch source tx, and calculate refAmount for opposite tx
+ *
+ */
+export const calcTransferTransactionRefAmount = async (
+  {
+    userId,
+    baseTransaction,
+    destinationAmount,
+    oppositeTxCurrencyCode,
+    baseCurrency,
+  }: {
+    userId: number;
+    baseTransaction: Transactions.default;
+    destinationAmount: number;
+    oppositeTxCurrencyCode: string;
+    baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>,
+  },
+  { transaction }: { transaction?: Transaction } = {},
+): Promise<[oppositeTxRefAmount: number, baseTransaction: Transactions.default]> => {
+  if (!baseCurrency) {
+    baseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
+  }
+
+  const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
+  const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
+
+  let oppositeTxRefAmount = destinationAmount;
+
+  if (isSourceRef && !isOppositeRef) {
+    oppositeTxRefAmount = baseTransaction.refAmount;
+  } else if (!isSourceRef && isOppositeRef) {
+    baseTransaction = await Transactions.updateTransactionById(
+      {
+        id: baseTransaction.id,
+        userId,
+        refAmount: destinationAmount,
+      },
+      { transaction },
+    );
+    oppositeTxRefAmount = destinationAmount;
+  } else if (isSourceRef && isOppositeRef) {
+    oppositeTxRefAmount = baseTransaction.refAmount;
+  } else if (!isSourceRef && !isOppositeRef) {
+    oppositeTxRefAmount = await calculateRefAmount({
+      userId,
+      amount: destinationAmount,
+      baseCode: oppositeTxCurrencyCode,
+      quoteCode: baseCurrency.currency.code,
+    }, { transaction });
+  }
+
+  return [oppositeTxRefAmount, baseTransaction];
+};
 
 /**
  * If previously the base tx wasn't transfer, so it was income or expense, we need to:
@@ -54,47 +120,29 @@ export const createOppositeTransaction = async (
     id: destinationAccountId,
   });
 
-  const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
-    { userId, isDefaultCurrency: true },
+  const defaultUserCurrency = await UsersCurrencies.getBaseCurrency(
+    { userId },
     { transaction },
   );
 
-  let refAmount = baseTransaction.refAmount;
-  const isBaseTxCurrencyRef = baseTransaction.currencyId === defaultUserCurrency.id;
-  const isOppositeTxCurrencyRef = oppositeTxCurrency.id === defaultUserCurrency.id;
-
-  if (!isBaseTxCurrencyRef && !isOppositeTxCurrencyRef) {
-    // if source tx non-ref, opposite also non-ref, each one uses their ref. it's oke if ref-balance will be unsynced
-    refAmount = await calculateRefAmount({
+  const [oppositeRefAmount, updatedBaseTransaction] = await calcTransferTransactionRefAmount(
+    {
       userId,
-      amount: destinationAmount,
-      baseCode: oppositeTxCurrency.code,
-      quoteCode: defaultUserCurrency.code,
-    }, { transaction });
-  } else if (!isBaseTxCurrencyRef && isOppositeTxCurrencyRef) {
-    // if source tx non-ref, opposite is ref, then source should use opposite's ref
-    refAmount = destinationAmount;
+      baseTransaction: baseTx,
+      destinationAmount,
+      oppositeTxCurrencyCode: oppositeTxCurrency.code,
+      baseCurrency: defaultUserCurrency,
+    },
+    { transaction },
+  );
 
-    baseTx = await Transactions.updateTransactionById({
-      id: baseTransaction.id,
-      userId: baseTransaction.userId,
-      refAmount: destinationAmount,
-    }, { transaction });
-  } else if (isBaseTxCurrencyRef && !isOppositeTxCurrencyRef) {
-    // if source is ref, opposite is non-ref, then opposite should use base's ref
-    refAmount = baseTransaction.refAmount;
-  } else if (isBaseTxCurrencyRef && isOppositeTxCurrencyRef) {
-    // if source is ref, opposite is ref, then same ref
-    refAmount = baseTransaction.refAmount;
-  }
+  baseTx = updatedBaseTransaction;
 
   const oppositeTx = await Transactions.createTransaction(
     {
       userId: baseTransaction.userId,
       amount: destinationAmount,
-      // opposite_tx should always have refAmount same as base_tx refAmount, because
-      // only the base_tx in the source of truth for the analytics
-      refAmount,
+      refAmount: oppositeRefAmount,
       note: baseTransaction.note,
       time: new Date(baseTransaction.time),
       transactionType: transactionType === TRANSACTION_TYPES.income
@@ -106,7 +154,7 @@ export const createOppositeTransaction = async (
       accountType: ACCOUNT_TYPES.system,
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
-      refCurrencyCode: defaultUserCurrency.code,
+      refCurrencyCode: defaultUserCurrency.currency.code,
       isTransfer: true,
       transferId,
     },
