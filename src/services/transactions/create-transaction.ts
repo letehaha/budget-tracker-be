@@ -50,7 +50,7 @@ export const calcTransferTransactionRefAmount = async (
     baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>,
   },
   { transaction }: { transaction?: Transaction } = {},
-): Promise<[oppositeTxRefAmount: number, baseTransaction: Transactions.default]> => {
+) => {
   if (!baseCurrency) {
     baseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
   }
@@ -58,10 +58,10 @@ export const calcTransferTransactionRefAmount = async (
   const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
   const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
 
-  let oppositeTxRefAmount = destinationAmount;
+  let oppositeRefAmount = destinationAmount;
 
   if (isSourceRef && !isOppositeRef) {
-    oppositeTxRefAmount = baseTransaction.refAmount;
+    oppositeRefAmount = baseTransaction.refAmount;
   } else if (!isSourceRef && isOppositeRef) {
     baseTransaction = await Transactions.updateTransactionById(
       {
@@ -71,11 +71,11 @@ export const calcTransferTransactionRefAmount = async (
       },
       { transaction },
     );
-    oppositeTxRefAmount = destinationAmount;
+    oppositeRefAmount = destinationAmount;
   } else if (isSourceRef && isOppositeRef) {
-    oppositeTxRefAmount = baseTransaction.refAmount;
+    oppositeRefAmount = baseTransaction.refAmount;
   } else if (!isSourceRef && !isOppositeRef) {
-    oppositeTxRefAmount = await calculateRefAmount({
+    oppositeRefAmount = await calculateRefAmount({
       userId,
       amount: destinationAmount,
       baseCode: oppositeTxCurrencyCode,
@@ -83,7 +83,10 @@ export const calcTransferTransactionRefAmount = async (
     }, { transaction });
   }
 
-  return [oppositeTxRefAmount, baseTransaction];
+  return {
+    oppositeRefAmount,
+    baseTransaction,
+  };
 };
 
 /**
@@ -95,7 +98,7 @@ export const calcTransferTransactionRefAmount = async (
  */
 export const createOppositeTransaction = async (
   params: CreateOppositeTransactionParams,
-): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default]> => {
+) => {
   const [creationParams, baseTransaction, transaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
@@ -125,16 +128,16 @@ export const createOppositeTransaction = async (
     { transaction },
   );
 
-  const [oppositeRefAmount, updatedBaseTransaction] = await calcTransferTransactionRefAmount(
-    {
-      userId,
-      baseTransaction: baseTx,
-      destinationAmount,
-      oppositeTxCurrencyCode: oppositeTxCurrency.code,
-      baseCurrency: defaultUserCurrency,
-    },
-    { transaction },
-  );
+  const {
+    oppositeRefAmount,
+    baseTransaction: updatedBaseTransaction,
+  } = await calcTransferTransactionRefAmount({
+    userId,
+    baseTransaction: baseTx,
+    destinationAmount,
+    oppositeTxCurrencyCode: oppositeTxCurrency.code,
+    baseCurrency: defaultUserCurrency,
+  }, { transaction });
 
   baseTx = updatedBaseTransaction;
 
@@ -161,7 +164,7 @@ export const createOppositeTransaction = async (
     { transaction },
   );
 
-  return [baseTx, oppositeTx];
+  return { baseTx, oppositeTx };
 }
 
 /**
@@ -232,7 +235,7 @@ export const createOppositeTransaction = async (
      * transaction.
      */
     if (isTransfer) {
-      transactions = await createOppositeTransaction([
+      const res = await createOppositeTransaction([
         {
           amount,
           userId,
@@ -243,6 +246,7 @@ export const createOppositeTransaction = async (
         baseTransaction,
         transaction,
       ]);
+      transactions = [res.baseTx, res.oppositeTx];
     }
 
     if (!isTxPassedFromAbove) {

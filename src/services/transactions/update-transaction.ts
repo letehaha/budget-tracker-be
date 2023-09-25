@@ -124,7 +124,7 @@ type HelperFunctionsArgs = [UpdateTransactionParams, Transactions.default, Trans
  */
 const updateTransferTransaction = async (
   params: HelperFunctionsArgs
-): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default]> => {
+) => {
   const [newData, prevData,, transaction] = params;
   let [,, baseTransaction] = params;
 
@@ -174,15 +174,15 @@ const updateTransferTransaction = async (
     }
   }
 
-  const [oppositeRefAmount, updatedBaseTransaction] = await calcTransferTransactionRefAmount(
-    {
-      userId,
-      baseTransaction,
-      destinationAmount: updateOppositeTxParams.amount,
-      oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
-    },
-    { transaction },
-  );
+  const {
+    oppositeRefAmount,
+    baseTransaction: updatedBaseTransaction
+  } = await calcTransferTransactionRefAmount({
+    userId,
+    baseTransaction,
+    destinationAmount: updateOppositeTxParams.amount,
+    oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
+  }, { transaction });
 
   updateOppositeTxParams.refAmount = oppositeRefAmount;
   baseTransaction = updatedBaseTransaction;
@@ -192,7 +192,7 @@ const updateTransferTransaction = async (
     { transaction },
   );
 
-  return [baseTransaction, destinationTransaction];
+  return { baseTx: baseTransaction, oppositeTx: destinationTransaction };
 }
 
 /**
@@ -238,11 +238,6 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       { transaction },
     );
 
-    console.log({
-      payload,
-      prevData: prevData.dataValues,
-    })
-
     // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
 
@@ -267,11 +262,10 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
         await deleteOppositeTransaction(helperFunctionsArgs);
       }
 
-      const [baseTx, oppositeTx] = await updateTransferTransaction(helperFunctionsArgs);
+      const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
       updatedTransactions = [baseTx, oppositeTx];
-
     } else if (payload.isTransfer && !prevData.isTransfer) {
-      const [baseTx, oppositeTx] = await createOppositeTransaction([
+      const { baseTx, oppositeTx } = await createOppositeTransaction([
         // When updating existing tx we usually don't pass transactionType, so
         // it will be `undefined`, that's why we derive it from prevData
         { ...payload, transactionType: payload.transactionType ?? prevData.transactionType },
