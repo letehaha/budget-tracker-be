@@ -1,3 +1,4 @@
+import { TRANSACTION_TYPES } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
@@ -76,6 +77,17 @@ describe('Delete transaction controller', () => {
 
       expect(res.statusCode).toEqual(200);
       expect(txsAfterDeletion.length).toBe(0);
+    });
+  })
+  describe('transactions from external accounts', () => {
+    it('cannot delete transactions from external account', async () => {
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
+      const incomeTransaction = transactions.find(item => item.transactionType === TRANSACTION_TYPES.income);
+
+      const res = await helpers.deleteTransaction({ id: incomeTransaction.id });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
     });
   })
 })

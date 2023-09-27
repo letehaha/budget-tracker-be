@@ -82,15 +82,17 @@ export const getCurrencies = (
   });
 };
 
-export const getBaseCurrency = (
+export const getBaseCurrency = async (
   { userId }: { userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  return UsersCurrencies.findOne({
+  const data = await UsersCurrencies.findOne({
     where: { userId, isDefaultCurrency: true },
     include: { model: Currencies },
     transaction,
-  });
+  }) as UsersCurrencies & { currency: Currencies };
+
+  return data;
 };
 
 type getCurrencyOverload = {

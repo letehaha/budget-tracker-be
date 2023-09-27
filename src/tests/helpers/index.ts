@@ -8,6 +8,10 @@ import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
 import ExchangeRates from '@models/ExchangeRates.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
+import monobank from './monobank';
+
+export { monobank }
+export * from './account';
 
 const apiPrefix = config.get('apiPrefix');
 
@@ -59,15 +63,18 @@ export const buildAccountPayload = (overrides: Partial<endpointsTypes.CreateAcco
 });
 type BuildAccountPayload = ReturnType<typeof buildAccountPayload>
 
-export const buildTransactionPayload = ({ accountId, type = TRANSACTION_TYPES.expense }) => ({
+export const buildTransactionPayload = (
+  { accountId, ...overrides }: { accountId: number } & ReturnType<typeof buildTransactionPayload>,
+) => ({
   accountId,
   amount: 1000,
   categoryId: 1,
   isTransfer: false,
   paymentType: 'creditCard',
   time: startOfDay(new Date()),
-  transactionType: type,
-  type: ACCOUNT_TYPES.system,
+  transactionType: TRANSACTION_TYPES.expense,
+  accountType: ACCOUNT_TYPES.system,
+  ...overrides,
 });
 
 export function getAccount({ id, raw }: { id: number, raw: false }): Promise<Response>;
@@ -77,6 +84,14 @@ export function getAccount({ id, raw = false }: { id: number; raw?: boolean; }) 
     method: 'get',
     url: `/accounts/${id}`,
     raw,
+  });
+}
+
+export function getAccounts(): Promise<Accounts[]> {
+  return makeRequest({
+    method: 'get',
+    url: `/accounts`,
+    raw: true,
   });
 }
 
@@ -109,7 +124,7 @@ interface CreateTransactionBasePayload {
 
 export async function createTransaction(): Promise<Response>;
 export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: false }): Promise<Response>
-export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export async function createTransaction({ raw, payload }: CreateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>
 export async function createTransaction({ raw = false, payload = undefined } = {}) {
   let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
 
@@ -131,7 +146,7 @@ interface UpdateTransactionBasePayload {
 }
 
 export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: false }): Promise<Response>
-export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: true }): Promise<Transactions[]>
+export function updateTransaction({ raw, payload, id }: UpdateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>
 export function updateTransaction({ raw = false, id, payload = {} }) {
   return makeRequest({
     method: 'put',

@@ -1,12 +1,9 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import { API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
-
 import { ValidationError } from '@js/errors'
-
 import * as Transactions from '@models/Transactions.model';
-
 import * as transactionsService from '@services/transactions';
-import { logger} from '@js/utils/logger';
+import { errorHandler } from './helpers';
 
 const SORT_DIRECTIONS = Object.freeze({
   asc: 'ASC',
@@ -50,16 +47,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       response: transactions,
     });
   } catch (err) {
-    console.log('err', err);
-    logger.error(err);
-
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
@@ -92,13 +80,7 @@ export const getTransactionById = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 
@@ -131,13 +113,7 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
       response: data,
     });
   } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+    errorHandler(res, err);
   }
 };
 

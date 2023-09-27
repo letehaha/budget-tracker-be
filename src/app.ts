@@ -55,7 +55,19 @@ middlewarePassword(passport);
 
 app.set('port', config.get('port'));
 
-app.use(cors());
+app.use(cors({
+  origin(requestOrigin, callback) {
+    const ALLOWED_HOSTS = ['budget-tracker.com:8100', 'gamanets.money']
+
+    if (process.env.NODE_ENV !== 'test') {
+      if (!requestOrigin || !ALLOWED_HOSTS.some(value => requestOrigin.includes(value))) {
+        return callback(null, false);
+      }
+    }
+
+    return callback(null, true);
+  },
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {

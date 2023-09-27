@@ -8,7 +8,6 @@ import {
   ACCOUNT_TYPES,
 } from 'shared-types';
 import { Transaction } from 'sequelize/types';
-import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Accounts from '@models/Accounts.model';
 import { connection } from '@models/index';
 import * as monobankUsersService from '@services/banks/monobank/users';
@@ -331,7 +330,6 @@ export async function updateAccountBalanceForChangedTx (
     prevAmount = 0,
     refAmount = 0,
     prevRefAmount = 0,
-    currencyId,
     prevTransactionType = transactionType,
   }: updateAccountBalanceRequiredFields & {
     amount?: number;
@@ -342,25 +340,26 @@ export async function updateAccountBalanceForChangedTx (
   },
   { transaction }: { transaction?: Transaction } = {},
 ): Promise<void> {
-  const { currentBalance, refCurrentBalance, currencyId: accountCurrencyId } = await getAccountById(
+  const { currentBalance, refCurrentBalance } = await getAccountById(
     { id: accountId, userId },
     { transaction },
   );
 
-  let newAmount = defineCorrectAmountFromTxType(amount, transactionType)
+  const newAmount = defineCorrectAmountFromTxType(amount, transactionType)
   const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType)
   const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType)
   const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType)
 
-  if (currencyId !== accountCurrencyId) {
-    const { rate } = await userExchangeRateService.getExchangeRate({
-      userId,
-      baseId: currencyId,
-      quoteId: accountCurrencyId,
-    }, { transaction });
+  // TODO: for now keep that deadcode, cause it doesn't really work. But when have time, recheck it past neednes
+  // if (currencyId !== accountCurrencyId) {
+  //   const { rate } = await userExchangeRateService.getExchangeRate({
+  //     userId,
+  //     baseId: currencyId,
+  //     quoteId: accountCurrencyId,
+  //   }, { transaction });
 
-    newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
-  }
+  //   newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
+  // }
 
   await Accounts.updateAccountById({
     id: accountId,
