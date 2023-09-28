@@ -57,7 +57,7 @@ app.set('port', config.get('port'));
 
 app.use(cors({
   origin(requestOrigin, callback) {
-    const ALLOWED_HOSTS = ['budget-tracker.com:8100', 'gamanets.money']
+    const ALLOWED_HOSTS = ['budget-tracker.com:8100', '206.81.20.28:8081', 'gamanets.money']
 
     if (process.env.NODE_ENV !== 'test') {
       if (!requestOrigin || !ALLOWED_HOSTS.some(value => requestOrigin.includes(value))) {
