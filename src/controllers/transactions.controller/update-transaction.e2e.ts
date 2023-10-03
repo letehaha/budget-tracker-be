@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 import { faker } from '@faker-js/faker';
@@ -55,7 +55,7 @@ describe('Update transaction controller', () => {
         ...helpers.buildTransactionPayload({
           accountId: baseAccount.id,
           amount: 10,
-          isTransfer: true,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
           destinationAmount: 20,
           destinationAccountId: accountUAH.id,
         }),
@@ -117,7 +117,7 @@ describe('Update transaction controller', () => {
 
       const txPayload = {
         ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-        isTransfer: true,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
         destinationAmount: 30,
         destinationAccountId: accountB.id,
       };
@@ -143,13 +143,13 @@ describe('Update transaction controller', () => {
       expect(txsAfterUpdation.length).toBe(1);
       expect(txsAfterUpdation[0].transactionType).toBe(TRANSACTION_TYPES.income);
       expect(txsAfterUpdation[0].transferId).toBe(null);
-      expect(txsAfterUpdation[0].isTransfer).toBe(false);
+      expect(txsAfterUpdation[0].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
 
       await helpers.updateTransaction({
         id: sourceTransaction.id,
         payload: {
           ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-          isTransfer: true,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
           destinationAmount: 30,
           destinationAccountId: accountB.id,
         },
@@ -162,7 +162,7 @@ describe('Update transaction controller', () => {
       // Check that after making tx transfer type, source changes from `income` to `expense`
       expect(txsAfterUpdation2[0].transactionType).toBe(TRANSACTION_TYPES.expense);
       expect(txsAfterUpdation2[0].transferId).not.toBe(null);
-      expect(txsAfterUpdation2[0].isTransfer).toBe(true);
+      expect(txsAfterUpdation2[0].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
     });
     it('disallowd to change non-source transaction', async () => {
       const destinationTransaction = createdTransactions[1];
@@ -192,7 +192,7 @@ describe('Update transaction controller', () => {
           ...helpers.buildTransactionPayload({
             accountId: accountEUR.id,
             amount: 1000,
-            isTransfer: true,
+            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
             destinationAmount: 2000,
             destinationAccountId: accountUAH.id,
           }),
@@ -222,7 +222,7 @@ describe('Update transaction controller', () => {
           ...helpers.buildTransactionPayload({
             accountId: accountUAH.id,
             amount: 40000,
-            isTransfer: true,
+            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
             destinationAmount: 1000,
             destinationAccountId: accountEUR.id,
           }),
@@ -262,7 +262,7 @@ describe('Update transaction controller', () => {
       const [baseTx, oppositeTx] = await helpers.updateTransaction({
         id: externalTransaction.id,
         payload: {
-          isTransfer: true,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
           destinationAccountId: accountB.id,
           destinationAmount: externalTransaction.refAmount,
         },
@@ -313,7 +313,7 @@ describe('Update transaction controller', () => {
       await helpers.updateTransaction({
         id: externalTransaction.id,
         payload: {
-          isTransfer: false,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         },
         raw: true,
       });

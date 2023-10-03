@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
@@ -49,7 +49,7 @@ describe('Delete transaction controller', () => {
       const DESTINATION_AMOUNT = 25000;
       const txPayload = {
         ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-        isTransfer: true,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
         destinationAmount: DESTINATION_AMOUNT,
         destinationAccountId: accountB.id,
       };

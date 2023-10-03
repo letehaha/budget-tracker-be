@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types'
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types'
 
 import { Transaction } from 'sequelize/types';
 
@@ -47,7 +47,7 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
   // For now keep that logic only for system transactions
   if (
     prevData.accountType === ACCOUNT_TYPES.system
-    && prevData.isTransfer
+    && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts
     && prevData.transactionType !== TRANSACTION_TYPES.expense
   ) {
     throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
@@ -66,7 +66,9 @@ const makeBasicBaseTxUpdation = async (
 
   const transactionType = prevData.accountType === ACCOUNT_TYPES.system
     // For system
-    ? newData.isTransfer ? TRANSACTION_TYPES.expense : newData.transactionType
+    ? newData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts
+      ? TRANSACTION_TYPES.expense
+      : newData.transactionType
     : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
@@ -80,7 +82,7 @@ const makeBasicBaseTxUpdation = async (
     paymentType: newData.paymentType,
     accountId: newData.accountId,
     categoryId: newData.categoryId,
-    isTransfer: newData.isTransfer,
+    transferNature: newData.transferNature,
     currencyCode: prevData.currencyCode,
   }
 
@@ -117,7 +119,7 @@ const makeBasicBaseTxUpdation = async (
 type HelperFunctionsArgs = [UpdateTransactionParams, Transactions.default, Transactions.default, Transaction];
 
 /**
- * If previously the base tx was transfer, we need to::
+ * If previously the base tx was transfer, we need to:
  *
  * 1. Find opposite tx to get access to old tx data
  * 2. Update opposite tx data
@@ -220,7 +222,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       id: baseTransaction.id,
       userId: baseTransaction.userId,
       transferId: null,
-      isTransfer: false,
+      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     },
     { transaction },
   );
@@ -250,8 +252,8 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
     const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction, transaction];
 
     if (
-      (payload.isTransfer === undefined && prevData.isTransfer)
-      || (payload.isTransfer && prevData.isTransfer)
+      (payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts)
+      || (payload.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts)
     ) {
       // Handle the case when initially tx was "expense", became "transfer",
       // but now user wants to unmark it from transfer and make "income"
@@ -264,7 +266,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
 
       const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
       updatedTransactions = [baseTx, oppositeTx];
-    } else if (payload.isTransfer && !prevData.isTransfer) {
+    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
       const { baseTx, oppositeTx } = await createOppositeTransaction([
         // When updating existing tx we usually don't pass transactionType, so
         // it will be `undefined`, that's why we derive it from prevData
@@ -273,7 +275,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
         transaction,
       ]);
       updatedTransactions = [baseTx, oppositeTx];
-    } else if (!payload.isTransfer && prevData.isTransfer) {
+    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
 

@@ -17,6 +17,7 @@ import {
   ExternalMonobankTransactionResponse,
   AccountModel,
   ACCOUNT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
 } from 'shared-types';
 import { CustomResponse } from '@common/types';
 
@@ -136,7 +137,7 @@ async function createMonoTransaction(
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
-    isTransfer: false,
+    transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.monobank,
   });
 

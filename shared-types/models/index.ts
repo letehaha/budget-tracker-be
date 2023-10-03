@@ -3,6 +3,7 @@ import {
   CATEGORY_TYPES,
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
 } from 'shared-types';
 export * from './external-services';
 
@@ -83,7 +84,7 @@ export interface TransactionModel {
   refCurrencyCode: string;
 
   // is transaction transfer?
-  isTransfer: boolean;
+  transferNature: TRANSACTION_TRANSFER_NATURE;
   // (hash, used to connect two transactions)
   transferId: string;
 

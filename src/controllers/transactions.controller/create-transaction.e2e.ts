@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
@@ -23,7 +23,7 @@ describe('Create transaction controller', () => {
     expect(baseTx.amount).toBe(txPayload.amount);
     expect(baseTx.refAmount).toBe(txPayload.amount);
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(baseTx.isTransfer).toBe(false);
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions[0]);
   });
   it('should successfully create a transaction for account with currency different from base one', async () => {
@@ -53,7 +53,7 @@ describe('Create transaction controller', () => {
     expect(baseTx.amount).toBe(txPayload.amount);
     expect(baseTx.refAmount).toBe(Math.floor(txPayload.amount * currencyRate.rate));
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(baseTx.isTransfer).toBe(false);
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions[0]);
   });
   it('should successfully create a transfer transaction between accounts with same currency', async () => {
@@ -63,7 +63,7 @@ describe('Create transaction controller', () => {
     const defaultTxPayload = helpers.buildTransactionPayload({ accountId: accountA.id });
     const txPayload = {
       ...defaultTxPayload,
-      isTransfer: true,
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
       destinationAmount: defaultTxPayload.amount,
       destinationAccountId: accountB.id,
     };
@@ -86,8 +86,8 @@ describe('Create transaction controller', () => {
     expect(baseTx.refAmount).toBe(txPayload.amount);
     expect(oppositeTx.refAmount).toBe(txPayload.amount);
 
-    expect(baseTx.isTransfer).toBe(true);
-    expect(oppositeTx.isTransfer).toBe(true);
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
@@ -117,7 +117,7 @@ describe('Create transaction controller', () => {
     const DESTINATION_AMOUNT = 5600;
     const txPayload = {
       ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-      isTransfer: true,
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
       destinationAmount: DESTINATION_AMOUNT,
       destinationAccountId: accountB.id,
     };
@@ -144,8 +144,8 @@ describe('Create transaction controller', () => {
     expect(baseTx.refAmount).toBe(baseTx.amount);
     expect(oppositeTx.refAmount).toBe(baseTx.amount);
 
-    expect(baseTx.isTransfer).toBe(true);
-    expect(oppositeTx.isTransfer).toBe(true);
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
@@ -187,7 +187,7 @@ describe('Create transaction controller', () => {
     const DESTINATION_AMOUNT = 25000;
     const txPayload = {
       ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-      isTransfer: true,
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
       destinationAmount: DESTINATION_AMOUNT,
       destinationAccountId: accountB.id,
     };
@@ -214,8 +214,8 @@ describe('Create transaction controller', () => {
     expect(baseTx.refAmount).toBe(Math.floor(baseTx.amount * currencyRate.rate));
     expect(oppositeTx.refAmount).toBe(Math.floor(oppositeTx.amount * oppositeCurrencyRate.rate));
 
-    expect(baseTx.isTransfer).toBe(true);
-    expect(oppositeTx.isTransfer).toBe(true);
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);

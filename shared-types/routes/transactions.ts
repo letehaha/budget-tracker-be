@@ -26,5 +26,5 @@ export interface UpdateTransactionBody extends BodyPayload {
   accountId?: TransactionModel['accountId'];
   destinationAccountId?: TransactionModel['accountId'];
   categoryId?: TransactionModel['categoryId'];
-  isTransfer?: TransactionModel['isTransfer'];
+  transferNature?: TransactionModel['transferNature'];
 }
