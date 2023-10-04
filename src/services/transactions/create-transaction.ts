@@ -230,9 +230,9 @@ export const createOppositeTransaction = async (
     let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction];
 
     /**
-     * If transactions is transfer, add transferId to both transactions to connect
-     * them, and use destinationAmount and destinationAccountId for the second
-     * transaction.
+     * If transactions is transfer between two accounts, add transferId to both
+     * transactions to connect them, and use destinationAmount and destinationAccountId
+     * for the second transaction.
      */
     if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       const res = await createOppositeTransaction([
