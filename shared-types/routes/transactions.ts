@@ -10,6 +10,7 @@ export interface GetTransactionsQuery extends QueryPayload {
   nestedInclude?: boolean;
   limit?: number;
   from?: number;
+  type?: string;
   accountType?: ACCOUNT_TYPES;
   accountId?: number;
 }

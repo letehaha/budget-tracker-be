@@ -23,6 +23,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       nestedInclude,
       limit,
       from = 0,
+      type,
       accountType,
       accountId,
     }: endpointsTypes.GetTransactionsQuery = req.query;
@@ -33,6 +34,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       accountType,
       accountId,
       limit,
+      type,
       sortDirection: sort,
       includeUser,
       includeAccount,
