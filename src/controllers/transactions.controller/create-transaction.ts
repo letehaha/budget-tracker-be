@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 
@@ -19,7 +19,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       destinationAccountId,
       categoryId,
       accountType = ACCOUNT_TYPES.system,
-      transferNature,
+      transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
     }: endpointsTypes.CreateTransactionBody & { accountType: ACCOUNT_TYPES } = req.body;
     const { id: userId } = req.user;
 
@@ -42,7 +42,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
 
     // TODO: Add validations
     // 1. That amount and destinationAmount are integers
-    // 2. If transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts, then all required fields are passed
+    // 2. If transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer, then all required fields are passed
     // 3. That passed currencyId exists
     // 4. Amount and destinationAmount with same currency should be equal
     // 5. That transactions here might be created only with system account type

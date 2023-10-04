@@ -49,7 +49,7 @@ describe('Delete transaction controller', () => {
       const DESTINATION_AMOUNT = 25000;
       const txPayload = {
         ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
         destinationAmount: DESTINATION_AMOUNT,
         destinationAccountId: accountB.id,
       };

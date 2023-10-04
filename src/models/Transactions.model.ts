@@ -216,7 +216,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
 
     const requiredFields = [transferId, refCurrencyCode, refAmount]
 
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       if (requiredFields.some(item => item === undefined)) {
         throw new ValidationError({
           message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,

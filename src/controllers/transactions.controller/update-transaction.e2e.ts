@@ -55,7 +55,7 @@ describe('Update transaction controller', () => {
         ...helpers.buildTransactionPayload({
           accountId: baseAccount.id,
           amount: 10,
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           destinationAmount: 20,
           destinationAccountId: accountUAH.id,
         }),
@@ -117,7 +117,7 @@ describe('Update transaction controller', () => {
 
       const txPayload = {
         ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
         destinationAmount: 30,
         destinationAccountId: accountB.id,
       };
@@ -149,7 +149,7 @@ describe('Update transaction controller', () => {
         id: sourceTransaction.id,
         payload: {
           ...helpers.buildTransactionPayload({ accountId: accountA.id }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           destinationAmount: 30,
           destinationAccountId: accountB.id,
         },
@@ -162,7 +162,7 @@ describe('Update transaction controller', () => {
       // Check that after making tx transfer type, source changes from `income` to `expense`
       expect(txsAfterUpdation2[0].transactionType).toBe(TRANSACTION_TYPES.expense);
       expect(txsAfterUpdation2[0].transferId).not.toBe(null);
-      expect(txsAfterUpdation2[0].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts);
+      expect(txsAfterUpdation2[0].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     });
     it('disallowd to change non-source transaction', async () => {
       const destinationTransaction = createdTransactions[1];
@@ -192,7 +192,7 @@ describe('Update transaction controller', () => {
           ...helpers.buildTransactionPayload({
             accountId: accountEUR.id,
             amount: 1000,
-            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
             destinationAmount: 2000,
             destinationAccountId: accountUAH.id,
           }),
@@ -222,7 +222,7 @@ describe('Update transaction controller', () => {
           ...helpers.buildTransactionPayload({
             accountId: accountUAH.id,
             amount: 40000,
-            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
             destinationAmount: 1000,
             destinationAccountId: accountEUR.id,
           }),
@@ -262,7 +262,7 @@ describe('Update transaction controller', () => {
       const [baseTx, oppositeTx] = await helpers.updateTransaction({
         id: externalTransaction.id,
         payload: {
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           destinationAccountId: accountB.id,
           destinationAmount: externalTransaction.refAmount,
         },

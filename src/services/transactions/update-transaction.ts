@@ -47,7 +47,7 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
   // For now keep that logic only for system transactions
   if (
     prevData.accountType === ACCOUNT_TYPES.system
-    && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts
+    && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
     && prevData.transactionType !== TRANSACTION_TYPES.expense
   ) {
     throw new ValidationError({ message: 'You cannot edit non-primary transfer transaction' });
@@ -66,7 +66,7 @@ const makeBasicBaseTxUpdation = async (
 
   const transactionType = prevData.accountType === ACCOUNT_TYPES.system
     // For system
-    ? newData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts
+    ? newData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
       ? TRANSACTION_TYPES.expense
       : newData.transactionType
     : prevData.transactionType;
@@ -252,8 +252,8 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
     const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction, transaction];
 
     if (
-      (payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts)
-      || (payload.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts)
+      (payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer)
+      || (payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer)
     ) {
       // Handle the case when initially tx was "expense", became "transfer",
       // but now user wants to unmark it from transfer and make "income"
@@ -266,7 +266,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
 
       const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
       updatedTransactions = [baseTx, oppositeTx];
-    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
+    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
       const { baseTx, oppositeTx } = await createOppositeTransaction([
         // When updating existing tx we usually don't pass transactionType, so
         // it will be `undefined`, that's why we derive it from prevData
@@ -275,7 +275,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
         transaction,
       ]);
       updatedTransactions = [baseTx, oppositeTx];
-    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts) {
+    } else if (payload.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
 

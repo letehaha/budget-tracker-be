@@ -21,12 +21,12 @@ export const validateTransactionCreation = (params: CreateTransactionParams) => 
   } else {
     validateTransactionAmount(amount);
 
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       if (!(accountId && destinationAccountId)) throw new ValidationError({
-        message: `Both "accountId" and "destinationAccountId" should be provided when "${TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts}" is provided`
+        message: `Both "accountId" and "destinationAccountId" should be provided when "${TRANSACTION_TRANSFER_NATURE.common_transfer}" is provided`
       });
       if (!(amount && destinationAmount)) throw new ValidationError({
-        message: `Both "amount" and "destinationAmount" should be provided when "${TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts}" is provided`
+        message: `Both "amount" and "destinationAmount" should be provided when "${TRANSACTION_TRANSFER_NATURE.common_transfer}" is provided`
       });
     }
   }

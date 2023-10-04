@@ -27,7 +27,7 @@ export enum CATEGORY_TYPES {
 // Stored like that in the DB as well
 export enum TRANSACTION_TRANSFER_NATURE {
   not_transfer = 'not_transfer',
-  transfer_between_user_accounts = 'transfer_between_user_accounts',
+  common_transfer = 'transfer_between_user_accounts',
   transfer_out_wallet = 'transfer_out_wallet',
 }
 

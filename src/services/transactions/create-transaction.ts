@@ -115,7 +115,7 @@ export const createOppositeTransaction = async (
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId,
-    transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
   }, { transaction });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
@@ -158,7 +158,7 @@ export const createOppositeTransaction = async (
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
       refCurrencyCode: defaultUserCurrency.currency.code,
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts,
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId,
     },
     { transaction },
@@ -234,7 +234,7 @@ export const createOppositeTransaction = async (
      * them, and use destinationAmount and destinationAccountId for the second
      * transaction.
      */
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       const res = await createOppositeTransaction([
         {
           amount,

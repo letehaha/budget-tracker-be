@@ -27,7 +27,7 @@ export const deleteTransaction = async ({
 
     if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
       await Transactions.deleteTransactionById({ id, userId }, { transaction });
-    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_between_user_accounts && transferId) {
+    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
       const transferTransactions = await Transactions.getTransactionsByArrayOfField({
         fieldValues: [transferId],
         fieldName: 'transferId',
