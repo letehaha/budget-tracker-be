@@ -16,6 +16,20 @@ export interface GetTransactionsQuery extends QueryPayload {
 
 export type GetTransactionsResponse = TransactionModel[];
 
+export interface CreateTransactionBody extends BodyPayload {
+  amount: TransactionModel['amount'];
+  note?: TransactionModel['note'];
+  time: string;
+  transactionType: TransactionModel['transactionType'];
+  paymentType: TransactionModel['paymentType'];
+  accountId: TransactionModel['accountId'];
+  categoryId?: TransactionModel['categoryId'];
+  destinationAccountId?: TransactionModel['accountId'];
+  destinationAmount?: TransactionModel['amount'];
+  transferNature?: TransactionModel['transferNature'];
+}
+
+
 export interface UpdateTransactionBody extends BodyPayload {
   amount?: TransactionModel['amount'];
   destinationAmount?: TransactionModel['amount'];

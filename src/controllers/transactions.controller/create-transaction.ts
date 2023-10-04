@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_RESPONSE_STATUS } from 'shared-types';
+import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 
@@ -20,14 +20,14 @@ export const createTransaction = async (req, res: CustomResponse) => {
       categoryId,
       accountType = ACCOUNT_TYPES.system,
       transferNature,
-    } = req.body;
+    }: endpointsTypes.CreateTransactionBody & { accountType: ACCOUNT_TYPES } = req.body;
     const { id: userId } = req.user;
 
     const params = {
       amount,
       destinationAmount,
       note,
-      time,
+      time: new Date(time),
       transactionType,
       paymentType,
       accountId,
