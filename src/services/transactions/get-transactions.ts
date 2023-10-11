@@ -1,6 +1,6 @@
 import * as Transactions from '@models/Transactions.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, SORT_DIRECTIONS } from 'shared-types';
 
 export const getTransactions = async (
     {

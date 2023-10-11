@@ -354,8 +354,6 @@ export const getTransactions = async ({
     nestedInclude,
   });
 
-  console.log(transactionType, '--> transType')
-
   const transactions = await Transactions.findAll({
     include,
     where: {
