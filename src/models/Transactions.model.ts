@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES, SORT_DIRECTIONS } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
 import {
@@ -320,16 +320,32 @@ export const getTransactions = async ({
   limit = 20,
   accountType,
   accountId,
-  type,
   userId,
-  sortDirection = 'DESC',
+  sortDirection = SORT_DIRECTIONS.desc,
   includeUser,
   includeAccount,
+  transactionType,
   includeCategory,
   includeAll,
   nestedInclude,
   isRaw = false,
-}) => {
+}: {
+  from: number,
+  limit: number,
+  accountType: ACCOUNT_TYPES,
+  transactionType: string,
+  accountId: number,
+  userId: number
+  sortDirection: SORT_DIRECTIONS,
+  includeUser: boolean,
+  includeAccount: boolean,
+  includeCategory: boolean,
+  includeAll: boolean,
+  nestedInclude :boolean,
+  isRaw: boolean,
+},
+{ transaction }: { transaction?: Transaction } = {},
+) => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -338,16 +354,18 @@ export const getTransactions = async ({
     nestedInclude,
   });
 
+  console.log(transactionType, '--> transType')
+
   const transactions = await Transactions.findAll({
     include,
     where: {
       userId,
-      ...removeUndefinedKeys({ accountType, accountId }),
+      ...removeUndefinedKeys({ accountType, accountId, transactionType }),
     },
-    type: type,
+    transaction,
     offset: from,
     limit: limit,
-    order: [['time', sortDirection.toUpperCase()]],
+    order: [['time', sortDirection]],
     raw: isRaw,
   });
 

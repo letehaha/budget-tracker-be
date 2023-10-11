@@ -1,8 +1,8 @@
-import { TransactionModel, ACCOUNT_TYPES } from 'shared-types';
+import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS } from 'shared-types';
 import { BodyPayload, QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
-  sort?: 'ASC' | 'DESC';
+  sort?: SORT_DIRECTIONS;
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;

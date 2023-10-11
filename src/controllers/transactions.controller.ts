@@ -1,54 +1,51 @@
-import { API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import { API_RESPONSE_STATUS, SORT_DIRECTIONS } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { ValidationError } from '@js/errors'
-import * as Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
 import { errorHandler } from './helpers';
-
-const SORT_DIRECTIONS = Object.freeze({
-  asc: 'ASC',
-  desc: 'DESC',
-});
 
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
-
+    const { type: transactionType } = req.query
+    console.log(req.query, '---> req')
     const {
       sort = SORT_DIRECTIONS.desc,
+      limit,
+      from = 0,
+      accountType,
+      accountId,
       includeUser,
       includeAccount,
       includeCategory,
       includeAll,
       nestedInclude,
-      limit,
-      from = 0,
-      type,
-      accountType,
-      accountId,
-    }: endpointsTypes.GetTransactionsQuery = req.query;
+      isRaw,
+    } = req.query
 
-    const transactions = await Transactions.getTransactions({
+    if (userId === undefined) throw new ValidationError({ message: 'id should exist.' });
+
+    const data = await transactionsService.getTransactions({
       userId,
+      transactionType,
+      sort,
+      limit,
       from,
       accountType,
       accountId,
-      limit,
-      type,
-      sortDirection: sort,
       includeUser,
       includeAccount,
       includeCategory,
       includeAll,
       nestedInclude,
-      isRaw: true,
+      isRaw,
     });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: transactions,
-    });
-  } catch (err) {
+      response: data,
+    })
+  } catch(err) {
     errorHandler(res, err);
   }
 };
