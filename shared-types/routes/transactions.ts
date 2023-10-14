@@ -1,4 +1,4 @@
-import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS } from 'shared-types';
+import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
 import { BodyPayload, QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
@@ -10,7 +10,7 @@ export interface GetTransactionsQuery extends QueryPayload {
   nestedInclude?: boolean;
   limit?: number;
   from?: number;
-  type?: string;
+  type?: TRANSACTION_TYPES;
   accountType?: ACCOUNT_TYPES;
   accountId?: number;
 }

@@ -7,12 +7,11 @@ import { errorHandler } from './helpers';
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
-    const { type: transactionType } = req.query
-    console.log(req.query, '---> req')
     const {
-      sort = SORT_DIRECTIONS.desc,
+      sortDirection = SORT_DIRECTIONS.desc,
       limit,
       from = 0,
+      type: transactionType,
       accountType,
       accountId,
       includeUser,
@@ -23,12 +22,10 @@ export const getTransactions = async (req, res: CustomResponse) => {
       isRaw,
     } = req.query
 
-    if (userId === undefined) throw new ValidationError({ message: 'id should exist.' });
-
     const data = await transactionsService.getTransactions({
       userId,
       transactionType,
-      sort,
+      sortDirection,
       limit,
       from,
       accountType,
