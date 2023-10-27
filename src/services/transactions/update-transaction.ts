@@ -243,12 +243,6 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       {id: payload.destinationTransactionId, userId: payload.userId},
       { transaction },
     )
-    
-    console.log(prevData, '--->>>prevData')
-    console.log(linkData, '---LINKDATA')
-
-    // console.log(payload, '---> payload')
-    // console.log(prevData, '---> prevData')
 
     // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
