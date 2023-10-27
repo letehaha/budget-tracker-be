@@ -17,6 +17,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       paymentType,
       accountId,
       destinationAccountId,
+      destinationTransactionId,
       categoryId,
       isTransfer,
     }: endpointsTypes.UpdateTransactionBody = req.body;
@@ -29,6 +30,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       ...removeUndefinedKeys({
         amount,
         destinationAmount,
+        destinationTransactionId,
         note,
         time: new Date(time),
         userId,

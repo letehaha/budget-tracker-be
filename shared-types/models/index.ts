@@ -74,6 +74,7 @@ export interface TransactionModel {
   time: Date;
   userId: number;
   transactionType: TRANSACTION_TYPES;
+  transactionId: number;
   paymentType: PAYMENT_TYPES;
   accountId: number;
   categoryId: number;

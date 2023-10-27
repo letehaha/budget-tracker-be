@@ -12,6 +12,7 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { getTransactionById } from './get-by-id';
 import { createOppositeTransaction, calcTransferTransactionRefAmount } from './create-transaction';
+import { linkTransactions } from './link-transaction';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
 
@@ -238,6 +239,17 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       { transaction },
     );
 
+    const linkData = await getTransactionById(
+      {id: payload.destinationTransactionId, userId: payload.userId},
+      { transaction },
+    )
+    
+    console.log(prevData, '--->>>prevData')
+    console.log(linkData, '---LINKDATA')
+
+    // console.log(payload, '---> payload')
+    // console.log(prevData, '---> prevData')
+
     // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
 
@@ -265,14 +277,19 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
       updatedTransactions = [baseTx, oppositeTx];
     } else if (payload.isTransfer && !prevData.isTransfer) {
-      const { baseTx, oppositeTx } = await createOppositeTransaction([
-        // When updating existing tx we usually don't pass transactionType, so
-        // it will be `undefined`, that's why we derive it from prevData
-        { ...payload, transactionType: payload.transactionType ?? prevData.transactionType },
-        baseTransaction,
-        transaction,
-      ]);
-      updatedTransactions = [baseTx, oppositeTx];
+        if (payload.destinationTransactionId) {
+          const { linkedBaseTransaction, linkedLinkTransaction } = await linkTransactions(prevData, linkData, transaction);
+          updatedTransactions = [linkedBaseTransaction, linkedLinkTransaction];
+        } else {
+          const { baseTx, oppositeTx } = await createOppositeTransaction([
+            // When updating existing tx we usually don't pass transactionType, so
+            // it will be `undefined`, that's why we derive it from prevData
+            { ...payload, transactionType: payload.transactionType ?? prevData.transactionType },
+            baseTransaction,
+            transaction,
+          ]);
+          updatedTransactions = [baseTx, oppositeTx];
+        }
     } else if (!payload.isTransfer && prevData.isTransfer) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }

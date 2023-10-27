@@ -20,6 +20,7 @@ export type GetTransactionsResponse = TransactionModel[];
 export interface UpdateTransactionBody extends BodyPayload {
   amount?: TransactionModel['amount'];
   destinationAmount?: TransactionModel['amount'];
+  destinationTransactionId?: TransactionModel['transactionId']
   note?: TransactionModel['note'];
   time?: string;
   transactionType?: TransactionModel['transactionType'];

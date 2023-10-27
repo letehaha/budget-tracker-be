@@ -4,6 +4,7 @@ import * as Transactions from '@models/Transactions.model';
 export type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'> & {
   destinationAmount?: number;
   destinationAccountId?: number;
+  destinationTransactionId?: number;
 }
 
 interface UpdateParams {
@@ -21,6 +22,7 @@ interface UpdateParams {
 
 interface UpdateTransferParams {
   destinationAmount?: number;
+  destinationTransactionId?: number;
   destinationAccountId?: number;
   isTransfer?: boolean;
 }

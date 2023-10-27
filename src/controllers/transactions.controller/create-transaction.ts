@@ -11,6 +11,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
     const {
       amount,
       destinationAmount,
+      destinationTransactionId,
       note,
       time,
       transactionType,
@@ -34,6 +35,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
 
     let data = await transactionsService.createTransaction({
       amount,
+      destinationTransactionId,
       destinationAmount,
       note,
       time,
