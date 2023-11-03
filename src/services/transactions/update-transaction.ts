@@ -239,11 +239,6 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       { transaction },
     );
 
-    const linkData = await getTransactionById(
-      {id: payload.destinationTransactionId, userId: payload.userId},
-      { transaction },
-    )
-
     // Validate that passed parameters are not breaking anything
     validateTransaction(payload, prevData);
 
@@ -272,8 +267,8 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
       updatedTransactions = [baseTx, oppositeTx];
     } else if (payload.isTransfer && !prevData.isTransfer) {
         if (payload.destinationTransactionId) {
-          const { linkedBaseTransaction, linkedLinkTransaction } = await linkTransactions(prevData, linkData, transaction);
-          updatedTransactions = [linkedBaseTransaction, linkedLinkTransaction];
+          const { baseTx, oppositeTx } = await linkTransactions( { payload, baseTransaction, transaction });
+          updatedTransactions = [baseTx, oppositeTx];
         } else {
           const { baseTx, oppositeTx } = await createOppositeTransaction([
             // When updating existing tx we usually don't pass transactionType, so
