@@ -46,9 +46,17 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeColumn('UsersCurrencies', 'exchangeRate', { transaction });
-      await queryInterface.removeColumn('UsersCurrencies', 'liveRateUpdate', { transaction });
-      await queryInterface.removeColumn('UsersCurrencies', 'isDefaultCurrency', { transaction });
+      await queryInterface.removeColumn('UsersCurrencies', 'exchangeRate', {
+        transaction,
+      });
+      await queryInterface.removeColumn('UsersCurrencies', 'liveRateUpdate', {
+        transaction,
+      });
+      await queryInterface.removeColumn(
+        'UsersCurrencies',
+        'isDefaultCurrency',
+        { transaction },
+      );
 
       await transaction.commit();
     } catch (err) {

@@ -7,14 +7,17 @@ module.exports = {
 
     try {
       // find old currencies
-      const oldCurrencies = await queryInterface.sequelize.query(`
+      const oldCurrencies = await queryInterface.sequelize.query(
+        `
         SELECT "id", "code" FROM "Currencies"
-      `, { type: QueryTypes.SELECT, transaction });
+      `,
+        { type: QueryTypes.SELECT, transaction },
+      );
 
       // create and return new currencies
       const newCurrencies = await queryInterface.bulkInsert(
         'Currencies',
-        allCurrencies.map(item => ({
+        allCurrencies.map((item) => ({
           currency: item.currency,
           digits: item.digits,
           number: Number(item.number),
@@ -27,28 +30,46 @@ module.exports = {
       await (async () => {
         for (item of oldCurrencies) {
           const oldId = item.id;
-          const newId = newCurrencies.find(n => n.code === item.code).id;
+          const newId = newCurrencies.find((n) => n.code === item.code).id;
 
-          await queryInterface.sequelize.query(`
+          await queryInterface.sequelize.query(
+            `
             UPDATE "MonobankTransactions" SET "currencyId"=${newId} WHERE "currencyId"=${oldId}
-          `, { transaction });
-          await queryInterface.sequelize.query(`
+          `,
+            { transaction },
+          );
+          await queryInterface.sequelize.query(
+            `
             UPDATE "Transactions" SET "currencyId"=${newId} WHERE "currencyId"=${oldId}
-          `, { transaction });
-          await queryInterface.sequelize.query(`
+          `,
+            { transaction },
+          );
+          await queryInterface.sequelize.query(
+            `
             UPDATE "MonobankAccounts" SET "currencyId"=${newId} WHERE "currencyId"=${oldId}
-          `, { transaction });
-          await queryInterface.sequelize.query(`
+          `,
+            { transaction },
+          );
+          await queryInterface.sequelize.query(
+            `
             UPDATE "Accounts" SET "currencyId"=${newId} WHERE "currencyId"=${oldId}
-          `, { transaction });
-          await queryInterface.sequelize.query(`
+          `,
+            { transaction },
+          );
+          await queryInterface.sequelize.query(
+            `
             UPDATE "UsersCurrencies" SET "currencyId"=${newId} WHERE "currencyId"=${oldId}
-          `, { transaction });
+          `,
+            { transaction },
+          );
 
           // delete old currencies from the Currencies table
-          await queryInterface.sequelize.query(`
+          await queryInterface.sequelize.query(
+            `
             DELETE FROM "Currencies" WHERE "id"=${oldId};
-          `, { transaction });
+          `,
+            { transaction },
+          );
         }
       })();
 

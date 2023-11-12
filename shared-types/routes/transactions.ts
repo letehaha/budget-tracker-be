@@ -28,7 +28,6 @@ export interface CreateTransactionBody {
   transferNature?: TransactionModel['transferNature'];
 }
 
-
 export interface UpdateTransactionBody {
   amount?: TransactionModel['amount'];
   destinationAmount?: TransactionModel['amount'];

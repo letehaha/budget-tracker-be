@@ -1,4 +1,9 @@
-import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import {
+  ACCOUNT_TYPES,
+  API_RESPONSE_STATUS,
+  endpointsTypes,
+  TRANSACTION_TRANSFER_NATURE,
+} from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 
@@ -20,7 +25,9 @@ export const createTransaction = async (req, res: CustomResponse) => {
       categoryId,
       accountType = ACCOUNT_TYPES.system,
       transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
-    }: endpointsTypes.CreateTransactionBody & { accountType: ACCOUNT_TYPES } = req.body;
+    }: endpointsTypes.CreateTransactionBody & {
+      accountType: ACCOUNT_TYPES;
+    } = req.body;
     const { id: userId } = req.user;
 
     const params = {
@@ -51,7 +58,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
 
     if (data[0].dataValues) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data = data.map(d => d.dataValues ?? d) as any
+      data = data.map((d) => d.dataValues ?? d) as any;
     }
 
     return res.status(200).json({

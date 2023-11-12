@@ -3,9 +3,9 @@ import config from 'config';
 
 const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sequelize?: any,
+  sequelize?: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Sequelize?: any,
+  Sequelize?: any;
 } = {};
 
 const DBConfig: Record<string, unknown> = config.get('db');
@@ -26,4 +26,4 @@ if (['development'].includes(process.env.NODE_ENV)) {
 connection.sequelize = sequelize;
 connection.Sequelize = Sequelize;
 
-export { connection }
+export { connection };

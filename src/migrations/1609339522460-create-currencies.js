@@ -36,9 +36,7 @@ module.exports = {
       currency: uah.currency,
     };
 
-    await queryInterface.bulkInsert('Currencies', [
-      uahData,
-    ], {});
+    await queryInterface.bulkInsert('Currencies', [uahData], {});
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable('Currencies');

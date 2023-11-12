@@ -24,14 +24,10 @@ interface CurrenciesAttributes extends CurrencyModel {}
   timestamps: false,
 })
 export default class Currencies extends Model<CurrenciesAttributes> {
-  @BelongsToMany(
-    () => Users,
-    {
-      as: 'users',
-      through: () => UsersCurrencies,
-    }
-  )
-
+  @BelongsToMany(() => Users, {
+    as: 'users',
+    through: () => UsersCurrencies,
+  })
   @Unique
   @AllowNull(false)
   @AutoIncrement
@@ -62,20 +58,36 @@ export default class Currencies extends Model<CurrenciesAttributes> {
 export const getAllCurrencies = async () => {
   const currencies = await Currencies.findAll({
     where: {
-      isDisabled: { [Op.not]: true }
+      isDisabled: { [Op.not]: true },
     },
   });
 
   return currencies;
 };
 
-export async function getCurrency({ id }: { id: number }, { transaction }: { transaction: Transaction }): Promise<Currencies>
-export async function getCurrency({ currency }: { currency: string }, { transaction }: { transaction: Transaction }): Promise<Currencies>
-export async function getCurrency({ number }: { number: number }, { transaction }: { transaction: Transaction }): Promise<Currencies>
-export async function getCurrency({ code }: { code: string }, { transaction }: { transaction: Transaction }): Promise<Currencies>
 export async function getCurrency(
-  { id, currency, number, code }:
+  { id }: { id: number },
+  { transaction }: { transaction: Transaction },
+): Promise<Currencies>;
+export async function getCurrency(
+  { currency }: { currency: string },
+  { transaction }: { transaction: Transaction },
+): Promise<Currencies>;
+export async function getCurrency(
+  { number }: { number: number },
+  { transaction }: { transaction: Transaction },
+): Promise<Currencies>;
+export async function getCurrency(
+  { code }: { code: string },
+  { transaction }: { transaction: Transaction },
+): Promise<Currencies>;
+export async function getCurrency(
   {
+    id,
+    currency,
+    number,
+    code,
+  }: {
     id?: number;
     currency?: string;
     number?: number;
@@ -100,21 +112,28 @@ export async function getCurrencies(
     ids?: number[];
     numbers?: number[];
     currencies?: string[];
-    codes?: string[]
+    codes?: string[];
   },
   { transaction }: { transaction?: Transaction } = {},
 ) {
-  if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
-    throw new ValidationError({ message: 'Neither "ids", "currencies" or "codes" should be specified.' })
+  if (
+    ids === undefined &&
+    currencies === undefined &&
+    codes === undefined &&
+    numbers === undefined
+  ) {
+    throw new ValidationError({
+      message: 'Neither "ids", "currencies" or "codes" should be specified.',
+    });
   }
   const where: Record<string, unknown> = {
-    isDisabled: { [Op.not]: true }
+    isDisabled: { [Op.not]: true },
   };
 
-  if (ids) where.id = { [Op.in]: ids }
-  if (currencies) where.currency = { [Op.in]: currencies }
-  if (codes) where.code = { [Op.in]: codes }
-  if (numbers) where.number = { [Op.in]: numbers }
+  if (ids) where.id = { [Op.in]: ids };
+  if (currencies) where.currency = { [Op.in]: currencies };
+  if (codes) where.code = { [Op.in]: codes };
+  if (numbers) where.number = { [Op.in]: numbers };
 
   return Currencies.findAll({ where, transaction });
 }

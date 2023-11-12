@@ -28,14 +28,10 @@ const DETAULT_TOTAL_BALANCE = 0;
   timestamps: false,
 })
 export default class Users extends Model {
-  @BelongsToMany(
-    () => Currencies,
-    {
-      as: 'currencies',
-      through: () => UsersCurrencies,
-    }
-  )
-
+  @BelongsToMany(() => Currencies, {
+    as: 'currencies',
+    through: () => UsersCurrencies,
+  })
   @Column({
     primaryKey: true,
     autoIncrement: true,
@@ -82,7 +78,9 @@ export default class Users extends Model {
   defaultCategoryId: number;
 }
 
-export const getUsers = async (attributes: GenericSequelizeModelAttributes = {}) => {
+export const getUsers = async (
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const users = await Users.findAll({ transaction: attributes.transaction });
 
   return users;
@@ -92,7 +90,10 @@ export const getUserById = async (
   { id }: { id: number },
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<UserModel> => {
-  const user = await Users.findOne({ where: { id }, transaction: attributes.transaction });
+  const user = await Users.findOne({
+    where: { id },
+    transaction: attributes.transaction,
+  });
 
   return user;
 };
@@ -139,7 +140,10 @@ export const getUserByCredentials = async (
   if (username) where.username = username;
   if (email) where.email = email;
 
-  const user = await Users.scope('withPassword').findOne({ where, transaction: attributes.transaction });
+  const user = await Users.scope('withPassword').findOne({
+    where,
+    transaction: attributes.transaction,
+  });
 
   return user;
 };
@@ -162,7 +166,7 @@ export const createUser = async (
     middleName?: string;
     password: string;
     avatar?: string;
-    totalBalance?: number,
+    totalBalance?: number;
   },
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<UserModel> => {
@@ -224,9 +228,15 @@ export const updateUserById = async (
   if (totalBalance) updateFields.totalBalance = totalBalance;
   if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
 
-  await Users.update(updateFields, { where, transaction: attributes.transaction });
+  await Users.update(updateFields, {
+    where,
+    transaction: attributes.transaction,
+  });
 
-  const user = await Users.findOne({ where, transaction: attributes.transaction });
+  const user = await Users.findOne({
+    where,
+    transaction: attributes.transaction,
+  });
 
   return user;
 };

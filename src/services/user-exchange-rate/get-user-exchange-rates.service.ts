@@ -18,7 +18,7 @@ export async function getUserExchangeRates(
 ) {
   const isTxPassedFromAbove = transaction !== undefined;
 
-  transaction = transaction ?? await connection.sequelize.transaction();
+  transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
     const userBaseCurrency = await UsersCurrencies.getBaseCurrency(
@@ -31,14 +31,16 @@ export async function getUserExchangeRates(
     );
 
     const exchangeRates = await Promise.all(
-      userCurrencies.map(item => getExchangeRate(
-        {
-          userId,
-          baseId: item.currencyId,
-          quoteId: userBaseCurrency.currencyId,
-        },
-        { transaction },
-      ))
+      userCurrencies.map((item) =>
+        getExchangeRate(
+          {
+            userId,
+            baseId: item.currencyId,
+            quoteId: userBaseCurrency.currencyId,
+          },
+          { transaction },
+        ),
+      ),
     );
 
     if (!isTxPassedFromAbove) {
@@ -51,6 +53,6 @@ export async function getUserExchangeRates(
       await transaction.rollback();
     }
 
-    throw new err;
+    throw new err();
   }
 }

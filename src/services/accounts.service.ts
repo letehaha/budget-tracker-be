@@ -22,10 +22,8 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 export const getAccounts = async (
   payload: Accounts.GetAccountsPayload,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel[]> => Accounts.getAccounts(
-  payload,
-  { transaction: attributes.transaction },
-);
+): Promise<AccountModel[]> =>
+  Accounts.getAccounts(payload, { transaction: attributes.transaction });
 
 export const getAccountsByExternalIds = async (
   payload: Accounts.GetAccountsByExternalIdsPayload,
@@ -35,22 +33,31 @@ export const getAccountsByExternalIds = async (
 export const getAccountById = async (
   payload: { id: number; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<AccountModel> => Accounts.getAccountById(
-  payload,
-  { transaction: attributes.transaction },
-);
+): Promise<AccountModel> =>
+  Accounts.getAccountById(payload, { transaction: attributes.transaction });
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
 export const createSystemAccountsFromMonobankAccounts = async (
-  { userId, monoAccounts }: { userId: number; monoAccounts: ExternalMonobankClientInfoResponse['accounts'] },
+  {
+    userId,
+    monoAccounts,
+  }: {
+    userId: number;
+    monoAccounts: ExternalMonobankClientInfoResponse['accounts'];
+  },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   // TODO: wrap createCurrency and createAccount into single transactions
   const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
 
   const currencies = await Promise.all(
-    currencyCodes.map((code) => Currencies.createCurrency({ code }, { transaction: attributes.transaction })),
+    currencyCodes.map((code) =>
+      Currencies.createCurrency(
+        { code },
+        { transaction: attributes.transaction },
+      ),
+    ),
   );
 
   const accountCurrencyCodes = {};
@@ -58,29 +65,37 @@ export const createSystemAccountsFromMonobankAccounts = async (
     accountCurrencyCodes[item.number] = item.id;
   });
 
-  await userService.addUserCurrencies(currencies.map(item => ({
-    userId,
-    currencyId: item.id,
-  })), { transaction: attributes.transaction });
+  await userService.addUserCurrencies(
+    currencies.map((item) => ({
+      userId,
+      currencyId: item.id,
+    })),
+    { transaction: attributes.transaction },
+  );
 
   await Promise.all(
-    monoAccounts.map((account) => createAccount({
-      userId,
-      currencyId: accountCurrencyCodes[account.currencyCode],
-      accountTypeId: 4,
-      name: account.maskedPan[0] || account.iban,
-      externalId: account.id,
-      initialBalance: account.balance,
-      creditLimit: account.creditLimit,
-      externalData: {
-        cashbackType: account.cashbackType,
-        maskedPan: JSON.stringify(account.maskedPan),
-        type: account.type,
-        iban: account.iban,
-      },
-      type: ACCOUNT_TYPES.monobank,
-      isEnabled: false,
-    }, { transaction: attributes.transaction })),
+    monoAccounts.map((account) =>
+      createAccount(
+        {
+          userId,
+          currencyId: accountCurrencyCodes[account.currencyCode],
+          accountTypeId: 4,
+          name: account.maskedPan[0] || account.iban,
+          externalId: account.id,
+          initialBalance: account.balance,
+          creditLimit: account.creditLimit,
+          externalData: {
+            cashbackType: account.cashbackType,
+            maskedPan: JSON.stringify(account.maskedPan),
+            type: account.type,
+            iban: account.iban,
+          },
+          type: ACCOUNT_TYPES.monobank,
+          isEnabled: false,
+        },
+        { transaction: attributes.transaction },
+      ),
+    ),
   );
 };
 
@@ -89,15 +104,19 @@ export const pairMonobankAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const { token, userId } = payload;
-    let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
+    let user = await monobankUsersService.getUserByToken(
+      { token, userId },
+      { transaction },
+    );
     // If user is found, return
     if (user) {
       await transaction.commit();
-      return { connected: true }
+      return { connected: true };
     }
 
     // Otherwise begin user connection
@@ -119,8 +138,9 @@ export const pairMonobankAccount = async (
 
       if (!result) {
         throw new NotFoundError({
-          message: '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.'
-        })
+          message:
+            '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.',
+        });
       }
 
       clientInfo = result.data;
@@ -131,22 +151,27 @@ export const pairMonobankAccount = async (
       clientInfo = JSON.parse(response);
     }
 
-    user = await monobankUsersService.createUser({
-      userId,
-      token,
-      clientId: clientInfo.clientId,
-      name: clientInfo.name,
-      webHookUrl: clientInfo.webHookUrl,
-    }, { raw: true, transaction });
+    user = await monobankUsersService.createUser(
+      {
+        userId,
+        token,
+        clientId: clientInfo.clientId,
+        name: clientInfo.name,
+        webHookUrl: clientInfo.webHookUrl,
+      },
+      { raw: true, transaction },
+    );
 
     await createSystemAccountsFromMonobankAccounts({
       userId,
       monoAccounts: clientInfo.accounts,
     });
 
-    (user as MonobankUserModel & {
-      accounts: ExternalMonobankClientInfoResponse['accounts']
-    }).accounts = clientInfo.accounts;
+    (
+      user as MonobankUserModel & {
+        accounts: ExternalMonobankClientInfoResponse['accounts'];
+      }
+    ).accounts = clientInfo.accounts;
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
@@ -159,31 +184,43 @@ export const pairMonobankAccount = async (
     }
     throw err;
   }
-}
+};
 
 export const createAccount = async (
-  payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
+  payload: Omit<
+    Accounts.CreateAccountPayload,
+    'refCreditLimit' | 'refInitialBalance'
+  >,
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel> => {
   const { userId, creditLimit, currencyId, initialBalance } = payload;
-  const refCreditLimit = await calculateRefAmount({
-    userId: userId,
-    amount: creditLimit,
-    baseId: currencyId,
-  }, { transaction: attributes.transaction });
+  const refCreditLimit = await calculateRefAmount(
+    {
+      userId: userId,
+      amount: creditLimit,
+      baseId: currencyId,
+    },
+    { transaction: attributes.transaction },
+  );
 
-  const refInitialBalance = await calculateRefAmount({
-    userId,
-    amount: initialBalance,
-    baseId: currencyId,
-  }, { transaction: attributes.transaction });
+  const refInitialBalance = await calculateRefAmount(
+    {
+      userId,
+      amount: initialBalance,
+      baseId: currencyId,
+    },
+    { transaction: attributes.transaction },
+  );
 
-  return Accounts.createAccount({
-    ...payload,
-    refCreditLimit,
-    refInitialBalance,
-  }, { transaction: attributes.transaction });
-}
+  return Accounts.createAccount(
+    {
+      ...payload,
+      refCreditLimit,
+      refInitialBalance,
+    },
+    { transaction: attributes.transaction },
+  );
+};
 
 // export async function updateAccount (
 //   payload: Accounts.UpdateAccountByIdPayload & {
@@ -200,17 +237,27 @@ export const createAccount = async (
 // ): Promise<AccountModel>
 
 export const updateAccount = async (
-  { id, externalId, ...payload }:
-  Accounts.UpdateAccountByIdPayload & (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>),
+  {
+    id,
+    externalId,
+    ...payload
+  }: Accounts.UpdateAccountByIdPayload &
+    (
+      | Pick<Accounts.UpdateAccountByIdPayload, 'id'>
+      | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>
+    ),
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const accountData = await Accounts.default.findByPk(id, { transaction });
 
-    const currentBalanceIsChanging = payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
+    const currentBalanceIsChanging =
+      payload.currentBalance !== undefined &&
+      payload.currentBalance !== accountData.currentBalance;
     let initialBalance = accountData.initialBalance;
     let refInitialBalance = accountData.refInitialBalance;
     let refCurrentBalance = accountData.refCurrentBalance;
@@ -222,11 +269,14 @@ export const updateAccount = async (
      */
     if (currentBalanceIsChanging) {
       const diff = payload.currentBalance - accountData.currentBalance;
-      const refDiff = await calculateRefAmount({
-        userId: accountData.userId,
-        amount: diff,
-        baseId: accountData.currencyId,
-      }, { transaction: attributes.transaction });
+      const refDiff = await calculateRefAmount(
+        {
+          userId: accountData.userId,
+          amount: diff,
+          baseId: accountData.currencyId,
+        },
+        { transaction: attributes.transaction },
+      );
 
       // --- for system accounts
       // change currentBalance => change initialBalance
@@ -276,18 +326,19 @@ const calculateNewBalance = (
   currentBalance: number,
 ) => {
   if (amount > previousAmount) {
-    return currentBalance + (amount - previousAmount)
+    return currentBalance + (amount - previousAmount);
   } else if (amount < previousAmount) {
-    return currentBalance - (previousAmount - amount)
+    return currentBalance - (previousAmount - amount);
   }
 
-  return currentBalance
-}
+  return currentBalance;
+};
 
-const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {
-  return transactionType === TRANSACTION_TYPES.income
-    ? amount
-    : amount * -1
+const defineCorrectAmountFromTxType = (
+  amount: number,
+  transactionType: TRANSACTION_TYPES,
+) => {
+  return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
 };
 
 interface updateAccountBalanceRequiredFields {
@@ -302,26 +353,56 @@ interface updateAccountBalanceRequiredFields {
 
 /** For **CREATED** transactions. When only (amount + refAmount) passed */
 export async function updateAccountBalanceForChangedTx(
-  { accountId, userId, transactionType, amount, refAmount, currencyId }:
-  updateAccountBalanceRequiredFields & { amount: number, refAmount: number },
-  { transaction }: { transaction?: Transaction }
-): Promise<void>
+  {
+    accountId,
+    userId,
+    transactionType,
+    amount,
+    refAmount,
+    currencyId,
+  }: updateAccountBalanceRequiredFields & { amount: number; refAmount: number },
+  { transaction }: { transaction?: Transaction },
+): Promise<void>;
 
 /** For **DELETED** transactions. When only (prevAmount + prefRefAmount) passed */
 export async function updateAccountBalanceForChangedTx(
-  { accountId, userId, transactionType, prevAmount, prevRefAmount, currencyId }:
-  updateAccountBalanceRequiredFields & { prevAmount: number; prevRefAmount: number },
-  { transaction }: { transaction?: Transaction }
-): Promise<void>
+  {
+    accountId,
+    userId,
+    transactionType,
+    prevAmount,
+    prevRefAmount,
+    currencyId,
+  }: updateAccountBalanceRequiredFields & {
+    prevAmount: number;
+    prevRefAmount: number;
+  },
+  { transaction }: { transaction?: Transaction },
+): Promise<void>;
 
 /** For **UPDATED** transactions. When both pairs passed */
 export async function updateAccountBalanceForChangedTx(
-  { accountId, userId, transactionType, amount, prevAmount, refAmount, prevRefAmount, currencyId, prevTransactionType }:
-  updateAccountBalanceRequiredFields & { amount: number; prevAmount: number; refAmount: number; prevRefAmount: number; prevTransactionType: TRANSACTION_TYPES },
-  { transaction }: { transaction?: Transaction }
-): Promise<void>
+  {
+    accountId,
+    userId,
+    transactionType,
+    amount,
+    prevAmount,
+    refAmount,
+    prevRefAmount,
+    currencyId,
+    prevTransactionType,
+  }: updateAccountBalanceRequiredFields & {
+    amount: number;
+    prevAmount: number;
+    refAmount: number;
+    prevRefAmount: number;
+    prevTransactionType: TRANSACTION_TYPES;
+  },
+  { transaction }: { transaction?: Transaction },
+): Promise<void>;
 
-export async function updateAccountBalanceForChangedTx (
+export async function updateAccountBalanceForChangedTx(
   {
     accountId,
     userId,
@@ -345,10 +426,19 @@ export async function updateAccountBalanceForChangedTx (
     { transaction },
   );
 
-  const newAmount = defineCorrectAmountFromTxType(amount, transactionType)
-  const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType)
-  const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType)
-  const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType)
+  const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
+  const oldAmount = defineCorrectAmountFromTxType(
+    prevAmount,
+    prevTransactionType,
+  );
+  const newRefAmount = defineCorrectAmountFromTxType(
+    refAmount,
+    transactionType,
+  );
+  const oldRefAmount = defineCorrectAmountFromTxType(
+    prevRefAmount,
+    prevTransactionType,
+  );
 
   // TODO: for now keep that deadcode, cause it doesn't really work. But when have time, recheck it past neednes
   // if (currencyId !== accountCurrencyId) {
@@ -361,12 +451,19 @@ export async function updateAccountBalanceForChangedTx (
   //   newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
   // }
 
-  await Accounts.updateAccountById({
-    id: accountId,
-    userId,
-    currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
-    refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
-  }, { transaction });
+  await Accounts.updateAccountById(
+    {
+      id: accountId,
+      userId,
+      currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
+      refCurrentBalance: calculateNewBalance(
+        newRefAmount,
+        oldRefAmount,
+        refCurrentBalance,
+      ),
+    },
+    { transaction },
+  );
 }
 
 export const deleteAccountById = async (

@@ -1,4 +1,8 @@
-import { ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import {
+  ACCOUNT_TYPES,
+  API_RESPONSE_STATUS,
+  endpointsTypes,
+} from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -49,8 +53,13 @@ export const createAccount = async (req, res) => {
   const { id: userId } = req.user;
 
   try {
-    if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
-      throw new Unauthorized({ message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.` })
+    if (
+      type !== ACCOUNT_TYPES.system &&
+      process.env.NODE_ENV === 'production'
+    ) {
+      throw new Unauthorized({
+        message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.`,
+      });
     }
 
     const account = await accountsService.createAccount({
@@ -86,12 +95,16 @@ export const updateAccount = async (req, res) => {
     const account = await Accounts.findByPk(id);
 
     if (!account) {
-      throw new NotFoundError({ message: `Account with id "${id}" doesn't exist.` })
+      throw new NotFoundError({
+        message: `Account with id "${id}" doesn't exist.`,
+      });
     }
 
     if (account.type !== ACCOUNT_TYPES.system) {
       if (creditLimit || currentBalance) {
-        throw new ValidationError({ message: `'creditLimit', 'currentBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type` })
+        throw new ValidationError({
+          message: `'creditLimit', 'currentBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type`,
+        });
       }
     }
 

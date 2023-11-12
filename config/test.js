@@ -4,5 +4,5 @@ module.exports = {
   hostWebhooksCallback: 'http://d8d75e719def.ngrok.io',
   db: {
     logging: false,
-  }
-}
+  },
+};

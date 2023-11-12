@@ -1,7 +1,7 @@
 import { Transaction } from 'sequelize/types';
 
 import { connection } from '@models/index';
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
 
@@ -19,32 +19,44 @@ export const deleteTransaction = async ({
   const transaction: Transaction = await connection.sequelize.transaction();
 
   try {
-    const { accountType, transferNature, transferId } = await getTransactionById({ id, userId }, { transaction });
+    const { accountType, transferNature, transferId } =
+      await getTransactionById({ id, userId }, { transaction });
 
     if (accountType !== ACCOUNT_TYPES.system) {
-      throw new ValidationError({ message: "It's not possible to manually delete external transactions" });
+      throw new ValidationError({
+        message: "It's not possible to manually delete external transactions",
+      });
     }
 
     if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
       await Transactions.deleteTransactionById({ id, userId }, { transaction });
-    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
-      const transferTransactions = await Transactions.getTransactionsByArrayOfField({
-        fieldValues: [transferId],
-        fieldName: 'transferId',
-        userId,
-      });
+    } else if (
+      transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+      transferId
+    ) {
+      const transferTransactions =
+        await Transactions.getTransactionsByArrayOfField({
+          fieldValues: [transferId],
+          fieldName: 'transferId',
+          userId,
+        });
 
       await Promise.all(
         // For the each transaction with the same "transferId" delete transaction
-        transferTransactions.map(tx => Promise.all([
-          Transactions.deleteTransactionById({
-            id: tx.id,
-            userId: tx.userId,
-          }, { transaction }),
-        ]))
-      )
+        transferTransactions.map((tx) =>
+          Promise.all([
+            Transactions.deleteTransactionById(
+              {
+                id: tx.id,
+                userId: tx.userId,
+              },
+              { transaction },
+            ),
+          ]),
+        ),
+      );
     } else {
-      logger.info('No "transferId" exists for the transfer transaction type.')
+      logger.info('No "transferId" exists for the transfer transaction type.');
     }
 
     await transaction.commit();
@@ -53,6 +65,6 @@ export const deleteTransaction = async ({
       logger.error(e);
     }
     await transaction.rollback();
-    throw e
+    throw e;
   }
 };

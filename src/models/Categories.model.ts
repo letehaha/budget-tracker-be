@@ -48,18 +48,15 @@ export default class Categories extends Model {
   @Column
   userId: number;
 
-  @BelongsToMany(
-    () => MerchantCategoryCodes,
-    {
-      as: 'merchantCodes',
-      through: () => UserMerchantCategoryCodes,
-    }
-  )
+  @BelongsToMany(() => MerchantCategoryCodes, {
+    as: 'merchantCodes',
+    through: () => UserMerchantCategoryCodes,
+  })
   categoryId: number;
 }
 
 export const getCategories = async (
-  { userId }: { userId: number; },
+  { userId }: { userId: number },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const categories = await Categories.findAll({
@@ -81,38 +78,34 @@ export interface CreateCategoryPayload {
 }
 
 export const createCategory = async (
-  {
-    parentId,
-    color,
-    userId,
-    ...params
-  }: CreateCategoryPayload,
+  { parentId, color, userId, ...params }: CreateCategoryPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   if (parentId) {
-    const parent = await Categories.findOne(
-      {
-        where: { id: parentId, userId },
-        transaction,
-      },
-    );
+    const parent = await Categories.findOne({
+      where: { id: parentId, userId },
+      transaction,
+    });
 
     if (!parent) {
-      throw ({
+      throw {
         code: API_ERROR_CODES.validationError,
         message: "Category with such parentId doesn't exist.",
-      })
+      };
     }
 
     if (!color) color = parent.get('color');
   }
 
-  const category = await Categories.create({
-    parentId,
-    color,
-    userId,
-    ...params
-  }, { transaction });
+  const category = await Categories.create(
+    {
+      parentId,
+      color,
+      userId,
+      ...params,
+    },
+    { transaction },
+  );
 
   return category;
 };
@@ -126,11 +119,7 @@ export interface EditCategoryPayload {
 }
 
 export const editCategory = async (
-  {
-    userId,
-    categoryId,
-    ...params
-  }: EditCategoryPayload,
+  { userId, categoryId, ...params }: EditCategoryPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const [, categories] = await Categories.update(params, {
@@ -177,4 +166,4 @@ export const bulkCreate = (
     validate,
     returning,
   });
-}
+};

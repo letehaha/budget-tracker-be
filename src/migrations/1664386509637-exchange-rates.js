@@ -2,17 +2,19 @@ const QueryTypes = require('sequelize').QueryTypes;
 const axios = require('axios');
 const fs = require('fs');
 
-const isTest = process.env.NODE_ENV === 'test'
+const isTest = process.env.NODE_ENV === 'test';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      let data = {}
+      let data = {};
 
       if (isTest) {
-        data.data = JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json'));
+        data.data = JSON.parse(
+          fs.readFileSync('./src/tests/test-exchange-rates.json'),
+        );
       } else {
         data = await axios({
           method: 'get',
@@ -22,37 +24,44 @@ module.exports = {
             apikey: process.env.API_LAYER_API_KEY,
           },
         });
-      };
+      }
 
-      const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', { type: QueryTypes.SELECT })
+      const currencies = await queryInterface.sequelize.query(
+        'SELECT * FROM "Currencies"',
+        { type: QueryTypes.SELECT },
+      );
 
-      await queryInterface.createTable('ExchangeRates', {
-        id: {
-          type: Sequelize.INTEGER,
-          unique: true,
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
+      await queryInterface.createTable(
+        'ExchangeRates',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+          },
+          baseCode: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          quoteCode: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          rate: {
+            type: Sequelize.FLOAT,
+            allowNull: true,
+            defaultValue: 1,
+          },
+          date: {
+            type: Sequelize.DATE,
+            allowNull: false,
+            defaultValue: Sequelize.fn('NOW'),
+          },
         },
-        baseCode: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        quoteCode: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        rate: {
-          type: Sequelize.FLOAT,
-          allowNull: true,
-          defaultValue: 1,
-        },
-        date: {
-          type: Sequelize.DATE,
-          allowNull: false,
-          defaultValue: Sequelize.fn('NOW'),
-        },
-      }, { transaction });
+        { transaction },
+      );
 
       await queryInterface.addColumn(
         'ExchangeRates',
@@ -95,52 +104,61 @@ module.exports = {
         { transaction },
       );
 
-      const excludedCurrencies = new Set()
+      const excludedCurrencies = new Set();
 
       const DBCurrenciesToObject = currencies.reduce((acc, curr) => {
-        acc[curr.code] = curr
+        acc[curr.code] = curr;
 
-        return acc
-      }, {})
+        return acc;
+      }, {});
 
-      const currenciesWithRates = currencies.reduce((currenciesList, currency) => {
-        currenciesList.push(
-          ...Object.entries(data.data.rates).reduce((acc, [code, rate]) => {
-            // BASE / QUOTE
-            const calculatedRate = data.data.rates[code] / data.data.rates[currency.code]
+      const currenciesWithRates = currencies.reduce(
+        (currenciesList, currency) => {
+          currenciesList.push(
+            ...Object.entries(data.data.rates).reduce((acc, [code, rate]) => {
+              // BASE / QUOTE
+              const calculatedRate =
+                data.data.rates[code] / data.data.rates[currency.code];
 
-            // 3-rd party service might return currencies which are not exist in our DB
-            if (!DBCurrenciesToObject[code]) {
-              return acc
-            }
+              // 3-rd party service might return currencies which are not exist in our DB
+              if (!DBCurrenciesToObject[code]) {
+                return acc;
+              }
 
-            if (Number.isNaN(calculatedRate)) {
-              excludedCurrencies.add(currency.code)
-            } else {
-              acc.push({
-                baseId: DBCurrenciesToObject[currency.code].id,
-                baseCode: currency.code,
-                quoteId: DBCurrenciesToObject[code].id,
-                quoteCode: code,
-                rate: code === currency.code ? 1 : calculatedRate,
-              })
-            }
+              if (Number.isNaN(calculatedRate)) {
+                excludedCurrencies.add(currency.code);
+              } else {
+                acc.push({
+                  baseId: DBCurrenciesToObject[currency.code].id,
+                  baseCode: currency.code,
+                  quoteId: DBCurrenciesToObject[code].id,
+                  quoteCode: code,
+                  rate: code === currency.code ? 1 : calculatedRate,
+                });
+              }
 
-            return acc
-          }, [])
-        )
+              return acc;
+            }, []),
+          );
 
-        return currenciesList
-      }, [])
+          return currenciesList;
+        },
+        [],
+      );
 
-      await queryInterface.bulkInsert('ExchangeRates', currenciesWithRates, { transaction });
+      await queryInterface.bulkInsert('ExchangeRates', currenciesWithRates, {
+        transaction,
+      });
 
       // if some currency doesn't have rate, disable it
       await (async () => {
         for (const currencyCode of excludedCurrencies) {
-          await queryInterface.sequelize.query(`
+          await queryInterface.sequelize.query(
+            `
             UPDATE "Currencies" SET "isDisabled"='1' WHERE "id"=${DBCurrenciesToObject[currencyCode].id}
-          `, { transaction });
+          `,
+            { transaction },
+          );
         }
       })();
 
@@ -154,7 +172,9 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeColumn('Currencies', 'isDisabled', { transaction });
+      await queryInterface.removeColumn('Currencies', 'isDisabled', {
+        transaction,
+      });
       await queryInterface.dropTable('ExchangeRates', { transaction });
 
       await transaction.commit();

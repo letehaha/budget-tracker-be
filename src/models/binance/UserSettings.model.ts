@@ -46,7 +46,8 @@ export const addSettings = async ({
   if (apiKey) settingsData.apiKey = apiKey;
   if (secretKey) settingsData.secretKey = secretKey;
 
-  let userSettings: BinanceUserSettings[] | BinanceUserSettings = await BinanceUserSettings.findOne({ where: { userId } });
+  let userSettings: BinanceUserSettings[] | BinanceUserSettings =
+    await BinanceUserSettings.findOne({ where: { userId } });
 
   if (userSettings) {
     const result = await BinanceUserSettings.update(settingsData, {

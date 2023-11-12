@@ -1,10 +1,4 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  Length,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, Length } from 'sequelize-typescript';
 import { endpointsTypes } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '../../Users.model';
@@ -40,7 +34,7 @@ export default class MonobankUsers extends Model {
 }
 
 export const getUserByToken = async (
-  { token, userId }: { token: string, userId: number },
+  { token, userId }: { token: string; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const user = await MonobankUsers.findOne({
@@ -57,14 +51,22 @@ export const getUserBySystemId = async (
 ) => {
   const user = await MonobankUsers.findOne({
     where: { systemUserId },
-    attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId', 'apiToken'],
+    attributes: [
+      'id',
+      'clientId',
+      'name',
+      'webHookUrl',
+      'systemUserId',
+      'apiToken',
+    ],
     ...attributes,
   });
 
   return user;
 };
 
-export interface MonoUserUpdatePayload extends endpointsTypes.UpdateMonobankUserBody {
+export interface MonoUserUpdatePayload
+  extends endpointsTypes.UpdateMonobankUserBody {
   systemUserId: number;
 }
 export const updateUser = async (
@@ -74,10 +76,10 @@ export const updateUser = async (
   const where: {
     systemUserId: MonoUserUpdatePayload['systemUserId'];
     clientId?: MonoUserUpdatePayload['clientId'];
-  } = { systemUserId }
+  } = { systemUserId };
 
   if (clientId) {
-    where.clientId = clientId
+    where.clientId = clientId;
   }
 
   await MonobankUsers.update(payload, { where, ...attributes });
@@ -107,11 +109,14 @@ export const createUser = async (
   { userId, token, ...payload }: MonoUserCreationPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  await MonobankUsers.create({
-    apiToken: token,
-    systemUserId: userId,
-    ...payload,
-  }, attributes);
+  await MonobankUsers.create(
+    {
+      apiToken: token,
+      systemUserId: userId,
+      ...payload,
+    },
+    attributes,
+  );
 
   const user = await getUserByToken({ token, userId }, attributes);
 

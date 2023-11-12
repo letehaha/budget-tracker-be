@@ -6,7 +6,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'UsersCurrencies',
         'UsersCurrencies_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['userId'],
@@ -24,7 +24,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'UsersCurrencies',
         'UsersCurrencies_currencyId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['currencyId'],
@@ -52,7 +52,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'UsersCurrencies',
         'UsersCurrencies_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('UsersCurrencies', {
         type: 'foreign key',
@@ -68,7 +68,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'UsersCurrencies',
         'UsersCurrencies_currencyId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('UsersCurrencies', {
         type: 'foreign key',

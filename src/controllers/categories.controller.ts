@@ -20,12 +20,8 @@ export const getCategories = async (req, res: CustomResponse) => {
 
 export const createCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const {
-    name,
-    imageUrl,
-    color,
-    parentId,
-  }: endpointsTypes.CreateCategoryBody = req.body;
+  const { name, imageUrl, color, parentId }: endpointsTypes.CreateCategoryBody =
+    req.body;
 
   try {
     const data = await categoriesService.createCategory({
@@ -48,11 +44,7 @@ export const createCategory = async (req, res: CustomResponse) => {
 export const editCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const { id: categoryId } = req.params;
-  const {
-    name,
-    imageUrl,
-    color,
-  }: endpointsTypes.EditCategoryBody = req.body;
+  const { name, imageUrl, color }: endpointsTypes.EditCategoryBody = req.body;
 
   try {
     const data = await categoriesService.editCategory({
@@ -70,7 +62,7 @@ export const editCategory = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const deleteCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
@@ -88,4 +80,4 @@ export const deleteCategory = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};

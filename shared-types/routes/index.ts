@@ -7,7 +7,7 @@ export * from './categories';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;
-}
+};
 export type QueryPayload = {
   [key: string]: string | number | boolean | undefined;
-}
+};

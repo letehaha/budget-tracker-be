@@ -18,14 +18,14 @@ export const bulkCreate = (
   },
 ) => {
   return Categories.bulkCreate({ data }, { transaction, validate, returning });
-}
+};
 
 export const getCategories = async (
-  payload: { userId: number; },
+  payload: { userId: number },
   { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? await connection.sequelize.transaction();
+  transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
     const result = await Categories.getCategories(payload);
@@ -42,14 +42,14 @@ export const getCategories = async (
 
     throw err;
   }
-}
+};
 
 export const createCategory = async (
   payload: Categories.CreateCategoryPayload,
   { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? await connection.sequelize.transaction();
+  transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
     const result = await Categories.createCategory(payload);
@@ -66,14 +66,14 @@ export const createCategory = async (
 
     throw err;
   }
-}
+};
 
 export const editCategory = async (
   payload: Categories.EditCategoryPayload,
   { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? await connection.sequelize.transaction();
+  transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
     const result = await Categories.editCategory(payload);
@@ -90,14 +90,14 @@ export const editCategory = async (
 
     throw err;
   }
-}
+};
 
 export const deleteCategory = async (
   payload: Categories.DeleteCategoryPayload,
   { transaction }: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? await connection.sequelize.transaction();
+  transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
     const parentCategory = await Categories.default.findOne({
@@ -107,8 +107,9 @@ export const deleteCategory = async (
 
     if (parentCategory) {
       throw new ValidationError({
-        message: 'For now you cannot delete category that is a parent for any subcategory. You need to delete all its subcategories first.',
-      })
+        message:
+          'For now you cannot delete category that is a parent for any subcategory. You need to delete all its subcategories first.',
+      });
     }
 
     const relatedTransaction = await Transactions.findOne({
@@ -121,8 +122,9 @@ export const deleteCategory = async (
 
     if (relatedTransaction) {
       throw new ValidationError({
-        message: 'For now you cannot delete category that has any transactions linked. You need to delete or change category of all linked transactions.',
-      })
+        message:
+          'For now you cannot delete category that has any transactions linked. You need to delete or change category of all linked transactions.',
+      });
     }
 
     // When deleting, make all transactions related to that category being related
@@ -140,4 +142,4 @@ export const deleteCategory = async (
 
     throw err;
   }
-}
+};
