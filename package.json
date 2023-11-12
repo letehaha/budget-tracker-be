@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "docker-build": "docker build . -t letehaha/budget-tracker-be",
     "docker-push": "docker push letehaha/budget-tracker-be",
-    "docker-compose": "npm run docker-build && npm run docker-push"
+    "docker-compose": "npm run docker-build && npm run docker-push",
+    "postinstall": "chmod +x ./post-install.sh && ./post-install.sh"
   },
   "repository": {
     "type": "git",

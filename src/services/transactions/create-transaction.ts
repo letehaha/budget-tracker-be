@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types'
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types'
 import { v4 as uuidv4 } from 'uuid';
 
 import { connection } from '@models/index';
@@ -115,7 +115,7 @@ export const createOppositeTransaction = async (
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId,
-    isTransfer: true,
+    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
   }, { transaction });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
@@ -158,7 +158,7 @@ export const createOppositeTransaction = async (
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
       refCurrencyCode: defaultUserCurrency.currency.code,
-      isTransfer: true,
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId,
     },
     { transaction },
@@ -175,7 +175,7 @@ export const createOppositeTransaction = async (
     amount,
     userId,
     accountId,
-    isTransfer,
+    transferNature,
     ...payload
   }: CreateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
@@ -189,7 +189,7 @@ export const createOppositeTransaction = async (
       amount,
       userId,
       accountId,
-      isTransfer,
+      transferNature,
       refAmount: amount,
       // since we already pass accountId, we don't need currencyId (at least for now)
       currencyId: undefined,
@@ -230,17 +230,17 @@ export const createOppositeTransaction = async (
     let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction];
 
     /**
-     * If transactions is transfer, add transferId to both transactions to connect
-     * them, and use destinationAmount and destinationAccountId for the second
-     * transaction.
+     * If transactions is transfer between two accounts, add transferId to both
+     * transactions to connect them, and use destinationAmount and destinationAccountId
+     * for the second transaction.
      */
-    if (isTransfer) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       const res = await createOppositeTransaction([
         {
           amount,
           userId,
           accountId,
-          isTransfer,
+          transferNature,
           ...payload
         },
         baseTransaction,

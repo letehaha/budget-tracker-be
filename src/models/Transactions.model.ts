@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
 import {
@@ -74,7 +74,7 @@ export interface TransactionsAttributes {
   refCurrencyCode: string;
 
   // is transaction transfer?
-  isTransfer: boolean;
+  transferNature: TRANSACTION_TRANSFER_NATURE;
   // (hash, used to connect two transactions, to easily search the opposite tx)
   transferId: string;
 
@@ -154,9 +154,12 @@ export default class Transactions extends Model<TransactionsAttributes> {
   @Column({ allowNull: true, defaultValue: null })
   refCurrencyCode: string;
 
-  // is transaction transfer?
-  @Column({ allowNull: false, defaultValue: false })
-  isTransfer: boolean;
+  @Column({
+    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
+    allowNull: false,
+    defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
+  })
+  transferNature: TRANSACTION_TRANSFER_NATURE;
 
   // (hash, used to connect two transactions)
   @Column({ allowNull: true, defaultValue: null })
@@ -205,7 +208,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
   @BeforeUpdate
   static validateTransferRelatedFields(instance: Transactions) {
     const {
-      isTransfer,
+      transferNature,
       transferId,
       refAmount,
       refCurrencyCode,
@@ -213,7 +216,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
 
     const requiredFields = [transferId, refCurrencyCode, refAmount]
 
-    if (isTransfer) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       if (requiredFields.some(item => item === undefined)) {
         throw new ValidationError({
           message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
@@ -489,7 +492,7 @@ type CreateTxRequiredParams = Pick<TransactionsAttributes,
   'amount' | 'refAmount' | 'time' | 'userId' |
   'transactionType' | 'paymentType' | 'accountId' |
   'categoryId' | 'currencyId' | 'currencyCode' | 'accountType' |
-  'isTransfer'
+  'transferNature'
 >
 type CreateTxOptionalParams = Partial<Pick<TransactionsAttributes,
   'note' | 'refCurrencyCode' |  'transferId' | 'originalId' |
@@ -525,7 +528,7 @@ export interface UpdateTransactionByIdParams {
   currencyId?: number;
   currencyCode?: string;
   refCurrencyCode?: string;
-  isTransfer?: boolean;
+  transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
 }
 

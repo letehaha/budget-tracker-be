@@ -2,7 +2,7 @@ import config from 'config';
 import { Response } from 'express';
 import request from 'supertest';
 import { startOfDay } from 'date-fns';
-import { ACCOUNT_TYPES, TRANSACTION_TYPES, endpointsTypes } from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, endpointsTypes, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { app } from '@root/app';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
@@ -69,7 +69,7 @@ export const buildTransactionPayload = (
   accountId,
   amount: 1000,
   categoryId: 1,
-  isTransfer: false,
+  transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
   paymentType: 'creditCard',
   time: startOfDay(new Date()),
   transactionType: TRANSACTION_TYPES.expense,

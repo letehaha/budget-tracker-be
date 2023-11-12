@@ -24,6 +24,13 @@ export enum CATEGORY_TYPES {
   internal = 'internal',
 }
 
+// Stored like that in the DB as well
+export enum TRANSACTION_TRANSFER_NATURE {
+  not_transfer = 'not_transfer',
+  common_transfer = 'transfer_between_user_accounts',
+  transfer_out_wallet = 'transfer_out_wallet',
+}
+
 export * from './api';
 export * from './models';
 export * as endpointsTypes from './routes';

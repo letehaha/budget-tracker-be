@@ -18,7 +18,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       accountId,
       destinationAccountId,
       categoryId,
-      isTransfer,
+      transferNature,
     }: endpointsTypes.UpdateTransactionBody = req.body;
     const { id: userId } = req.user;
 
@@ -37,7 +37,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
         accountId,
         destinationAccountId,
         categoryId,
-        isTransfer,
+        transferNature,
       }),
     });
 

@@ -1,7 +1,6 @@
 import { TransactionModel, ACCOUNT_TYPES } from 'shared-types';
-import { BodyPayload, QueryPayload } from './index';
 
-export interface GetTransactionsQuery extends QueryPayload {
+export interface GetTransactionsQuery {
   sort?: 'ASC' | 'DESC';
   includeUser?: boolean;
   includeAccount?: boolean;
@@ -16,7 +15,21 @@ export interface GetTransactionsQuery extends QueryPayload {
 
 export type GetTransactionsResponse = TransactionModel[];
 
-export interface UpdateTransactionBody extends BodyPayload {
+export interface CreateTransactionBody {
+  amount: TransactionModel['amount'];
+  note?: TransactionModel['note'];
+  time: string;
+  transactionType: TransactionModel['transactionType'];
+  paymentType: TransactionModel['paymentType'];
+  accountId: TransactionModel['accountId'];
+  categoryId?: TransactionModel['categoryId'];
+  destinationAccountId?: TransactionModel['accountId'];
+  destinationAmount?: TransactionModel['amount'];
+  transferNature?: TransactionModel['transferNature'];
+}
+
+
+export interface UpdateTransactionBody {
   amount?: TransactionModel['amount'];
   destinationAmount?: TransactionModel['amount'];
   note?: TransactionModel['note'];
@@ -26,5 +39,5 @@ export interface UpdateTransactionBody extends BodyPayload {
   accountId?: TransactionModel['accountId'];
   destinationAccountId?: TransactionModel['accountId'];
   categoryId?: TransactionModel['categoryId'];
-  isTransfer?: TransactionModel['isTransfer'];
+  transferNature?: TransactionModel['transferNature'];
 }
