@@ -250,13 +250,15 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
-  await Transactions.deleteTransactionById(
-    {
-      id: notBaseTransaction.id,
-      userId: notBaseTransaction.userId,
-    },
-    { transaction },
-  );
+  if (notBaseTransaction) {
+    await Transactions.deleteTransactionById(
+      {
+        id: notBaseTransaction.id,
+        userId: notBaseTransaction.userId,
+      },
+      { transaction },
+    );
+  }
 
   await Transactions.updateTransactionById(
     {
@@ -339,7 +341,7 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
       ]);
       updatedTransactions = [baseTx, oppositeTx];
     } else if (
-      payload.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer &&
+      payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
       prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
     ) {
       await deleteOppositeTransaction(helperFunctionsArgs);
