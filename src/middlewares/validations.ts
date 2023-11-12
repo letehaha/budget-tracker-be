@@ -6,7 +6,7 @@ export default (req, res: CustomResponse, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const resultErrors = errors.array().map((item) => ({
-      param: item.param,
+      param: item.type,
       msg: item.msg,
     }));
 
