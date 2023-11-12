@@ -28,6 +28,9 @@
     "type": "git",
     "url": "git+https://github.com/letehaha/budget-tracker-be.git"
   },
+  "volta": {
+    "node": "20.9.0"
+  },
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -86,7 +89,7 @@
     "@types/jest": "^29.5.8",
     "@types/locale": "^0.1.4",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^18.14.0",
+    "@types/node": "^20.9.0",
     "@types/passport": "^1.0.15",
     "@types/validator": "^13.11.6",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
