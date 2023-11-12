@@ -6,5 +6,5 @@ console.log('❗ RUNNING INTEGRATION TESTS');
 export default {
   ...baseConfig,
   testMatch: ['<rootDir>/src/**/?(*.)+(e2e).[jt]s?(x)'],
-  setupFilesAfterEnv: ["<rootDir>/src/tests/setupIntegrationTests.ts"],
+  setupFilesAfterEnv: ['<rootDir>/src/tests/setupIntegrationTests.ts'],
 };

@@ -32,13 +32,10 @@ export default class MerchantCategoryCodes extends Model {
   @Column({ allowNull: true })
   description: string;
 
-  @BelongsToMany(
-    () => Categories,
-    {
-      as: 'categories',
-      through: () => UserMerchantCategoryCodes,
-    }
-  )
+  @BelongsToMany(() => Categories, {
+    as: 'categories',
+    through: () => UserMerchantCategoryCodes,
+  })
   mccId: number;
 }
 
@@ -54,20 +51,26 @@ export const getByCode = async (
   return mcc;
 };
 
-export const addCode = async ({
-  code,
-  name = 'Unknown',
-  description,
-}: {
-  code: MerchantCategoryCodes['code'];
-  name?: MerchantCategoryCodes['name'];
-  description?: MerchantCategoryCodes['description'];
-}, attributes: GenericSequelizeModelAttributes = {},) => {
-  const mcc = await MerchantCategoryCodes.create({
+export const addCode = async (
+  {
     code,
-    name,
+    name = 'Unknown',
     description,
-  }, { transaction: attributes.transaction });
+  }: {
+    code: MerchantCategoryCodes['code'];
+    name?: MerchantCategoryCodes['name'];
+    description?: MerchantCategoryCodes['description'];
+  },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const mcc = await MerchantCategoryCodes.create(
+    {
+      code,
+      name,
+      description,
+    },
+    { transaction: attributes.transaction },
+  );
 
   return mcc;
 };

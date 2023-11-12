@@ -25,10 +25,7 @@ const createSignedGETRequestURL = ({ url, params, secretKey }) => {
 
 export const setSettings = async (req, res: CustomResponse) => {
   const { id } = req.user;
-  const {
-    apiKey,
-    secretKey,
-  } = req.body;
+  const { apiKey, secretKey } = req.body;
 
   try {
     let settings = await BinanceUserSettings.addSettings({
@@ -59,9 +56,7 @@ export const setSettings = async (req, res: CustomResponse) => {
 
 export const getAccountData = async (req, res: CustomResponse) => {
   const { id } = req.user;
-  const {
-    timestamp = new Date().getTime(),
-  } = req.query;
+  const { timestamp = new Date().getTime() } = req.query;
 
   try {
     const userSettings = await BinanceUserSettings.getByUserId({
@@ -69,37 +64,31 @@ export const getAccountData = async (req, res: CustomResponse) => {
     });
 
     if (!userSettings || (!userSettings.apiKey && !userSettings.secretKey)) {
-      return res
-        .status(403)
-        .json({
-          status: API_RESPONSE_STATUS.error,
-          response: {
-            message: 'Secret and public keys do not exist!',
-            code: API_ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
-          },
-        });
+      return res.status(403).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          message: 'Secret and public keys do not exist!',
+          code: API_ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
+        },
+      });
     }
     if (!userSettings.apiKey) {
-      return res
-        .status(403)
-        .json({
-          status: API_RESPONSE_STATUS.error,
-          response: {
-            message: 'Api key does not exist!',
-            code: API_ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
-          },
-        });
+      return res.status(403).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          message: 'Api key does not exist!',
+          code: API_ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
+        },
+      });
     }
     if (!userSettings.secretKey) {
-      return res
-        .status(403)
-        .json({
-          status: API_RESPONSE_STATUS.error,
-          response: {
-            message: 'Secret key does not exist!',
-            code: API_ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
-          },
-        });
+      return res.status(403).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          message: 'Secret key does not exist!',
+          code: API_ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
+        },
+      });
     }
 
     const url = createSignedGETRequestURL({
@@ -117,8 +106,9 @@ export const getAccountData = async (req, res: CustomResponse) => {
       method: 'GET',
     });
 
-    const notNullBalances = response.data.balances
-      .filter((item) => (Number(item.free) + Number(item.locked)) > 0);
+    const notNullBalances = response.data.balances.filter(
+      (item) => Number(item.free) + Number(item.locked) > 0,
+    );
 
     const defaultAssetQuote = 'USDT';
     const blackList = ['USDT', 'NFT'];
@@ -126,23 +116,31 @@ export const getAccountData = async (req, res: CustomResponse) => {
 
     // TODO: replace it with allSettled
     // TODO: add check "if rejected use BTC as default quote asset"
-    const dollars = (await Promise.all(
-      notNullBalances
-        .filter((balance) => !blackList.includes(balance.asset))
-        .map((balance) => axios({
-          url: `https://api.binance.com/api/v3/ticker/price?symbol=${balance.asset}${defaultAssetQuote}`,
-          method: 'GET',
-          responseType: 'json',
-        })),
-    )).map((item) => item.data);
+    const dollars = (
+      await Promise.all(
+        notNullBalances
+          .filter((balance) => !blackList.includes(balance.asset))
+          .map((balance) =>
+            axios({
+              url: `https://api.binance.com/api/v3/ticker/price?symbol=${balance.asset}${defaultAssetQuote}`,
+              method: 'GET',
+              responseType: 'json',
+            }),
+          ),
+      )
+    ).map((item) => item.data);
 
     dollars.forEach((dollar) => {
-      const index = response.data.balances.findIndex((item) => item.asset === dollar.symbol.replace(defaultAssetQuote, ''));
+      const index = response.data.balances.findIndex(
+        (item) => item.asset === dollar.symbol.replace(defaultAssetQuote, ''),
+      );
       response.data.balances[index].usdPrice = dollar.price;
     });
 
     zeroPrice.forEach((value) => {
-      const index = response.data.balances.findIndex((item) => item.asset === value);
+      const index = response.data.balances.findIndex(
+        (item) => item.asset === value,
+      );
 
       response.data.balances[index].usdPrice = 0;
     });
@@ -157,7 +155,7 @@ export const getAccountData = async (req, res: CustomResponse) => {
         status: API_RESPONSE_STATUS.error,
         response: {
           message: err.response.data.msg,
-        }
+        },
       });
     }
     return res.status(500).json({

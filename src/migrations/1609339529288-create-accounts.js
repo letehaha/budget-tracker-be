@@ -80,8 +80,12 @@ module.exports = {
 
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.removeColumn('Accounts', 'accountTypeId', { transaction });
-      await queryInterface.removeColumn('Accounts', 'currencyId', { transaction });
+      await queryInterface.removeColumn('Accounts', 'accountTypeId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Accounts', 'currencyId', {
+        transaction,
+      });
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();

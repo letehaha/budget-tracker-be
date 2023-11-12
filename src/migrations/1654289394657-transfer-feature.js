@@ -71,7 +71,11 @@ module.exports = {
       );
 
       // 2
-      await queryInterface.removeColumn('MonobankTransactions', 'transactionEntityId', { transaction });
+      await queryInterface.removeColumn(
+        'MonobankTransactions',
+        'transactionEntityId',
+        { transaction },
+      );
       await queryInterface.addColumn(
         'MonobankTransactions',
         'accountType',
@@ -80,8 +84,11 @@ module.exports = {
           allowNull: false,
           defaultValue: 'monobank',
         },
-        { transaction });
-      await queryInterface.removeColumn('Transactions', 'transactionEntityId', { transaction });
+        { transaction },
+      );
+      await queryInterface.removeColumn('Transactions', 'transactionEntityId', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'Transactions',
         'accountType',
@@ -90,11 +97,16 @@ module.exports = {
           allowNull: false,
           defaultValue: 'system',
         },
-        { transaction });
+        { transaction },
+      );
       await queryInterface.dropTable('TransactionEntities', { transaction });
 
       // 3
-      await queryInterface.removeColumn('MonobankTransactions', 'paymentTypeId', { transaction });
+      await queryInterface.removeColumn(
+        'MonobankTransactions',
+        'paymentTypeId',
+        { transaction },
+      );
       await queryInterface.addColumn(
         'MonobankTransactions',
         'paymentType',
@@ -103,8 +115,11 @@ module.exports = {
           allowNull: false,
           defaultValue: 'creditCard',
         },
-        { transaction });
-      await queryInterface.removeColumn('Transactions', 'paymentTypeId', { transaction });
+        { transaction },
+      );
+      await queryInterface.removeColumn('Transactions', 'paymentTypeId', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'Transactions',
         'paymentType',
@@ -113,7 +128,8 @@ module.exports = {
           allowNull: false,
           defaultValue: 'creditCard',
         },
-        { transaction });
+        { transaction },
+      );
       await queryInterface.dropTable('PaymentTypes', { transaction });
 
       // 4
@@ -127,7 +143,8 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         update "MonobankTransactions"
         set "transactionType" =
           CASE
@@ -136,9 +153,15 @@ module.exports = {
             WHEN "transactionTypeId" = 3 THEN 'transfer'
             ELSE 'income'
           END;
-      `, { transaction });
+      `,
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('MonobankTransactions', 'transactionTypeId', { transaction });
+      await queryInterface.removeColumn(
+        'MonobankTransactions',
+        'transactionTypeId',
+        { transaction },
+      );
 
       await queryInterface.addColumn(
         'Transactions',
@@ -150,7 +173,8 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         update "Transactions"
         set "transactionType" =
           CASE
@@ -159,9 +183,13 @@ module.exports = {
             WHEN "transactionTypeId" = 3 THEN 'transfer'
             ELSE 'income'
           END;
-      `, { transaction });
+      `,
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('Transactions', 'transactionTypeId', { transaction });
+      await queryInterface.removeColumn('Transactions', 'transactionTypeId', {
+        transaction,
+      });
 
       await queryInterface.dropTable('TransactionTypes', { transaction });
 
@@ -176,37 +204,57 @@ module.exports = {
 
     try {
       // 1
-      await queryInterface.removeColumn('Transactions', 'fromAccountId', { transaction });
-      await queryInterface.removeColumn('Transactions', 'fromAccountType', { transaction });
-      await queryInterface.removeColumn('Transactions', 'toAccountId', { transaction });
-      await queryInterface.removeColumn('Transactions', 'toAccountType', { transaction });
-      await queryInterface.removeColumn('Transactions', 'oppositeId', { transaction });
+      await queryInterface.removeColumn('Transactions', 'fromAccountId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'fromAccountType', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'toAccountId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'toAccountType', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'oppositeId', {
+        transaction,
+      });
 
       // 2
-      await queryInterface.createTable('TransactionEntities', {
-        id: {
-          type: Sequelize.INTEGER,
-          unique: true,
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
+      await queryInterface.createTable(
+        'TransactionEntities',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+          },
+          name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          type: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+          },
         },
-        name: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        type: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-        },
-      }, { transaction });
+        { transaction },
+      );
 
-      await queryInterface.bulkInsert('TransactionEntities', [
-        { name: 'System', type: 1 },
-        { name: 'Monobank', type: 2 },
-      ], { transaction });
+      await queryInterface.bulkInsert(
+        'TransactionEntities',
+        [
+          { name: 'System', type: 1 },
+          { name: 'Monobank', type: 2 },
+        ],
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('MonobankTransactions', 'accountType', { transaction });
+      await queryInterface.removeColumn('MonobankTransactions', 'accountType', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'MonobankTransactions',
         'transactionEntityId',
@@ -221,9 +269,14 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query('UPDATE "MonobankTransactions" SET "transactionEntityId" = 2', { transaction });
+      await queryInterface.sequelize.query(
+        'UPDATE "MonobankTransactions" SET "transactionEntityId" = 2',
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('Transactions', 'accountType', { transaction });
+      await queryInterface.removeColumn('Transactions', 'accountType', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'Transactions',
         'transactionEntityId',
@@ -238,34 +291,47 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query('UPDATE "Transactions" SET "transactionEntityId" = 1', { transaction });
+      await queryInterface.sequelize.query(
+        'UPDATE "Transactions" SET "transactionEntityId" = 1',
+        { transaction },
+      );
 
       // 3
-      await queryInterface.createTable('PaymentTypes', {
-        id: {
-          type: Sequelize.INTEGER,
-          unique: true,
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
+      await queryInterface.createTable(
+        'PaymentTypes',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+          },
+          name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
         },
-        name: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-      }, { transaction });
+        { transaction },
+      );
 
-      await queryInterface.bulkInsert('PaymentTypes', [
-        { name: 'Bank transfer' },
-        { name: 'Voucher' },
-        { name: 'Web payment' },
-        { name: 'Cash' },
-        { name: 'Mobile payment' },
-        { name: 'Credit card' },
-        { name: 'Debit card' },
-      ], { transaction });
+      await queryInterface.bulkInsert(
+        'PaymentTypes',
+        [
+          { name: 'Bank transfer' },
+          { name: 'Voucher' },
+          { name: 'Web payment' },
+          { name: 'Cash' },
+          { name: 'Mobile payment' },
+          { name: 'Credit card' },
+          { name: 'Debit card' },
+        ],
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('MonobankTransactions', 'paymentType', { transaction });
+      await queryInterface.removeColumn('MonobankTransactions', 'paymentType', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'MonobankTransactions',
         'paymentTypeId',
@@ -280,9 +346,14 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query('UPDATE "MonobankTransactions" SET "paymentTypeId" = 6', { transaction });
+      await queryInterface.sequelize.query(
+        'UPDATE "MonobankTransactions" SET "paymentTypeId" = 6',
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('Transactions', 'paymentType', { transaction });
+      await queryInterface.removeColumn('Transactions', 'paymentType', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'Transactions',
         'paymentTypeId',
@@ -297,7 +368,10 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query('UPDATE "Transactions" SET "paymentTypeId" = 6', { transaction });
+      await queryInterface.sequelize.query(
+        'UPDATE "Transactions" SET "paymentTypeId" = 6',
+        { transaction },
+      );
 
       // 4
       await queryInterface.createTable('TransactionTypes', {
@@ -318,11 +392,15 @@ module.exports = {
         },
       });
 
-      await queryInterface.bulkInsert('TransactionTypes', [
-        { name: 'Income', type: 1 },
-        { name: 'Expense', type: 2 },
-        { name: 'Transfer', type: 3 },
-      ], {});
+      await queryInterface.bulkInsert(
+        'TransactionTypes',
+        [
+          { name: 'Income', type: 1 },
+          { name: 'Expense', type: 2 },
+          { name: 'Transfer', type: 3 },
+        ],
+        {},
+      );
 
       await queryInterface.addColumn(
         'MonobankTransactions',
@@ -339,7 +417,8 @@ module.exports = {
         { transaction },
       );
 
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         update "MonobankTransactions"
         set "transactionTypeId" =
           CASE
@@ -347,8 +426,14 @@ module.exports = {
             WHEN "transactionType" = 'expense' THEN 2
             WHEN "transactionType" = 'transfer' THEN 3
           END;
-      `, { transaction });
-      await queryInterface.removeColumn('MonobankTransactions', 'transactionType', { transaction })
+      `,
+        { transaction },
+      );
+      await queryInterface.removeColumn(
+        'MonobankTransactions',
+        'transactionType',
+        { transaction },
+      );
 
       await queryInterface.addColumn(
         'Transactions',
@@ -365,7 +450,8 @@ module.exports = {
         { transaction },
       );
 
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         update "Transactions"
         set "transactionTypeId" =
           CASE
@@ -373,8 +459,12 @@ module.exports = {
             WHEN "transactionType" = 'expense' THEN 2
             WHEN "transactionType" = 'transfer' THEN 3
           END;
-      `, { transaction });
-      await queryInterface.removeColumn('Transactions', 'transactionType', { transaction })
+      `,
+        { transaction },
+      );
+      await queryInterface.removeColumn('Transactions', 'transactionType', {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {

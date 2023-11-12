@@ -80,7 +80,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find(item => item.code === 'USD');
+      global.BASE_CURRENCY = currencies.find((item) => item.code === 'USD');
     }
 
     await makeRequest({
@@ -89,9 +89,9 @@ beforeEach(async () => {
       payload: { currencyId: global.BASE_CURRENCY.id },
     });
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
-})
+});
 
 afterAll(async () => {
   try {

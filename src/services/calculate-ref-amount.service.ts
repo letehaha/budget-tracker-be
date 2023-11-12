@@ -34,32 +34,55 @@ interface BaseParams {
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
 export async function calculateRefAmount(
-  { amount, userId, baseCode, quoteCode }:
-  BaseParams & { baseCode: string; quoteCode?: string },
+  {
+    amount,
+    userId,
+    baseCode,
+    quoteCode,
+  }: BaseParams & { baseCode: string; quoteCode?: string },
   attributes: GenericSequelizeModelAttributes,
-)
+);
 export async function calculateRefAmount(
-  { amount, userId, baseId, quoteId }:
-  BaseParams & { baseId: number; quoteId?: number },
+  {
+    amount,
+    userId,
+    baseId,
+    quoteId,
+  }: BaseParams & { baseId: number; quoteId?: number },
   attributes: GenericSequelizeModelAttributes,
-)
+);
 export async function calculateRefAmount(
-  { amount, userId, baseCode, quoteCode, baseId, quoteId }:
-  BaseParams & { baseId?: number; quoteId?: number; baseCode?: string; quoteCode?: string },
+  {
+    amount,
+    userId,
+    baseCode,
+    quoteCode,
+    baseId,
+    quoteId,
+  }: BaseParams & {
+    baseId?: number;
+    quoteId?: number;
+    baseCode?: string;
+    quoteCode?: string;
+  },
   attributes: GenericSequelizeModelAttributes,
 ): Promise<number> {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    let defaultUserCurrency: Currencies.default
+    let defaultUserCurrency: Currencies.default;
 
     if (!baseCode && baseId) {
-      baseCode = (await Currencies.getCurrency({ id: baseId }, { transaction }))?.code;
+      baseCode = (await Currencies.getCurrency({ id: baseId }, { transaction }))
+        ?.code;
     }
 
     if (!quoteCode && quoteId) {
-      quoteCode = (await Currencies.getCurrency({ id: quoteId }, { transaction }))?.code;
+      quoteCode = (
+        await Currencies.getCurrency({ id: quoteId }, { transaction })
+      )?.code;
     }
 
     if (!quoteCode) {
@@ -78,14 +101,17 @@ export async function calculateRefAmount(
       return amount;
     }
 
-    const { rate } = await userExchangeRateService.getExchangeRate({
-      userId,
-      baseCode,
-      quoteCode: quoteCode || defaultUserCurrency.code,
-    }, { transaction })
+    const { rate } = await userExchangeRateService.getExchangeRate(
+      {
+        userId,
+        baseCode,
+        quoteCode: quoteCode || defaultUserCurrency.code,
+      },
+      { transaction },
+    );
 
     const isNegative = amount < 0;
-    const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate)
+    const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate);
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

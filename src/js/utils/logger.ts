@@ -8,7 +8,7 @@ const createWinstonLogger = () => {
       format.timestamp(),
       format.colorize(),
       format.printf(
-        (mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`
+        (mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`,
       ),
     ),
     transports: [
@@ -43,29 +43,47 @@ const formatErrorToString = (error: string | Error) => {
     message = String(error);
   }
 
-  return message
+  return message;
 };
 
-function loggerErrorHandler(message: string, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(error: Error, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(messageParam: { message: string, error?: Error }, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(messageParam: { message?: string, error: Error }, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(messageParam: { message?: string, error?: Error } | string | Error, ...extra: Record<string, unknown>[]): void {
+function loggerErrorHandler(
+  message: string,
+  ...extra: Record<string, unknown>[]
+): void;
+function loggerErrorHandler(
+  error: Error,
+  ...extra: Record<string, unknown>[]
+): void;
+function loggerErrorHandler(
+  messageParam: { message: string; error?: Error },
+  ...extra: Record<string, unknown>[]
+): void;
+function loggerErrorHandler(
+  messageParam: { message?: string; error: Error },
+  ...extra: Record<string, unknown>[]
+): void;
+function loggerErrorHandler(
+  messageParam: { message?: string; error?: Error } | string | Error,
+  ...extra: Record<string, unknown>[]
+): void {
   let messageReult = 'Default error message from logger';
 
   if (typeof messageParam === 'string') {
-    messageReult = messageParam
-  } else if (typeof messageParam === 'string' || messageParam instanceof Error) {
-    messageReult = formatErrorToString(messageParam)
+    messageReult = messageParam;
+  } else if (
+    typeof messageParam === 'string' ||
+    messageParam instanceof Error
+  ) {
+    messageReult = formatErrorToString(messageParam);
   } else {
-    const { message, error } = messageParam
+    const { message, error } = messageParam;
 
     if (message === undefined && error) {
       messageReult = formatErrorToString(error);
     } else if (message && error === undefined) {
-      messageReult = message
+      messageReult = message;
     } else if (error) {
-      messageReult = `${message} \n ${formatErrorToString(error)}`
+      messageReult = `${message} \n ${formatErrorToString(error)}`;
     }
   }
 

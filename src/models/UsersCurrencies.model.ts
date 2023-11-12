@@ -17,21 +17,14 @@ interface UserCurrencyAttributes extends UserCurrencyModel {}
   timestamps: false,
 })
 export default class UsersCurrencies extends Model<UserCurrencyAttributes> {
-  @BelongsTo(
-    () => Users,
-    {
-      as: 'user',
-      foreignKey: 'userId',
-    }
-  )
-  @BelongsTo(
-    () => Currencies,
-    {
-      as: 'currency',
-      foreignKey: 'currencyId',
-    }
-  )
-
+  @BelongsTo(() => Users, {
+    as: 'user',
+    foreignKey: 'userId',
+  })
+  @BelongsTo(() => Currencies, {
+    as: 'currency',
+    foreignKey: 'currencyId',
+  })
   @Column({
     unique: true,
     allowNull: false,
@@ -86,25 +79,28 @@ export const getBaseCurrency = async (
   { userId }: { userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const data = await UsersCurrencies.findOne({
+  const data = (await UsersCurrencies.findOne({
     where: { userId, isDefaultCurrency: true },
     include: { model: Currencies },
     transaction,
-  }) as UsersCurrencies & { currency: Currencies };
+  })) as UsersCurrencies & { currency: Currencies };
 
   return data;
 };
 
 type getCurrencyOverload = {
   (
-    { userId, currencyId }: { userId: number; currencyId: number; },
-    { transaction }: { transaction?: Transaction }
+    { userId, currencyId }: { userId: number; currencyId: number },
+    { transaction }: { transaction?: Transaction },
   ): Promise<UsersCurrencies & { currency: Currencies }>;
   (
-    { userId, isDefaultCurrency }: { userId: number; isDefaultCurrency: boolean; },
-    { transaction }: { transaction?: Transaction }
+    {
+      userId,
+      isDefaultCurrency,
+    }: { userId: number; isDefaultCurrency: boolean },
+    { transaction }: { transaction?: Transaction },
   ): Promise<UsersCurrencies & { currency: Currencies }>;
-}
+};
 export const getCurrency: getCurrencyOverload = (
   {
     userId,
@@ -173,7 +169,6 @@ export const updateCurrency = async (
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-
   const where = { userId, currencyId };
 
   await UsersCurrencies.update(
@@ -203,7 +198,6 @@ export const deleteCurrency = async (
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-
   const where = { userId, currencyId };
 
   return UsersCurrencies.destroy({
@@ -228,7 +222,6 @@ export const updateCurrencies = async (
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-
   const where: {
     userId: number;
     currencyId?: { [Op.in]: number[] };
@@ -237,7 +230,7 @@ export const updateCurrencies = async (
   if (currencyIds?.length) {
     where.currencyId = {
       [Op.in]: currencyIds,
-    }
+    };
   }
 
   await UsersCurrencies.update(

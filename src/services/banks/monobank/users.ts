@@ -2,16 +2,16 @@ import { MonobankUserModel } from 'shared-types';
 import * as MonobankUsers from '@models/banks/monobank/Users.model';
 import { GenericSequelizeModelAttributes } from '@common/types';
 
-
 export const getUserById = async (
   { id },
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<MonobankUserModel> => MonobankUsers.getById({ id }, attributes);
 
 export const getUserByToken = async (
-  { token, userId }: { token: string, userId: number },
+  { token, userId }: { token: string; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<MonobankUserModel> => MonobankUsers.getUserByToken({ token, userId }, attributes);
+): Promise<MonobankUserModel> =>
+  MonobankUsers.getUserByToken({ token, userId }, attributes);
 
 export const createUser = async (
   payload: MonobankUsers.MonoUserCreationPayload,
@@ -21,7 +21,8 @@ export const createUser = async (
 export const getUserBySystemId = async (
   { systemUserId }: { systemUserId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<MonobankUserModel> => MonobankUsers.getUserBySystemId({ systemUserId }, attributes);
+): Promise<MonobankUserModel> =>
+  MonobankUsers.getUserBySystemId({ systemUserId }, attributes);
 
 export const updateUser = async (
   payload: MonobankUsers.MonoUserUpdatePayload,

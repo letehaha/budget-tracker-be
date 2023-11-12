@@ -32,6 +32,10 @@ router.put('/currency', authenticateJwt, editUserCurrency);
 router.put('/currency/rates', authenticateJwt, editUserCurrencyExchangeRate);
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
-router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate);
+router.delete(
+  '/currency/rates',
+  authenticateJwt,
+  removeUserCurrencyExchangeRate,
+);
 
 export default router;

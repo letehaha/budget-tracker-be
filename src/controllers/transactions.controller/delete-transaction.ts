@@ -10,9 +10,12 @@ export const deleteTransaction = async (req, res: CustomResponse) => {
     const { id } = req.params;
     const { id: userId } = req.user;
 
-    if (!id || !Number(id)) throw new ValidationError({ message: 'Transaction id parameter does not specified in the URL' });
+    if (!id || !Number(id))
+      throw new ValidationError({
+        message: 'Transaction id parameter does not specified in the URL',
+      });
 
-    await transactionsService.deleteTransaction({ id, userId })
+    await transactionsService.deleteTransaction({ id, userId });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,

@@ -31,7 +31,7 @@ import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
 import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
 import * as Users from '@models/Users.model';
 
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 import { errorHandler } from '@controllers/helpers';
 import { ERROR_CODES, ValidationError } from '@js/errors';
 
@@ -41,13 +41,14 @@ const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
-function dateRange(
-  { from, to }: { from: number; to: number; }
-): { start: number; end: number }[] {
-  const difference = differenceInCalendarMonths(
-    new Date(to),
-    new Date(from),
-  );
+function dateRange({
+  from,
+  to,
+}: {
+  from: number;
+  to: number;
+}): { start: number; end: number }[] {
+  const difference = differenceInCalendarMonths(new Date(to), new Date(from));
   const dates = [];
 
   for (let i = 0; i <= difference; i++) {
@@ -78,8 +79,15 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
 }
 
 async function createMonoTransaction(
-  { data, account, userId }:
-  { data: ExternalMonobankTransactionResponse, account: AccountModel, userId: number },
+  {
+    data,
+    account,
+    userId,
+  }: {
+    data: ExternalMonobankTransactionResponse;
+    account: AccountModel;
+    userId: number;
+  },
   // attributes: GenericSequelizeModelAttributes = {},
 ) {
   const isTransactionExists = await transactionsService.getTransactionBySomeId({
@@ -108,9 +116,9 @@ async function createMonoTransaction(
   if (userMcc.length) {
     categoryId = userMcc[0].get('categoryId');
   } else {
-    categoryId = (
-      await Users.getUserDefaultCategory({ id: userData.id })
-    ).get('defaultCategoryId');
+    categoryId = (await Users.getUserDefaultCategory({ id: userData.id })).get(
+      'defaultCategoryId',
+    );
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
@@ -134,7 +142,8 @@ async function createMonoTransaction(
     cashbackAmount: data.cashbackAmount,
     accountId: account.id,
     userId: userData.id,
-    transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
+    transactionType:
+      data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
@@ -147,15 +156,21 @@ async function createMonoTransaction(
 
 export const pairAccount = async (req, res: CustomResponse) => {
   const { token }: endpointsTypes.PairMonobankAccountBody = req.body;
-  let { id: systemUserId }: { id: number; } = req.user;
-  systemUserId = Number(systemUserId)
+  let { id: systemUserId }: { id: number } = req.user;
+  systemUserId = Number(systemUserId);
 
   try {
     if (!token || typeof token !== 'string') {
-      throw new ValidationError({ message: '"token" (Monobank API token) field is required and should be a string' })
+      throw new ValidationError({
+        message:
+          '"token" (Monobank API token) field is required and should be a string',
+      });
     }
 
-    const result = await accountsService.pairMonobankAccount({ token, userId: systemUserId })
+    const result = await accountsService.pairMonobankAccount({
+      token,
+      userId: systemUserId,
+    });
 
     if ('connected' in result && result.connected) {
       return res.status(404).json({
@@ -211,7 +226,12 @@ export const getUser = async (req, res: CustomResponse) => {
 
 export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
-  const { apiToken, name, webHookUrl, clientId }: endpointsTypes.UpdateMonobankUserBody = req.body;
+  const {
+    apiToken,
+    name,
+    webHookUrl,
+    clientId,
+  }: endpointsTypes.UpdateMonobankUserBody = req.body;
 
   try {
     const user = await monobankUsersService.updateUser({
@@ -306,7 +326,8 @@ export const updateWebhook = async (req, res: CustomResponse) => {
     return res.status(ERROR_CODES.TooManyRequests).json({
       status: API_RESPONSE_STATUS.error,
       response: {
-        message: 'Too many requests! Request cannot be called more that once a minute!',
+        message:
+          'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {
@@ -322,12 +343,16 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 
 export const loadTransactions = async (req, res: CustomResponse) => {
   try {
-    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
+    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery =
+      req.query;
     const { id: systemUserId } = req.user;
 
-    if (!from || !Number(from)) throw new ValidationError({ message: '"from" field is invalid' });
-    if (!to || !Number(to)) throw new ValidationError({ message: '"to" field is invalid' });
-    if (!accountId) throw new ValidationError({ message: '"accountId" field is required' });
+    if (!from || !Number(from))
+      throw new ValidationError({ message: '"from" field is invalid' });
+    if (!to || !Number(to))
+      throw new ValidationError({ message: '"to" field is invalid' });
+    if (!accountId)
+      throw new ValidationError({ message: '"accountId" field is required' });
 
     const redisToken = `monobank-${systemUserId}-load-transactions`;
     const tempRedisToken = await req.redisClient.get(redisToken);
@@ -336,13 +361,16 @@ export const loadTransactions = async (req, res: CustomResponse) => {
       return res.status(ERROR_CODES.TooManyRequests).json({
         status: API_RESPONSE_STATUS.error,
         response: {
-          message: 'There were too many requests earlier. Please wait at least one minute from when you first saw this message.',
+          message:
+            'There were too many requests earlier. Please wait at least one minute from when you first saw this message.',
           code: API_ERROR_CODES.tooManyRequests,
         },
       });
     }
 
-    const monobankUser = await monobankUsersService.getUserBySystemId({ systemUserId });
+    const monobankUser = await monobankUsersService.getUserBySystemId({
+      systemUserId,
+    });
 
     if (!monobankUser) {
       return res.status(ERROR_CODES.NotFoundError).json({
@@ -403,14 +431,15 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     for (const month of months) {
       queue.add(async () => {
         try {
-          const { data }: { data: ExternalMonobankTransactionResponse[] } = await axios({
-            method: 'GET',
-            url: `${hostname}/personal/statement/${account.externalId}/${month.start}/${month.end}`,
-            responseType: 'json',
-            headers: {
-              'X-Token': monobankUser.apiToken,
-            },
-          });
+          const { data }: { data: ExternalMonobankTransactionResponse[] } =
+            await axios({
+              method: 'GET',
+              url: `${hostname}/personal/statement/${account.externalId}/${month.start}/${month.end}`,
+              responseType: 'json',
+              headers: {
+                'X-Token': monobankUser.apiToken,
+              },
+            });
 
           for (const item of data) {
             await createMonoTransaction({
@@ -432,14 +461,20 @@ export const loadTransactions = async (req, res: CustomResponse) => {
 
     // When all requests are done – delete it from the map
     queue.on('idle', () => {
-      logger.info(`[Monobank controller]: All load transactions tasks are done. Size: ${queue.size}  Pending: ${queue.pending}`);
+      logger.info(
+        `[Monobank controller]: All load transactions tasks are done. Size: ${queue.size}  Pending: ${queue.pending}`,
+      );
       usersQuery.delete(`query-${systemUserId}`);
     });
     queue.on('add', () => {
-      logger.info(`[Monobank controller]: Task to load transactions is added. Size: ${queue.size}  Pending: ${queue.pending}`);
+      logger.info(
+        `[Monobank controller]: Task to load transactions is added. Size: ${queue.size}  Pending: ${queue.pending}`,
+      );
     });
     queue.on('next', () => {
-      logger.info(`[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`);
+      logger.info(
+        `[Monobank controller]: One of load transactions task is completed. Size: ${queue.size}  Pending: ${queue.pending}`,
+      );
     });
 
     return res.status(200).json<endpointsTypes.LoadMonoTransactionsResponse>({
@@ -482,14 +517,16 @@ export const refreshAccounts = async (req, res) => {
     if (!tempToken) {
       let clientInfo: ExternalMonobankClientInfoResponse;
       try {
-        clientInfo = (await axios({
-          method: 'GET',
-          url: `${hostname}/personal/client-info`,
-          responseType: 'json',
-          headers: {
-            'X-Token': monoUser.apiToken,
-          },
-        })).data;
+        clientInfo = (
+          await axios({
+            method: 'GET',
+            url: `${hostname}/personal/client-info`,
+            responseType: 'json',
+            headers: {
+              'X-Token': monoUser.apiToken,
+            },
+          })
+        ).data;
       } catch (e) {
         await transaction.rollback();
 
@@ -498,7 +535,10 @@ export const refreshAccounts = async (req, res) => {
             // Set user token to empty, since it is already invalid. In that way
             // we can let BE/FE know that last token was invalid and now it
             // needs to be updated
-            await monobankUsersService.updateUser({ systemUserId, apiToken: '' }, { transaction });
+            await monobankUsersService.updateUser(
+              { systemUserId, apiToken: '' },
+              { transaction },
+            );
 
             return res.status(403).json({
               status: API_RESPONSE_STATUS.error,
@@ -520,42 +560,58 @@ export const refreshAccounts = async (req, res) => {
       await req.redisClient.set(token, true);
       await req.redisClient.expire(token, 60);
 
-      const existingAccounts = await accountsService.getAccountsByExternalIds({
-        userId: monoUser.systemUserId,
-        externalIds: clientInfo.accounts.map(item => item.id),
-      }, { transaction, raw: true })
+      const existingAccounts = await accountsService.getAccountsByExternalIds(
+        {
+          userId: monoUser.systemUserId,
+          externalIds: clientInfo.accounts.map((item) => item.id),
+        },
+        { transaction, raw: true },
+      );
 
-      const accountsToUpdate = []
-      const accountsToCreate = []
-      clientInfo.accounts.forEach(account => {
-        const existingAccount = existingAccounts.find(acc => acc.externalId === account.id)
+      const accountsToUpdate = [];
+      const accountsToCreate = [];
+      clientInfo.accounts.forEach((account) => {
+        const existingAccount = existingAccounts.find(
+          (acc) => acc.externalId === account.id,
+        );
 
         if (existingAccount) {
-          accountsToUpdate.push(accountsService.updateAccount({
-            id: existingAccount.id,
-            currentBalance: account.balance,
-            creditLimit: account.creditLimit,
-            userId: monoUser.systemUserId,
-            // TODO: update externalData
-            // maskedPan: JSON.stringify(item.maskedPan),
-            // cashbackType: item.cashbackType,
-            // type: item.type,
-            // iban: item.iban,
-          }, { transaction }))
+          accountsToUpdate.push(
+            accountsService.updateAccount(
+              {
+                id: existingAccount.id,
+                currentBalance: account.balance,
+                creditLimit: account.creditLimit,
+                userId: monoUser.systemUserId,
+                // TODO: update externalData
+                // maskedPan: JSON.stringify(item.maskedPan),
+                // cashbackType: item.cashbackType,
+                // type: item.type,
+                // iban: item.iban,
+              },
+              { transaction },
+            ),
+          );
         } else {
           accountsToCreate.push(
-            accountsService.createSystemAccountsFromMonobankAccounts({ userId: systemUserId, monoAccounts: [account] }),
-          )
+            accountsService.createSystemAccountsFromMonobankAccounts({
+              userId: systemUserId,
+              monoAccounts: [account],
+            }),
+          );
         }
-      })
+      });
 
       await Promise.all(accountsToUpdate);
       await Promise.all(accountsToCreate);
 
-      const accounts = await accountsService.getAccounts({
-        userId: monoUser.systemUserId,
-        type: ACCOUNT_TYPES.monobank,
-      }, { transaction });
+      const accounts = await accountsService.getAccounts(
+        {
+          userId: monoUser.systemUserId,
+          type: ACCOUNT_TYPES.monobank,
+        },
+        { transaction },
+      );
 
       await transaction.commit();
 
@@ -571,7 +627,8 @@ export const refreshAccounts = async (req, res) => {
       status: API_RESPONSE_STATUS.error,
       response: {
         code: API_ERROR_CODES.tooManyRequests,
-        message: 'Too many requests! Request cannot be called more that once a minute!',
+        message:
+          'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {

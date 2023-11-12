@@ -7,26 +7,26 @@ import { connection } from '@models/index';
 import * as userService from '@services/user.service';
 import * as categoriesService from '@services/categories.service';
 import { DEFAULT_CATEGORIES } from '@js/const';
-import { logger} from '@js/utils/logger';
-import { Unauthorized, NotFoundError, UnexpectedError, ConflictError } from '@js/errors';
+import { logger } from '@js/utils/logger';
+import {
+  Unauthorized,
+  NotFoundError,
+  UnexpectedError,
+  ConflictError,
+} from '@js/errors';
 
-export const login = async (
-  {
-    username,
-    password,
-  }: {
-    username: string;
-    password: string;
-  }
-): Promise<{ token: string }> => {
+export const login = async ({
+  username,
+  password,
+}: {
+  username: string;
+  password: string;
+}): Promise<{ token: string }> => {
   try {
     const user = await userService.getUserByCredentials({ username });
 
     if (user) {
-      const isPasswordValid = bcrypt.compareSync(
-        password,
-        user.password,
-      );
+      const isPasswordValid = bcrypt.compareSync(password, user.password);
 
       if (isPasswordValid) {
         const token = jwt.sign(
@@ -45,26 +45,24 @@ export const login = async (
 
       throw new Unauthorized({
         code: API_ERROR_CODES.invalidCredentials,
-        message: 'User email and/or password are invalid!'
+        message: 'User email and/or password are invalid!',
       });
     }
 
-    throw new NotFoundError({ message: 'User not found!' })
+    throw new NotFoundError({ message: 'User not found!' });
   } catch (err) {
-    logger.error(err)
-    throw err
+    logger.error(err);
+    throw err;
   }
 };
 
-export const register = async (
-  {
-    username,
-    password,
-  }: {
-    username: string;
-    password: string;
-  }
-) => {
+export const register = async ({
+  username,
+  password,
+}: {
+  username: string;
+  password: string;
+}) => {
   let registrationTransaction = null;
 
   try {
@@ -112,7 +110,7 @@ export const register = async (
     // Loop through categories and make subcats as a raw array of categories
     // since DB expects that
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    categories.forEach(item => {
+    categories.forEach((item) => {
       const subcategories = DEFAULT_CATEGORIES.subcategories.find(
         (subcat) => subcat.parentName === item.name,
       );
@@ -133,11 +131,11 @@ export const register = async (
     await categoriesService.bulkCreate(
       { data: subcats },
       { transaction: registrationTransaction },
-    )
+    );
 
     // set defaultCategoryId so the undefined mcc codes will use it
-    const defaultCategoryId = (
-      categories.find(item => item.name === DEFAULT_CATEGORIES.names.other)
+    const defaultCategoryId = categories.find(
+      (item) => item.name === DEFAULT_CATEGORIES.names.other,
     ).id;
 
     if (!defaultCategoryId) {
@@ -145,7 +143,7 @@ export const register = async (
       throw new UnexpectedError(
         API_ERROR_CODES.unexpected,
         "Cannot find 'defaultCategoryId' in the previously create categories.",
-      )
+      );
     } else {
       user = await userService.updateUser(
         {
@@ -166,7 +164,7 @@ export const register = async (
       await registrationTransaction.rollback();
     }
 
-    logger.error(err)
-    throw err
+    logger.error(err);
+    throw err;
   }
 };

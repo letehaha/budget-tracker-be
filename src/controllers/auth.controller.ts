@@ -8,7 +8,7 @@ export const login = async (req, res: CustomResponse) => {
   const { username, password }: endpointsTypes.AuthLoginBody = req.body;
 
   try {
-    const token = await authService.login({ username, password })
+    const token = await authService.login({ username, password });
 
     return res.status(200).json<endpointsTypes.AuthLoginResponse>({
       status: API_RESPONSE_STATUS.success,
@@ -23,7 +23,7 @@ export const register = async (req, res: CustomResponse) => {
   const { username, password }: endpointsTypes.AuthRegisterBody = req.body;
 
   try {
-    const user = await authService.register({ username, password })
+    const user = await authService.register({ username, password });
 
     return res.status(201).json<endpointsTypes.AuthRegisterResponse>({
       status: API_RESPONSE_STATUS.success,
@@ -32,7 +32,7 @@ export const register = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const validateToken = async (req, res: CustomResponse) => {
   try {
@@ -40,4 +40,4 @@ export const validateToken = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};

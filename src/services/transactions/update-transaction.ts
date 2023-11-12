@@ -321,9 +321,8 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
         await deleteOppositeTransaction(helperFunctionsArgs);
       }
 
-      const { baseTx, oppositeTx } = await updateTransferTransaction(
-        helperFunctionsArgs,
-      );
+      const { baseTx, oppositeTx } =
+        await updateTransferTransaction(helperFunctionsArgs);
       updatedTransactions = [baseTx, oppositeTx];
     } else if (
       payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&

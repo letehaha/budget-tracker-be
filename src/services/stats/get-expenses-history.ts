@@ -1,5 +1,9 @@
 import { Op } from 'sequelize';
-import { TransactionModel, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import {
+  TransactionModel,
+  TRANSACTION_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+} from 'shared-types';
 import { removeUndefinedKeys } from '@js/helpers';
 import { GenericSequelizeModelAttributes } from '@common/types';
 
@@ -14,7 +18,7 @@ interface DateQuery {
 }
 
 const getWhereConditionForTime = ({ from, to }: DateQuery) => {
-  const where: { time?: Record<symbol, Date[] | Date> } = {}
+  const where: { time?: Record<symbol, Date[] | Date> } = {};
 
   if (from && to) {
     where.time = {
@@ -35,9 +39,14 @@ const getWhereConditionForTime = ({ from, to }: DateQuery) => {
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,
-  'accountId' | 'time' | 'amount' | 'refAmount' | 'currencyId'
-  | 'currencyCode' | 'categoryId'
->
+  | 'accountId'
+  | 'time'
+  | 'amount'
+  | 'refAmount'
+  | 'currencyId'
+  | 'currencyCode'
+  | 'categoryId'
+>;
 
 /**
  * Fetches the expense history for a specified user within an optional date range and account.
@@ -55,7 +64,12 @@ export type GetExpensesHistoryResponseSchema = Pick<
  * const balances = await getExpensesHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
  */
 export const getExpensesHistory = async (
-  { userId, from, to, accountId }: {
+  {
+    userId,
+    from,
+    to,
+    accountId,
+  }: {
     userId: number;
     accountId?: number;
     from?: string;
@@ -64,10 +78,19 @@ export const getExpensesHistory = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<GetExpensesHistoryResponseSchema[]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    const dataAttributes: (keyof Transactions.default)[] = ['accountId', 'time', 'amount', 'refAmount', 'currencyId', 'currencyCode', 'categoryId'];
+    const dataAttributes: (keyof Transactions.default)[] = [
+      'accountId',
+      'time',
+      'amount',
+      'refAmount',
+      'currencyId',
+      'currencyCode',
+      'categoryId',
+    ];
 
     const transactions = await Transactions.default.findAll({
       where: removeUndefinedKeys({

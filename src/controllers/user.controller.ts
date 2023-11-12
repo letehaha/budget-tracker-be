@@ -2,7 +2,10 @@ import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
-import { UpdateExchangeRatePair, ExchangeRatePair } from '@models/UserExchangeRates.model';
+import {
+  UpdateExchangeRatePair,
+  ExchangeRatePair,
+} from '@models/UserExchangeRates.model';
 import { errorHandler } from './helpers';
 import { ValidationError } from '@js/errors';
 
@@ -136,19 +139,21 @@ export const setBaseUserCurrency = async (req, res: CustomResponse) => {
 export const addUserCurrencies = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
-  const { currencies }: {
+  const {
+    currencies,
+  }: {
     currencies: {
-      currencyId: number,
+      currencyId: number;
       exchangeRate?: number;
       liveRateUpdate?: boolean;
-    }[]
+    }[];
   } = req.body;
 
   // TODO: types validation
 
   try {
     const result = await userService.addUserCurrencies(
-      currencies.map(item => ({ userId, ...item })),
+      currencies.map((item) => ({ userId, ...item })),
     );
 
     return res.status(200).json({
@@ -158,7 +163,7 @@ export const addUserCurrencies = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const editUserCurrency = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
@@ -190,7 +195,7 @@ export const editUserCurrency = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
@@ -211,7 +216,7 @@ export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const deleteUserCurrency = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
@@ -230,7 +235,7 @@ export const deleteUserCurrency = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
 export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
   try {
@@ -245,32 +250,44 @@ export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
-export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
+export const editUserCurrencyExchangeRate = async (
+  req,
+  res: CustomResponse,
+) => {
   try {
     const { id: userId } = req.user;
     const { pairs }: { pairs: UpdateExchangeRatePair[] } = req.body;
 
     if (!pairs) {
-      throw new ValidationError({ message: '"pairs" is required.' })
+      throw new ValidationError({ message: '"pairs" is required.' });
     }
 
     if (!Array.isArray(pairs)) {
-      throw new ValidationError({ message: '"pairs" should be an array.' })
+      throw new ValidationError({ message: '"pairs" should be an array.' });
     }
 
-    if (pairs.some(item => item.baseCode === item.quoteCode)) {
-      throw new ValidationError({ message: 'You cannot edit pair with the same base and quote currency code.' })
+    if (pairs.some((item) => item.baseCode === item.quoteCode)) {
+      throw new ValidationError({
+        message:
+          'You cannot edit pair with the same base and quote currency code.',
+      });
     }
 
     pairs.forEach((pair) => {
-      if (!pairs.some(item => item.baseCode === pair.quoteCode)) {
-        throw new ValidationError({ message: 'When changing base-qoute pair rate, you need to also change opposite pair\'s rate.' })
+      if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
+        throw new ValidationError({
+          message:
+            "When changing base-qoute pair rate, you need to also change opposite pair's rate.",
+        });
       }
-    })
+    });
 
-    const data = await userExchangeRates.editUserExchangeRates({ userId, pairs });
+    const data = await userExchangeRates.editUserExchangeRates({
+      userId,
+      pairs,
+    });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -279,26 +296,32 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};
 
-export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
+export const removeUserCurrencyExchangeRate = async (
+  req,
+  res: CustomResponse,
+) => {
   try {
     const { id: userId } = req.user;
     const { pairs }: { pairs: ExchangeRatePair[] } = req.body;
 
     if (!pairs) {
-      throw new ValidationError({ message: '"pairs" is required.' })
+      throw new ValidationError({ message: '"pairs" is required.' });
     }
 
     if (!Array.isArray(pairs)) {
-      throw new ValidationError({ message: '"pairs" should be an array.' })
+      throw new ValidationError({ message: '"pairs" should be an array.' });
     }
 
     pairs.forEach((pair) => {
-      if (!pairs.some(item => item.baseCode === pair.quoteCode)) {
-        throw new ValidationError({ message: 'When removing base-qoute pair rate, you need to also remove opposite pair\'s rate.' })
+      if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
+        throw new ValidationError({
+          message:
+            "When removing base-qoute pair rate, you need to also remove opposite pair's rate.",
+        });
       }
-    })
+    });
 
     await userExchangeRates.removeUserExchangeRates({ userId, pairs });
 
@@ -308,4 +331,4 @@ export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) =
   } catch (err) {
     errorHandler(res, err);
   }
-}
+};

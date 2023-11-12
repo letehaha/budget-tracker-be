@@ -1,8 +1,8 @@
 import { MonobankUserModel } from 'shared-types';
-import { BodyPayload, QueryPayload } from './index'
+import { BodyPayload, QueryPayload } from './index';
 
 export interface PairMonobankAccountBody extends BodyPayload {
-  token: MonobankUserModel['apiToken']
+  token: MonobankUserModel['apiToken'];
 }
 
 export interface UpdateMonobankUserBody extends BodyPayload {

@@ -20,7 +20,7 @@ module.exports = {
   },
   bankIntegrations: {
     monobank: {
-      apiEndpoint: 'https://api.monobank.ua'
-    }
+      apiEndpoint: 'https://api.monobank.ua',
+    },
   },
-}
+};

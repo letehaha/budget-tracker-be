@@ -18,10 +18,14 @@ module.exports = {
       },
     });
 
-    await queryInterface.bulkInsert('TransactionEntities', [
-      { name: 'System', type: 'system' },
-      { name: 'Monobank', type: 'monobank' },
-    ], {});
+    await queryInterface.bulkInsert(
+      'TransactionEntities',
+      [
+        { name: 'System', type: 'system' },
+        { name: 'Monobank', type: 'monobank' },
+      ],
+      {},
+    );
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable('TransactionEntities');

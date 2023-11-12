@@ -62,7 +62,9 @@ module.exports = {
 
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.removeColumn('MonobankUsers', 'systemUserId', { transaction });
+      await queryInterface.removeColumn('MonobankUsers', 'systemUserId', {
+        transaction,
+      });
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();

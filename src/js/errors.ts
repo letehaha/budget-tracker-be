@@ -22,26 +22,32 @@ export class CustomError extends Error {
   ) {
     super(message);
 
-    this.httpCode = httpCode
-    this.code = code
-    this.details = details
+    this.httpCode = httpCode;
+    this.code = code;
+    this.details = details;
   }
 }
 
 export class Unauthorized extends CustomError {
-  constructor(
-    { code = API_ERROR_CODES.unauthorized, message }:
-    { code?: API_ERROR_CODES; message: string },
-  ) {
+  constructor({
+    code = API_ERROR_CODES.unauthorized,
+    message,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+  }) {
     super(ERROR_CODES.Unauthorized, code, message);
   }
 }
 
 export class NotFoundError extends CustomError {
-  constructor(
-    { code = API_ERROR_CODES.notFound, message }:
-    { code?: API_ERROR_CODES; message: string },
-  ) {
+  constructor({
+    code = API_ERROR_CODES.notFound,
+    message,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+  }) {
     super(ERROR_CODES.NotFoundError, code, message);
   }
 }
@@ -53,10 +59,15 @@ export class ConflictError extends CustomError {
 }
 
 export class ValidationError extends CustomError {
-  constructor(
-    { code = API_ERROR_CODES.validationError, message, details }:
-    { code?: API_ERROR_CODES; message: string, details?: Record<string, unknown> }
-  ) {
+  constructor({
+    code = API_ERROR_CODES.validationError,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
     super(ERROR_CODES.ValidationError, code, message, details);
   }
 }

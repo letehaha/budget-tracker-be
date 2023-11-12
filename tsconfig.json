@@ -16,7 +16,7 @@
       "@js/*": ["js/*"],
       "@root/*": ["./*"],
       "shared-types": ["../shared-types"],
-      "@services/*": ["services/*"],
+      "@services/*": ["services/*"]
     },
     "esModuleInterop": true,
     "skipLibCheck": true,

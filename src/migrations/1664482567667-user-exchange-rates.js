@@ -1,45 +1,49 @@
 const QueryTypes = require('sequelize').QueryTypes;
 const axios = require('axios');
 
-const TABLE_NAME = 'UserExchangeRates'
+const TABLE_NAME = 'UserExchangeRates';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.createTable(TABLE_NAME, {
-        id: {
-          type: Sequelize.INTEGER,
-          unique: true,
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
+      await queryInterface.createTable(
+        TABLE_NAME,
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+          },
+          baseCode: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          quoteCode: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          rate: {
+            type: Sequelize.FLOAT,
+            allowNull: true,
+            defaultValue: 1,
+          },
+          createdAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+            defaultValue: Sequelize.fn('NOW'),
+          },
+          updatedAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+            defaultValue: Sequelize.fn('NOW'),
+          },
         },
-        baseCode: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        quoteCode: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        rate: {
-          type: Sequelize.FLOAT,
-          allowNull: true,
-          defaultValue: 1,
-        },
-        createdAt: {
-          type: Sequelize.DATE,
-          allowNull: false,
-          defaultValue: Sequelize.fn('NOW'),
-        },
-        updatedAt: {
-          type: Sequelize.DATE,
-          allowNull: false,
-          defaultValue: Sequelize.fn('NOW'),
-        },
-      }, { transaction });
+        { transaction },
+      );
 
       await queryInterface.addColumn(
         TABLE_NAME,

@@ -13,7 +13,7 @@ describe('Accounts controller', () => {
         payload: {
           ...helpers.buildAccountPayload(),
           initialBalance,
-          creditLimit
+          creditLimit,
         },
         raw: true,
       });
@@ -26,7 +26,9 @@ describe('Accounts controller', () => {
       expect(account.refCreditLimit).toStrictEqual(creditLimit);
     });
     it('should correctly create account with correct balance for external currency', async () => {
-      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))[0];
+      const currency = (
+        await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true })
+      )[0];
 
       const account = await helpers.createAccount({
         payload: {
@@ -38,24 +40,34 @@ describe('Accounts controller', () => {
         raw: true,
       });
 
-      const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
+      const currencyRate = (
+        await helpers.getCurrenciesRates({ codes: ['UAH'] })
+      )[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
-      expect(account.refInitialBalance).toStrictEqual(Math.floor(initialBalance * currencyRate.rate));
+      expect(account.refInitialBalance).toStrictEqual(
+        Math.floor(initialBalance * currencyRate.rate),
+      );
       expect(account.currentBalance).toStrictEqual(initialBalance);
-      expect(account.refCurrentBalance).toStrictEqual(Math.floor(initialBalance * currencyRate.rate));
+      expect(account.refCurrentBalance).toStrictEqual(
+        Math.floor(initialBalance * currencyRate.rate),
+      );
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate.rate));
+      expect(account.refCreditLimit).toStrictEqual(
+        Math.floor(creditLimit * currencyRate.rate),
+      );
     });
-  })
+  });
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
       const res = await helpers.updateAccount({
         id: 1,
-      })
+      });
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
-      expect(helpers.extractResponse(res).code).toEqual(API_ERROR_CODES.notFound);
+      expect(helpers.extractResponse(res).code).toEqual(
+        API_ERROR_CODES.notFound,
+      );
     });
 
     it('should just ignore if no data passed', async () => {
@@ -80,7 +92,10 @@ describe('Accounts controller', () => {
         raw: true,
       });
 
-      expect(updatedAccount).toStrictEqual({ ...account, ...newBasicFieldsValues });
+      expect(updatedAccount).toStrictEqual({
+        ...account,
+        ...newBasicFieldsValues,
+      });
 
       // Create 3 expense transactions with -1000 each
       for (const index in Array(3).fill(0)) {
@@ -89,10 +104,13 @@ describe('Accounts controller', () => {
             ...helpers.buildTransactionPayload({ accountId: account.id }),
             time: addDays(new Date(), +index + 1),
           },
-        })
+        });
       }
 
-      const accountAfterTxs = await helpers.getAccount({ id: account.id, raw: true });
+      const accountAfterTxs = await helpers.getAccount({
+        id: account.id,
+        raw: true,
+      });
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
@@ -117,7 +135,12 @@ describe('Accounts controller', () => {
     });
     it('updates account correctly with non-default user currency', async () => {
       const newCurrency = 'UAH';
-      const currency = (await helpers.addUserCurrencies({ currencyCodes: [newCurrency], raw: true }))[0];
+      const currency = (
+        await helpers.addUserCurrencies({
+          currencyCodes: [newCurrency],
+          raw: true,
+        })
+      )[0];
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
@@ -125,7 +148,9 @@ describe('Accounts controller', () => {
         },
         raw: true,
       });
-      const currencyRate = (await helpers.getCurrenciesRates({ codes: [newCurrency] }))[0];
+      const currencyRate = (
+        await helpers.getCurrenciesRates({ codes: [newCurrency] })
+      )[0];
 
       // Create 3 expense transactions with -1000 each
       for (const index in Array(3).fill(0)) {
@@ -134,14 +159,19 @@ describe('Accounts controller', () => {
             ...helpers.buildTransactionPayload({ accountId: account.id }),
             time: addDays(new Date(), +index + 1),
           },
-        })
+        });
       }
 
-      const accountAfterTxs = await helpers.getAccount({ id: account.id, raw: true });
+      const accountAfterTxs = await helpers.getAccount({
+        id: account.id,
+        raw: true,
+      });
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
-      expect(accountAfterTxs.refCurrentBalance).toBe(-Math.floor(3000 * currencyRate.rate));
+      expect(accountAfterTxs.refCurrentBalance).toBe(
+        -Math.floor(3000 * currencyRate.rate),
+      );
 
       // Update account balance directly, with no tx usage. In that case balance should
       // be changed as well as initialBalance
@@ -156,10 +186,14 @@ describe('Accounts controller', () => {
       // We changed currentBalance from -3000 to -500, so it means that
       // initialbalance should be increased on 2500
       expect(accountUpdateBalance.initialBalance).toBe(2500);
-      expect(accountUpdateBalance.refInitialBalance).toBe(Math.floor(2500 * currencyRate.rate));
+      expect(accountUpdateBalance.refInitialBalance).toBe(
+        Math.floor(2500 * currencyRate.rate),
+      );
       expect(accountUpdateBalance.currentBalance).toBe(-500);
       // Because of the rounding issues it might be that value might be wrong on 1 in any direction
-      expect(accountUpdateBalance.refCurrentBalance).toBe(-Math.floor(500 * currencyRate.rate) - 1);
+      expect(accountUpdateBalance.refCurrentBalance).toBe(
+        -Math.floor(500 * currencyRate.rate) - 1,
+      );
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
@@ -189,5 +223,5 @@ describe('Accounts controller', () => {
 
       expect(brokenUpdate.statusCode).toBe(ERROR_CODES.ValidationError);
     });
-  })
-})
+  });
+});

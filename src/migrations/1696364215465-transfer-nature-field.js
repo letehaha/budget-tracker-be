@@ -1,6 +1,6 @@
 'use strict';
 
-const ENUM_NAME = "enum_transfer_nature";
+const ENUM_NAME = 'enum_transfer_nature';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -20,14 +20,14 @@ module.exports = {
         {
           type: ENUM_NAME,
           allowNull: false,
-          defaultValue: 'not_transfer'
+          defaultValue: 'not_transfer',
         },
         { transaction },
       );
 
-
       // Migrate data based on isTransfer value
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         UPDATE "Transactions"
         SET "transferNature" =
           CASE
@@ -35,10 +35,14 @@ module.exports = {
             THEN 'transfer_between_user_accounts'::"${ENUM_NAME}"
             ELSE 'not_transfer'::"${ENUM_NAME}"
           END
-      `, { transaction });
+      `,
+        { transaction },
+      );
 
       // Remove the isTransfer column
-      await queryInterface.removeColumn('Transactions', 'isTransfer', { transaction });
+      await queryInterface.removeColumn('Transactions', 'isTransfer', {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {
@@ -52,14 +56,20 @@ module.exports = {
 
     try {
       // Add back the isTransfer column
-      await queryInterface.addColumn('Transactions', 'isTransfer', {
-        type: Sequelize.DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      }, { transaction });
+      await queryInterface.addColumn(
+        'Transactions',
+        'isTransfer',
+        {
+          type: Sequelize.DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        },
+        { transaction },
+      );
 
       // Migrate data based on transferNature value
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         UPDATE "Transactions"
         SET "isTransfer" =
           CASE
@@ -67,18 +77,24 @@ module.exports = {
             THEN true
             ELSE false
           END
-      `, { transaction });
+      `,
+        { transaction },
+      );
 
       // Remove the transferNature column
-      await queryInterface.removeColumn('Transactions', 'transferNature', { transaction });
+      await queryInterface.removeColumn('Transactions', 'transferNature', {
+        transaction,
+      });
 
       // Drop the ENUM type
-      await queryInterface.sequelize.query(`DROP TYPE "${ENUM_NAME}"`, { transaction });
+      await queryInterface.sequelize.query(`DROP TYPE "${ENUM_NAME}"`, {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
       throw err;
     }
-  }
+  },
 };
