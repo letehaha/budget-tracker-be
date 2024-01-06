@@ -18,7 +18,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Transactions',
         'Transactions_accountId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Transactions', {
         fields: ['accountId'],
@@ -37,7 +37,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Transactions',
         'Transactions_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Transactions', {
         fields: ['userId'],
@@ -56,7 +56,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankAccounts',
         'MonobankAccounts_monoUserId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankAccounts', {
         fields: ['monoUserId'],
@@ -75,7 +75,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankUsers',
         'MonobankUsers_systemUserId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankUsers', {
         fields: ['systemUserId'],
@@ -94,7 +94,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankTransactions',
         'MonobankTransactions_monoAccountId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankTransactions', {
         fields: ['monoAccountId'],
@@ -113,7 +113,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Categories',
         'Categories_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Categories', {
         fields: ['userId'],
@@ -132,7 +132,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Accounts',
         'Accounts_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Accounts', {
         fields: ['userId'],
@@ -160,7 +160,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Transactions',
         'Transactions_accountId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Transactions', {
         type: 'foreign key',
@@ -179,7 +179,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Transactions',
         'Transactions_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Transactions', {
         fields: ['userId'],
@@ -198,7 +198,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankAccounts',
         'MonobankAccounts_monoUserId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankAccounts', {
         fields: ['monoUserId'],
@@ -217,7 +217,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankUsers',
         'MonobankUsers_systemUserId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankUsers', {
         fields: ['systemUserId'],
@@ -236,7 +236,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'MonobankTransactions',
         'MonobankTransactions_monoAccountId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('MonobankTransactions', {
         fields: ['monoAccountId'],
@@ -255,7 +255,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Categories',
         'Categories_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Categories', {
         fields: ['userId'],
@@ -274,7 +274,7 @@ module.exports = {
       await queryInterface.removeConstraint(
         'Accounts',
         'Accounts_userId_fkey',
-        { transaction }
+        { transaction },
       );
       await queryInterface.addConstraint('Accounts', {
         fields: ['userId'],

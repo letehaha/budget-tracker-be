@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
+import axios from 'axios';
 import { faker } from '@faker-js/faker';
 import { subDays } from 'date-fns';
 import {
@@ -7,10 +7,12 @@ import {
   ExternalMonobankTransactionResponse,
 } from 'shared-types';
 import * as helpers from '@tests/helpers';
-import Transactions from "@models/Transactions.model";
-import Accounts from "@models/Accounts.model";
+import Transactions from '@models/Transactions.model';
+import Accounts from '@models/Accounts.model';
 
-const getMockedClientData = (): { data: ExternalMonobankClientInfoResponse } => ({
+const getMockedClientData = (): {
+  data: ExternalMonobankClientInfoResponse;
+} => ({
   data: {
     clientId: 'sdfsdfsdf',
     name: 'Test User',
@@ -50,14 +52,16 @@ const getMockedTransactionData = (
 ): { data: ExternalMonobankTransactionResponse[] } => {
   const currentDate = helpers.randomDate();
   // To make balance change realistic, we store initial one here and the sub below
-  let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
+  let initialAccountBalance =
+    initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
   return {
     data: new Array(amount).fill(0).map((_, index) => {
       const amount = faker.number.int({ min: 1000, max: 99999 });
       // Make expenses and incomes
       const realisticAmount = index % 3 ? amount : amount * -1;
-      const newBalance = initialAccountBalance = initialAccountBalance + realisticAmount;
+      const newBalance = (initialAccountBalance =
+        initialAccountBalance + realisticAmount);
 
       return {
         id: faker.string.uuid(),
@@ -78,9 +82,9 @@ const getMockedTransactionData = (
         counterEdrpou: '',
         counterIban: '',
         counterName: '',
-      }
+      };
     }),
-  }
+  };
 };
 
 const DUMB_MONOBANK_API_TOKEN = '234234234234';
@@ -93,28 +97,35 @@ const callPairMonobankUser = () => {
       token: DUMB_MONOBANK_API_TOKEN,
     },
   });
-}
+};
 
 const pairMonobankUser = () => {
   (axios as any).mockResolvedValueOnce(getMockedClientData());
 
   return callPairMonobankUser();
-}
+};
 
 const getTransactions = async () => {
-  return helpers.extractResponse(await helpers.makeRequest({
-    method: 'get',
-    url: '/transactions',
-  }));
-}
+  return helpers.extractResponse(
+    await helpers.makeRequest({
+      method: 'get',
+      url: '/transactions',
+    }),
+  );
+};
 
-const addTransactions = async (
-  { amount = 10 }: { amount?: number } = {},
-): Promise<{ account: Accounts, transactions: Transactions[] }> => {
-  const accounts: Accounts[] = helpers.extractResponse(await helpers.makeRequest({
-    method: 'get',
-    url: '/accounts',
-  }));
+const addTransactions = async ({
+  amount = 10,
+}: { amount?: number } = {}): Promise<{
+  account: Accounts;
+  transactions: Transactions[];
+}> => {
+  const accounts: Accounts[] = helpers.extractResponse(
+    await helpers.makeRequest({
+      method: 'get',
+      url: '/accounts',
+    }),
+  );
   const account = accounts[1];
 
   const mockedTransactions = helpers.monobank.mockedTransactions(amount, {
@@ -139,7 +150,7 @@ const addTransactions = async (
   const transactions = await getTransactions();
 
   return { account, transactions };
-}
+};
 
 export default {
   pair: pairMonobankUser,
@@ -149,4 +160,4 @@ export default {
   mockedTransactions: getMockedTransactionData,
   mockedClient: getMockedClientData,
   mockedToken: DUMB_MONOBANK_API_TOKEN,
-}
+};

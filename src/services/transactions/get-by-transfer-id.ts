@@ -23,18 +23,21 @@ export const getTransactionsByTransferId = async (
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   try {
-    const data = await Transactions.getTransactionsByTransferId({
-      transferId,
-      userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-    }, { transaction });
+    const data = await Transactions.getTransactionsByTransferId(
+      {
+        transferId,
+        userId,
+        includeUser,
+        includeAccount,
+        includeCategory,
+        includeAll,
+        nestedInclude,
+      },
+      { transaction },
+    );
 
     return data;
   } catch (err) {
-    throw new err;
+    throw new err();
   }
 };

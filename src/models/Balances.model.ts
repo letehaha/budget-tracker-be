@@ -1,5 +1,12 @@
 import { Op } from 'sequelize';
-import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
+import {
+  Model,
+  Column,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  Table,
+} from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -46,11 +53,11 @@ export default class Balances extends Model<BalanceModel> {
     attributes: GenericSequelizeModelAttributes = {},
   ): Promise<number> {
     const userAccounts = await Accounts.findAll({ where: { userId: userId } });
-    const accountIds = userAccounts.map(account => account.id);
+    const accountIds = userAccounts.map((account) => account.id);
 
     const result = await Balances.sum('amount', {
-        where: { accountId: accountIds },
-        transaction: attributes.transaction
+      where: { accountId: accountIds },
+      transaction: attributes.transaction,
     });
 
     return result || 0;
@@ -105,13 +112,18 @@ export default class Balances extends Model<BalanceModel> {
   // ### Monobank account deletion, keep DB's cascade deletion
 
   static async handleTransactionChange(
-    { data, prevData, isDelete = false }: { data: Transactions; prevData?: Transactions; isDelete?: boolean },
+    {
+      data,
+      prevData,
+      isDelete = false,
+    }: { data: Transactions; prevData?: Transactions; isDelete?: boolean },
     attributes: GenericSequelizeModelAttributes = {},
   ) {
     const { accountId, time } = data;
-    let amount = data.transactionType === TRANSACTION_TYPES.income
-      ? data.refAmount
-      : data.refAmount * -1
+    let amount =
+      data.transactionType === TRANSACTION_TYPES.income
+        ? data.refAmount
+        : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
@@ -120,38 +132,47 @@ export default class Balances extends Model<BalanceModel> {
         amount = -amount; // Reverse the amount if it's a deletion
       } else if (prevData) {
         const originalDate = new Date(prevData.time);
-        const originalAmount = prevData.transactionType === TRANSACTION_TYPES.income
-          ? prevData.refAmount
-          : prevData.refAmount * -1
+        const originalAmount =
+          prevData.transactionType === TRANSACTION_TYPES.income
+            ? prevData.refAmount
+            : prevData.refAmount * -1;
         originalDate.setHours(0, 0, 0, 0);
 
         if (
           // If the account ID changed,
-          accountId !== prevData.accountId
+          accountId !== prevData.accountId ||
           // the date changed,
-          || +date !== +originalDate
+          +date !== +originalDate ||
           // the transaction type changed,
-          || data.transactionType !== prevData.transactionType
+          data.transactionType !== prevData.transactionType ||
           // or the amount changed
-          || amount
+          amount
           // THEN remove the original transaction
         ) {
-          await this.updateRecord({
-            accountId: prevData.accountId,
-            date: originalDate,
-            amount: -originalAmount,
-          }, attributes);
+          await this.updateRecord(
+            {
+              accountId: prevData.accountId,
+              date: originalDate,
+              amount: -originalAmount,
+            },
+            attributes,
+          );
         }
       }
 
       // Update the balance for the current account and date
-      await this.updateRecord({
-        accountId,
-        date,
-        amount,
-      }, attributes);
+      await this.updateRecord(
+        {
+          accountId,
+          date,
+          amount,
+        },
+        attributes,
+      );
     } else if (data.accountType === ACCOUNT_TYPES.monobank) {
-      const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
+      const balance = (
+        data.externalData as TransactionsAttributes['externalData']
+      ).balance;
 
       // We don't need to calculate Monobank account balance based on tx since
       // Monobank already provides us with the actual balance.
@@ -165,25 +186,35 @@ export default class Balances extends Model<BalanceModel> {
 
       if (existingRecordForTheDate) {
         // Store the highest amount
-        existingRecordForTheDate.amount = existingRecordForTheDate.amount > balance
-          ? existingRecordForTheDate.amount
-          : balance;
+        existingRecordForTheDate.amount =
+          existingRecordForTheDate.amount > balance
+            ? existingRecordForTheDate.amount
+            : balance;
 
         await existingRecordForTheDate.save();
       } else {
-        await this.create({
-          accountId,
-          date,
-          amount: (data.externalData as TransactionsAttributes['externalData']).balance,
-        }, { transaction: attributes.transaction });
+        await this.create(
+          {
+            accountId,
+            date,
+            amount: (
+              data.externalData as TransactionsAttributes['externalData']
+            ).balance,
+          },
+          { transaction: attributes.transaction },
+        );
       }
     }
   }
 
   // Update the balance for a specific system account and date
   private static async updateRecord(
-    { accountId, date, amount }: { accountId: number; date: Date; amount: number },
-    attributes: GenericSequelizeModelAttributes = {}
+    {
+      accountId,
+      date,
+      amount,
+    }: { accountId: number; date: Date; amount: number },
+    attributes: GenericSequelizeModelAttributes = {},
   ) {
     // Try to find an existing balance for the account and date
     let balanceForTxDate = await this.findOne({
@@ -206,8 +237,8 @@ export default class Balances extends Model<BalanceModel> {
           },
           accountId,
         },
-        order: [['date', 'DESC']]
-      })
+        order: [['date', 'DESC']],
+      });
 
       // If there's no balance prior tx date, it means that we're adding
       // the youngest transaction, aka the 1st one, so we need to check a balance
@@ -221,34 +252,43 @@ export default class Balances extends Model<BalanceModel> {
         // 2. Then create a record for 9-10-23 (our tx date), we correct amount
         // 3. Then update all future amounts
         const account = await Accounts.findOne({
-          where: { id: accountId }
-        })
+          where: { id: accountId },
+        });
 
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
-        await this.create({
-          accountId,
-          date: subDays(new Date(date), 1),
-          amount: account.initialBalance,
-        }, { transaction: attributes.transaction });
+        await this.create(
+          {
+            accountId,
+            date: subDays(new Date(date), 1),
+            amount: account.initialBalance,
+          },
+          { transaction: attributes.transaction },
+        );
 
         // (2) Then we create a record for that transaction
-        await this.create({
-          accountId,
-          date,
-          amount: account.initialBalance + amount,
-        }, { transaction: attributes.transaction });
+        await this.create(
+          {
+            accountId,
+            date,
+            amount: account.initialBalance + amount,
+          },
+          { transaction: attributes.transaction },
+        );
       } else {
         // And then create a new record with the amount + latestBalance
-        balanceForTxDate = await this.create({
-          accountId,
-          date,
-          amount: latestBalancePrior.amount + amount,
-        }, { transaction: attributes.transaction });
+        balanceForTxDate = await this.create(
+          {
+            accountId,
+            date,
+            amount: latestBalancePrior.amount + amount,
+          },
+          { transaction: attributes.transaction },
+        );
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount += amount
+      balanceForTxDate.amount += amount;
 
       await balanceForTxDate.save();
     }
@@ -299,11 +339,14 @@ export default class Balances extends Model<BalanceModel> {
       date.setHours(0, 0, 0, 0);
 
       // If no balance exists yet, create one with the account's current balance
-      await this.create({
-        accountId,
-        date,
-        amount: refInitialBalance,
-      }, { transaction: attributes.transaction });
+      await this.create(
+        {
+          accountId,
+          date,
+          amount: refInitialBalance,
+        },
+        { transaction: attributes.transaction },
+      );
     }
   }
 }

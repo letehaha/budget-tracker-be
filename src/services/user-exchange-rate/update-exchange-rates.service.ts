@@ -8,12 +8,15 @@ export async function editUserExchangeRates(
     pairs,
   }: {
     userId: number;
-    pairs: UserExchangeRates.UpdateExchangeRatePair[]
+    pairs: UserExchangeRates.UpdateExchangeRatePair[];
   },
   { transaction }: { transaction?: Transaction } = {},
 ) {
-  return UserExchangeRates.updateRates({
-    userId,
-    pairs,
-  }, { transaction });
+  return UserExchangeRates.updateRates(
+    {
+      userId,
+      pairs,
+    },
+    { transaction },
+  );
 }

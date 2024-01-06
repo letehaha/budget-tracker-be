@@ -18,11 +18,15 @@ module.exports = {
       },
     });
 
-    await queryInterface.bulkInsert('TransactionTypes', [
-      { name: 'Income', type: 1 },
-      { name: 'Expense', type: 2 },
-      { name: 'Transfer', type: 3 },
-    ], {});
+    await queryInterface.bulkInsert(
+      'TransactionTypes',
+      [
+        { name: 'Income', type: 1 },
+        { name: 'Expense', type: 2 },
+        { name: 'Transfer', type: 3 },
+      ],
+      {},
+    );
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable('TransactionTypes');

@@ -27,7 +27,7 @@ export interface ExternalMonobankClientInfoResponse {
     currencyCode: number;
     balance: number;
     goal: number;
-  }[]
+  }[];
 }
 
 /**
@@ -54,4 +54,4 @@ export type ExternalMonobankTransactionResponse = {
   counterEdrpou: string;
   counterIban: string;
   counterName: string;
-}
+};

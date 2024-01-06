@@ -20,12 +20,9 @@ module.exports = {
         'Transactions_userId_fkey',
         { transaction },
       );
-      await queryInterface.renameColumn(
-        'Transactions',
-        'userId',
-        'authorId',
-        { transaction },
-      );
+      await queryInterface.renameColumn('Transactions', 'userId', 'authorId', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         fields: ['authorId'],
         type: 'foreign key',
@@ -82,29 +79,48 @@ module.exports = {
         { transaction },
       );
 
-      await queryInterface.sequelize.query(`
+      await queryInterface.sequelize.query(
+        `
         update "Transactions"
         set "refAmount" = "amount"
-      `, { transaction });
-      await queryInterface.sequelize.query(`
+      `,
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
+        `
         update "Transactions"
         set "isTransfer" = true
         where "transactionType" = 'transfer'
-      `, { transaction });
-      await queryInterface.sequelize.query(`
+      `,
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
+        `
         update "Transactions"
         set "currencyCode" = (
           select "code"
           from "Currencies"
           where "Transactions"."currencyId"="Currencies"."id"
         )
-      `, { transaction });
+      `,
+        { transaction },
+      );
 
-      await queryInterface.removeColumn('Transactions', 'fromAccountId', { transaction });
-      await queryInterface.removeColumn('Transactions', 'fromAccountType', { transaction });
-      await queryInterface.removeColumn('Transactions', 'toAccountId', { transaction });
-      await queryInterface.removeColumn('Transactions', 'toAccountType', { transaction });
-      await queryInterface.removeColumn('Transactions', 'oppositeId', { transaction });
+      await queryInterface.removeColumn('Transactions', 'fromAccountId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'fromAccountType', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'toAccountId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'toAccountType', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'oppositeId', {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {
@@ -116,11 +132,19 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeColumn('Transactions', 'refAmount', { transaction });
+      await queryInterface.removeColumn('Transactions', 'refAmount', {
+        transaction,
+      });
 
       // rename column from userId to authorId
-      await queryInterface.removeConstraint('Transactions', 'Transactions_authorId_fkey', { transaction });
-      await queryInterface.renameColumn('Transactions', 'authorId', 'userId', { transaction });
+      await queryInterface.removeConstraint(
+        'Transactions',
+        'Transactions_authorId_fkey',
+        { transaction },
+      );
+      await queryInterface.renameColumn('Transactions', 'authorId', 'userId', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         fields: ['userId'],
         type: 'foreign key',
@@ -134,10 +158,18 @@ module.exports = {
         transaction,
       });
 
-      await queryInterface.removeColumn('Transactions', 'currencyCode', { transaction });
-      await queryInterface.removeColumn('Transactions', 'refCurrencyCode', { transaction });
-      await queryInterface.removeColumn('Transactions', 'isTransfer', { transaction });
-      await queryInterface.removeColumn('Transactions', 'transferId', { transaction });
+      await queryInterface.removeColumn('Transactions', 'currencyCode', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'refCurrencyCode', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'isTransfer', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Transactions', 'transferId', {
+        transaction,
+      });
 
       await queryInterface.addColumn(
         'Transactions',

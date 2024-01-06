@@ -3,22 +3,22 @@ import {
   CATEGORY_TYPES,
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
 } from 'shared-types';
 export * from './external-services';
 
 export interface UserModel {
-	id: number;
-	username: string;
-	email: string;
-	password?: string;
-	firstName: string;
-	lastName: string;
-	middleName: string;
-	avatar: string;
-	totalBalance: number;
-	defaultCategoryId: number;
+  id: number;
+  username: string;
+  email: string;
+  password?: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  avatar: string;
+  totalBalance: number;
+  defaultCategoryId: number;
 }
-
 
 export interface CategoryModel {
   color: string;
@@ -31,7 +31,7 @@ export interface CategoryModel {
 }
 
 export interface AccountModel {
-  type: ACCOUNT_TYPES,
+  type: ACCOUNT_TYPES;
   id: number;
   name: string;
   initialBalance: number;
@@ -52,7 +52,7 @@ export interface MonobankUserModel {
   id: number;
   clientId: string;
   name: string;
-  webHookUrl?: string
+  webHookUrl?: string;
   systemUserId: number;
   apiToken: string;
 }
@@ -83,7 +83,7 @@ export interface TransactionModel {
   refCurrencyCode: string;
 
   // is transaction transfer?
-  isTransfer: boolean;
+  transferNature: TRANSACTION_TRANSFER_NATURE;
   // (hash, used to connect two transactions)
   transferId: string;
 

@@ -28,9 +28,25 @@ global.BASE_CURRENCY = null;
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
+async function dropAllEnums(sequelize) {
+  // Get all ENUM types
+  const enums = await sequelize.query(`
+    SELECT t.typname as enumtype
+    FROM pg_type t
+    JOIN pg_enum e ON t.oid = e.enumtypid
+    GROUP BY t.typname;
+  `);
+
+  // Drop each ENUM
+  for (const enumType of enums[0]) {
+    await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
+  }
+}
+
 beforeEach(async () => {
   try {
     await connection.sequelize.drop({ cascade: true });
+    await dropAllEnums(connection.sequelize);
     redisClient.FLUSHALL('SYNC');
     await umzug.up();
 
@@ -64,7 +80,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find(item => item.code === 'USD');
+      global.BASE_CURRENCY = currencies.find((item) => item.code === 'USD');
     }
 
     await makeRequest({
@@ -73,9 +89,9 @@ beforeEach(async () => {
       payload: { currencyId: global.BASE_CURRENCY.id },
     });
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
-})
+});
 
 afterAll(async () => {
   try {

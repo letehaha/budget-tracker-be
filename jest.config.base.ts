@@ -6,9 +6,12 @@ export default {
   testEnvironment: 'node',
   testMatch: ['**/?(*.)+(spec).[jt]s?(x)'],
   transform: {
-    '^.+\\.ts?$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-    }],
+    '^.+\\.ts?$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.json',
+      },
+    ],
   },
   moduleNameMapper: {
     'shared-types': '<rootDir>/shared-types',

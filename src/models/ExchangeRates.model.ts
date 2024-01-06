@@ -1,9 +1,4 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { ExchangeRatesModel } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -52,14 +47,14 @@ export async function getRatesForCurrenciesPairs(
 ) {
   return ExchangeRates.findAll({
     where: {
-      [Op.or]: pairs.map(item => ({
+      [Op.or]: pairs.map((item) => ({
         [Op.and]: {
           baseCode: item.baseCode,
           quoteCode: item.quoteCode,
-        }
-      }))
+        },
+      })),
     },
     raw,
     transaction,
-  })
+  });
 }

@@ -22,18 +22,21 @@ export const getTransactionById = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   try {
-    const data = await Transactions.getTransactionById({
-      id,
-      userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-    }, { transaction: attributes.transaction });
+    const data = await Transactions.getTransactionById(
+      {
+        id,
+        userId,
+        includeUser,
+        includeAccount,
+        includeCategory,
+        includeAll,
+        nestedInclude,
+      },
+      { transaction: attributes.transaction },
+    );
 
     return data;
   } catch (err) {
-    throw new err;
+    throw new err();
   }
 };

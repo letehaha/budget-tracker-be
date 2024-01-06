@@ -114,9 +114,15 @@ module.exports = {
 
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.removeColumn('MonobankAccounts', 'accountTypeId', { transaction });
-      await queryInterface.removeColumn('MonobankAccounts', 'currencyId', { transaction });
-      await queryInterface.removeColumn('MonobankAccounts', 'monoUserId', { transaction });
+      await queryInterface.removeColumn('MonobankAccounts', 'accountTypeId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('MonobankAccounts', 'currencyId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('MonobankAccounts', 'monoUserId', {
+        transaction,
+      });
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();

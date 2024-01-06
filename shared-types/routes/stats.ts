@@ -1,5 +1,5 @@
 import { AccountModel, TransactionModel } from '../models';
-import { QueryPayload } from './index'
+import { QueryPayload } from './index';
 
 export interface GetBalanceHistoryPayload extends QueryPayload {
   accountId?: AccountModel['id'];
@@ -26,11 +26,19 @@ export interface GetSpendingCategoriesPayload extends QueryPayload {
 // Currently frontend (vite) complains about it and trying to import source code
 type TransactionEntity = Pick<
   TransactionModel,
-  'accountId' | 'time' | 'amount' | 'refAmount' | 'currencyId' | 'currencyCode' | 'categoryId'
+  | 'accountId'
+  | 'time'
+  | 'amount'
+  | 'refAmount'
+  | 'currencyId'
+  | 'currencyCode'
+  | 'categoryId'
 >[];
 
 interface TransactionGroup {
   transactions: TransactionEntity;
   nestedCategories: { [categoryId: number]: TransactionGroup };
 }
-export type GetSpendingsByCategoriesReturnType = { [categoryId: number]: TransactionGroup }
+export type GetSpendingsByCategoriesReturnType = {
+  [categoryId: number]: TransactionGroup;
+};

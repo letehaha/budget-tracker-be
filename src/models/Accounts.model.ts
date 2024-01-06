@@ -49,9 +49,8 @@ export default class Accounts extends Model<AccountsAttributes> {
     as: 'currency',
     foreignKey: 'currencyId',
   })
-
   @HasMany(() => Transactions)
-  transactions: Transactions[];;
+  transactions: Transactions[];
 
   @Column({
     unique: true,
@@ -151,19 +150,22 @@ export default class Accounts extends Model<AccountsAttributes> {
   isEnabled: boolean;
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
+  static async updateAccountBalanceAfterCreate(
+    instance: Accounts,
+    { transaction },
+  ) {
     await Balances.handleAccountChange({ account: instance }, { transaction });
   }
 
   @BeforeUpdate
   static async validateEditableFields(instance: Accounts) {
-    console.log('instance', instance)
+    console.log('instance', instance);
   }
 }
 
 export interface GetAccountsPayload {
-  userId: AccountsAttributes['userId'],
-  type?: AccountsAttributes['type'],
+  userId: AccountsAttributes['userId'];
+  type?: AccountsAttributes['type'];
 }
 
 export const getAccounts = async (
@@ -174,9 +176,9 @@ export const getAccounts = async (
   const where: {
     userId: AccountsAttributes['userId'];
     type?: AccountsAttributes['type'];
-  } = { userId }
+  } = { userId };
 
-  if (type) where.type = type
+  if (type) where.type = type;
 
   const accounts = await Accounts.findAll({
     where,
@@ -188,10 +190,16 @@ export const getAccounts = async (
 };
 
 export const getAccountById = async (
-  { userId, id }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
+  {
+    userId,
+    id,
+  }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const account = await Accounts.findOne({ where: { userId, id }, ...attributes });
+  const account = await Accounts.findOne({
+    where: { userId, id },
+    ...attributes,
+  });
 
   return account;
 };
@@ -209,7 +217,7 @@ export const getAccountsByExternalIds = async (
       userId,
       externalId: {
         [Op.in]: externalIds,
-      }
+      },
     },
     ...attributes,
   });
@@ -241,19 +249,25 @@ export const createAccount = async (
   }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const response = await Accounts.create({
-    userId,
-    type,
-    isEnabled,
-    currentBalance: rest.initialBalance,
-    refCurrentBalance: rest.refInitialBalance,
-    ...rest
-  }, attributes);
+  const response = await Accounts.create(
+    {
+      userId,
+      type,
+      isEnabled,
+      currentBalance: rest.initialBalance,
+      refCurrentBalance: rest.refInitialBalance,
+      ...rest,
+    },
+    attributes,
+  );
 
-  const account = await getAccountById({
-    id: response.get('id'),
-    userId,
-  }, attributes);
+  const account = await getAccountById(
+    {
+      id: response.get('id'),
+      userId,
+    },
+    attributes,
+  );
 
   return account;
 };
@@ -276,11 +290,7 @@ export interface UpdateAccountByIdPayload {
 }
 
 export async function updateAccountById(
-  {
-    id,
-    userId,
-    ...payload
-  }: UpdateAccountByIdPayload,
+  { id, userId, ...payload }: UpdateAccountByIdPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) {
   const where = { id, userId };
@@ -303,16 +313,16 @@ export const getAccountCurrency = async (
   { userId, id }: { userId: number; id: number },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
-  const account = await Accounts.findOne({
+  const account = (await Accounts.findOne({
     where: { userId, id },
     ...attributes,
     include: {
       model: Currencies,
     },
-  }) as (Accounts & { currency: Currencies });
+  })) as Accounts & { currency: Currencies };
 
   return account;
-}
+};
 
 export const getAccountsByCurrency = (
   { userId, currencyId }: { userId: number; currencyId: number },
@@ -321,5 +331,5 @@ export const getAccountsByCurrency = (
   return Accounts.findAll({
     where: { userId, currencyId },
     ...attributes,
-  })
-}
+  });
+};

@@ -1,9 +1,13 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from 'shared-types'
+import {
+  ACCOUNT_TYPES,
+  TRANSACTION_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+} from 'shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
 import { connection } from '@models/index';
 import { Transaction } from 'sequelize/types';
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 import { GenericSequelizeModelAttributes, UnwrapPromise } from '@common/types';
 import { ValidationError } from '@js/errors';
 
@@ -47,15 +51,21 @@ export const calcTransferTransactionRefAmount = async (
     baseTransaction: Transactions.default;
     destinationAmount: number;
     oppositeTxCurrencyCode: string;
-    baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>,
+    baseCurrency?: UnwrapPromise<
+      ReturnType<typeof UsersCurrencies.getBaseCurrency>
+    >;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   if (!baseCurrency) {
-    baseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
+    baseCurrency = await UsersCurrencies.getBaseCurrency(
+      { userId },
+      { transaction },
+    );
   }
 
-  const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
+  const isSourceRef =
+    baseTransaction.currencyCode === baseCurrency.currency.code;
   const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
 
   let oppositeRefAmount = destinationAmount;
@@ -75,12 +85,15 @@ export const calcTransferTransactionRefAmount = async (
   } else if (isSourceRef && isOppositeRef) {
     oppositeRefAmount = baseTransaction.refAmount;
   } else if (!isSourceRef && !isOppositeRef) {
-    oppositeRefAmount = await calculateRefAmount({
-      userId,
-      amount: destinationAmount,
-      baseCode: oppositeTxCurrencyCode,
-      quoteCode: baseCurrency.currency.code,
-    }, { transaction });
+    oppositeRefAmount = await calculateRefAmount(
+      {
+        userId,
+        amount: destinationAmount,
+        baseCode: oppositeTxCurrencyCode,
+        quoteCode: baseCurrency.currency.code,
+      },
+      { transaction },
+    );
   }
 
   return {
@@ -101,22 +114,26 @@ export const createOppositeTransaction = async (
 ) => {
   const [creationParams, baseTransaction, transaction] = params;
 
-  const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
+  const { destinationAmount, destinationAccountId, userId, transactionType } =
+    creationParams;
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
       message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
-    })
+    });
   }
 
   const transferId = uuidv4();
 
-  let baseTx = await Transactions.updateTransactionById({
-    id: baseTransaction.id,
-    userId: baseTransaction.userId,
-    transferId,
-    isTransfer: true,
-  }, { transaction });
+  let baseTx = await Transactions.updateTransactionById(
+    {
+      id: baseTransaction.id,
+      userId: baseTransaction.userId,
+      transferId,
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+    },
+    { transaction },
+  );
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
     userId,
@@ -128,16 +145,17 @@ export const createOppositeTransaction = async (
     { transaction },
   );
 
-  const {
-    oppositeRefAmount,
-    baseTransaction: updatedBaseTransaction,
-  } = await calcTransferTransactionRefAmount({
-    userId,
-    baseTransaction: baseTx,
-    destinationAmount,
-    oppositeTxCurrencyCode: oppositeTxCurrency.code,
-    baseCurrency: defaultUserCurrency,
-  }, { transaction });
+  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } =
+    await calcTransferTransactionRefAmount(
+      {
+        userId,
+        baseTransaction: baseTx,
+        destinationAmount,
+        oppositeTxCurrencyCode: oppositeTxCurrency.code,
+        baseCurrency: defaultUserCurrency,
+      },
+      { transaction },
+    );
 
   baseTx = updatedBaseTransaction;
 
@@ -148,9 +166,10 @@ export const createOppositeTransaction = async (
       refAmount: oppositeRefAmount,
       note: baseTransaction.note,
       time: new Date(baseTransaction.time),
-      transactionType: transactionType === TRANSACTION_TYPES.income
-        ? TRANSACTION_TYPES.expense
-        : TRANSACTION_TYPES.income,
+      transactionType:
+        transactionType === TRANSACTION_TYPES.income
+          ? TRANSACTION_TYPES.expense
+          : TRANSACTION_TYPES.income,
       paymentType: baseTransaction.paymentType,
       accountId: destinationAccountId,
       categoryId: baseTransaction.categoryId,
@@ -158,30 +177,31 @@ export const createOppositeTransaction = async (
       currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
       refCurrencyCode: defaultUserCurrency.currency.code,
-      isTransfer: true,
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId,
     },
     { transaction },
   );
 
   return { baseTx, oppositeTx };
-}
+};
 
 /**
  * Creates transaction and updates account balance.
  */
- export const createTransaction = async (
+export const createTransaction = async (
   {
     amount,
     userId,
     accountId,
-    isTransfer,
+    transferNature,
     ...payload
   }: CreateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction: Transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction: Transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const generalTxParams: Transactions.CreateTransactionPayload = {
@@ -189,7 +209,7 @@ export const createOppositeTransaction = async (
       amount,
       userId,
       accountId,
-      isTransfer,
+      transferNature,
       refAmount: amount,
       // since we already pass accountId, we don't need currencyId (at least for now)
       currencyId: undefined,
@@ -205,21 +225,27 @@ export const createOppositeTransaction = async (
 
     generalTxParams.refCurrencyCode = defaultUserCurrency.code;
 
-    const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
-      userId,
-      id: accountId,
-    }, { transaction });
+    const { currency: generalTxCurrency } = await Accounts.getAccountCurrency(
+      {
+        userId,
+        id: accountId,
+      },
+      { transaction },
+    );
 
     generalTxParams.currencyId = generalTxCurrency.id;
     generalTxParams.currencyCode = generalTxCurrency.code;
 
     if (defaultUserCurrency.code !== generalTxCurrency.code) {
-      generalTxParams.refAmount = await calculateRefAmount({
-        userId,
-        amount: generalTxParams.amount,
-        baseCode: generalTxCurrency.code,
-        quoteCode: defaultUserCurrency.code,
-      }, { transaction });
+      generalTxParams.refAmount = await calculateRefAmount(
+        {
+          userId,
+          amount: generalTxParams.amount,
+          baseCode: generalTxCurrency.code,
+          quoteCode: defaultUserCurrency.code,
+        },
+        { transaction },
+      );
     }
 
     const baseTransaction = await Transactions.createTransaction(
@@ -227,21 +253,24 @@ export const createOppositeTransaction = async (
       { transaction },
     );
 
-    let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction];
+    let transactions: [
+      baseTx: Transactions.default,
+      oppositeTx?: Transactions.default,
+    ] = [baseTransaction];
 
     /**
-     * If transactions is transfer, add transferId to both transactions to connect
-     * them, and use destinationAmount and destinationAccountId for the second
-     * transaction.
+     * If transactions is transfer between two accounts, add transferId to both
+     * transactions to connect them, and use destinationAmount and destinationAccountId
+     * for the second transaction.
      */
-    if (isTransfer) {
+    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       const res = await createOppositeTransaction([
         {
           amount,
           userId,
           accountId,
-          isTransfer,
-          ...payload
+          transferNature,
+          ...payload,
         },
         baseTransaction,
         transaction,

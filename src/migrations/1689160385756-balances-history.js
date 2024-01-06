@@ -26,40 +26,44 @@ module.exports = {
       );
 
       // Create Balances table
-      await queryInterface.createTable('Balances', {
-        id: {
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
-          type: Sequelize.INTEGER,
-        },
-        date: {
-          allowNull: false,
-          type: Sequelize.DATEONLY,
-        },
-        amount: {
-          allowNull: false,
-          type: Sequelize.INTEGER,
-        },
-        accountId: {
-          allowNull: false,
-          type: Sequelize.INTEGER,
-          references: {
-            model: 'Accounts',
-            key: 'id',
+      await queryInterface.createTable(
+        'Balances',
+        {
+          id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: Sequelize.INTEGER,
           },
-          onUpdate: 'CASCADE',
-          onDelete: 'CASCADE',
+          date: {
+            allowNull: false,
+            type: Sequelize.DATEONLY,
+          },
+          amount: {
+            allowNull: false,
+            type: Sequelize.INTEGER,
+          },
+          accountId: {
+            allowNull: false,
+            type: Sequelize.INTEGER,
+            references: {
+              model: 'Accounts',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          createdAt: {
+            type: Sequelize.DATE,
+            defaultValue: Sequelize.fn('now'),
+          },
+          updatedAt: {
+            type: Sequelize.DATE,
+            defaultValue: Sequelize.fn('now'),
+          },
         },
-        createdAt: {
-          type: Sequelize.DATE,
-          defaultValue: Sequelize.fn('now'),
-        },
-        updatedAt: {
-          type: Sequelize.DATE,
-          defaultValue: Sequelize.fn('now'),
-        },
-      }, { transaction });
+        { transaction },
+      );
 
       // TODO: Improve migration
       // // Retrieve all transactions ordered by date in ascending order
@@ -137,7 +141,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('Accounts', 'initialBalance')
+    await queryInterface.removeColumn('Accounts', 'initialBalance');
     await queryInterface.dropTable('Balances');
   },
 };

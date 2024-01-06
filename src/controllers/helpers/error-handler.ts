@@ -1,6 +1,6 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
 import { CustomError } from '@js/errors';
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 
 export function errorHandler(res, err: Error) {
   if (err instanceof CustomError) {

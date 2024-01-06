@@ -1,4 +1,8 @@
-import { GenericSequelizeModelAttributes, UnwrapPromise, UnwrapArray } from '@common/types';
+import {
+  GenericSequelizeModelAttributes,
+  UnwrapPromise,
+  UnwrapArray,
+} from '@common/types';
 
 import { connection } from '@models/index';
 import * as Categories from '@models/Categories.model';
@@ -10,16 +14,23 @@ interface TransactionGroup {
   transactions: TransactionEntity;
   nestedCategories: { [categoryId: number]: TransactionGroup };
 }
-type GroupedData = { [categoryId: number]: TransactionGroup }
+type GroupedData = { [categoryId: number]: TransactionGroup };
 
-const groupData = (categories: Categories.default[], transactions: TransactionEntity) => {
+const groupData = (
+  categories: Categories.default[],
+  transactions: TransactionEntity,
+) => {
   const categoryMap = new Map<number, Categories.default>();
 
   for (const category of categories) {
     categoryMap.set(category.id, category);
   }
 
-  const insertTransactionIntoStructure = (structure: GroupedData, category: Categories.default, transaction: UnwrapArray<TransactionEntity>) => {
+  const insertTransactionIntoStructure = (
+    structure: GroupedData,
+    category: Categories.default,
+    transaction: UnwrapArray<TransactionEntity>,
+  ) => {
     if (!category.parentId) {
       if (!structure[category.id]) {
         structure[category.id] = {
@@ -43,7 +54,9 @@ const groupData = (categories: Categories.default[], transactions: TransactionEn
             nestedCategories: {},
           };
         }
-        structure[parentCategory.id].nestedCategories[category.id].transactions.push(transaction);
+        structure[parentCategory.id].nestedCategories[
+          category.id
+        ].transactions.push(transaction);
       }
     }
   };
@@ -58,7 +71,7 @@ const groupData = (categories: Categories.default[], transactions: TransactionEn
   }
 
   return groupedData;
-}
+};
 
 export const getSpendingsByCategories = async (
   params: {
@@ -70,7 +83,8 @@ export const getSpendingsByCategories = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const transactions = await getExpensesHistory(params);

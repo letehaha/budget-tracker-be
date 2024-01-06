@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 import 'module-alias/register';
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
@@ -10,7 +10,7 @@ import { createClient } from 'redis';
 import locale from 'locale';
 import passport from 'passport';
 import { promisify } from 'util';
-import { logger} from '@js/utils/logger';
+import { logger } from '@js/utils/logger';
 
 /**
  *  Routes
@@ -55,19 +55,28 @@ middlewarePassword(passport);
 
 app.set('port', config.get('port'));
 
-app.use(cors({
-  origin(requestOrigin, callback) {
-    const ALLOWED_HOSTS = ['budget-tracker.com:8100', '206.81.20.28:8081', 'gamanets.money']
+app.use(
+  cors({
+    origin(requestOrigin, callback) {
+      const ALLOWED_HOSTS = [
+        'budget-tracker.com:8100',
+        '206.81.20.28:8081',
+        'gamanets.money',
+      ];
 
-    if (process.env.NODE_ENV !== 'test') {
-      if (!requestOrigin || !ALLOWED_HOSTS.some(value => requestOrigin.includes(value))) {
-        return callback(null, false);
+      if (process.env.NODE_ENV !== 'test') {
+        if (
+          !requestOrigin ||
+          !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))
+        ) {
+          return callback(null, false);
+        }
       }
-    }
 
-    return callback(null, true);
-  },
-}));
+      return callback(null, true);
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {
@@ -91,8 +100,11 @@ app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 app.use(`${apiPrefix}/stats`, statsRoutes);
 
 // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
-  // eslint-disable-next-line no-console
-  // eslint-disable-next-line no-undef
-  logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
-});
+export const serverInstance = app.listen(
+  process.env.NODE_ENV === 'test' ? 0 : app.get('port'),
+  () => {
+    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-undef
+    logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
+  },
+);

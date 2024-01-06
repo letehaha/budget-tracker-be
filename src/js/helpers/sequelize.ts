@@ -1,4 +1,10 @@
-import { Transaction, Model, ModelStatic, WhereOptions, Attributes } from 'sequelize/types';
+import {
+  Transaction,
+  Model,
+  ModelStatic,
+  WhereOptions,
+  Attributes,
+} from 'sequelize/types';
 
 export async function updateOrCreate<T extends Model>(
   model: ModelStatic<T>,
@@ -7,12 +13,12 @@ export async function updateOrCreate<T extends Model>(
     transaction,
     returning,
   }: {
-    where: WhereOptions<Attributes<T>>,
-    transaction?: Transaction,
-    returning?: boolean,
+    where: WhereOptions<Attributes<T>>;
+    transaction?: Transaction;
+    returning?: boolean;
   },
-  newItem: T["_creationAttributes"],
-): Promise<{ item: T, created: boolean }> {
+  newItem: T['_creationAttributes'],
+): Promise<{ item: T; created: boolean }> {
   const foundItem = await model.findOne({ where, transaction });
 
   if (!foundItem) {

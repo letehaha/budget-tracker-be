@@ -14,7 +14,7 @@ interface DateQuery {
 }
 
 const getWhereConditionForTime = ({ from, to }: DateQuery) => {
-  const where: { date?: Record<symbol, Date[] | Date> } = {}
+  const where: { date?: Record<symbol, Date[] | Date> } = {};
 
   if (from && to) {
     where.date = {
@@ -52,7 +52,12 @@ const getWhereConditionForTime = ({ from, to }: DateQuery) => {
  * const balances = await getBalanceHistoryForAccount({ userId: 1, accountId: 1 from: '2023-01-01', to: '2023-12-31' });
  */
 export const getBalanceHistoryForAccount = async (
-  { userId, from, to, accountId }: {
+  {
+    userId,
+    from,
+    to,
+    accountId,
+  }: {
     userId: number;
     accountId: number;
     from?: string;
@@ -61,20 +66,23 @@ export const getBalanceHistoryForAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<BalanceModel[]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? await connection.sequelize.transaction();
+  const transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    let data: BalanceModel[] = []
+    let data: BalanceModel[] = [];
 
     const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
       where: getWhereConditionForTime({ from, to }),
       order: [['date', 'ASC']],
-      include: [{
-        model: Accounts.default,
-        where: { userId, id: accountId },
-        attributes: [],
-      }],
+      include: [
+        {
+          model: Accounts.default,
+          where: { userId, id: accountId },
+          attributes: [],
+        },
+      ],
       raw: attributes.raw || true,
       attributes: dataAttributes,
       transaction,
@@ -108,11 +116,11 @@ export const getBalanceHistoryForAccount = async (
           where: {
             accountId,
             date: {
-              [Op.gt]: new Date(to)
+              [Op.gt]: new Date(to),
             },
             amount: {
-              [Op.gt]: 0
-            }
+              [Op.gt]: 0,
+            },
           },
           order: [['date', 'ASC']],
           attributes: dataAttributes,

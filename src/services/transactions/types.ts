@@ -1,11 +1,18 @@
-import { TRANSACTION_TYPES, PAYMENT_TYPES } from 'shared-types';
+import {
+  TRANSACTION_TYPES,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+} from 'shared-types';
 import * as Transactions from '@models/Transactions.model';
 
-export type CreateTransactionParams = Omit<Transactions.CreateTransactionPayload, 'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'> & {
+export type CreateTransactionParams = Omit<
+  Transactions.CreateTransactionPayload,
+  'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'
+> & {
   destinationAmount?: number;
   destinationAccountId?: number;
   destinationTransactionId?: number;
-}
+};
 
 interface UpdateParams {
   id: number;
@@ -17,14 +24,14 @@ interface UpdateParams {
   paymentType?: PAYMENT_TYPES;
   accountId?: number;
   categoryId?: number;
-  isTransfer?: boolean;
+  transferNature?: TRANSACTION_TRANSFER_NATURE;
 }
 
 interface UpdateTransferParams {
   destinationAmount?: number;
   destinationTransactionId?: number;
   destinationAccountId?: number;
-  isTransfer?: boolean;
+  transferNature?: TRANSACTION_TRANSFER_NATURE;
 }
 
 export type UpdateTransactionParams = UpdateParams & UpdateTransferParams;

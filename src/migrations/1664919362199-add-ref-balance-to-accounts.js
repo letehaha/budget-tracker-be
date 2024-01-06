@@ -34,8 +34,12 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeColumn('Accounts', 'refCurrentBalance', { transaction });
-      await queryInterface.removeColumn('Accounts', 'refCreditLimit', { transaction });
+      await queryInterface.removeColumn('Accounts', 'refCurrentBalance', {
+        transaction,
+      });
+      await queryInterface.removeColumn('Accounts', 'refCreditLimit', {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {

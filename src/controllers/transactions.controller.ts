@@ -1,6 +1,6 @@
 import { API_RESPONSE_STATUS, SORT_DIRECTIONS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import { ValidationError } from '@js/errors'
+import { ValidationError } from '@js/errors';
 import * as transactionsService from '@services/transactions';
 import { errorHandler } from './helpers';
 
@@ -42,7 +42,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       status: API_RESPONSE_STATUS.success,
       response: data,
     })
-  } catch(err) {
+  } catch (err) {
     errorHandler(res, err);
   }
 };
@@ -59,7 +59,8 @@ export const getTransactionById = async (req, res: CustomResponse) => {
       nestedInclude,
     } = req.query;
 
-    if (id === undefined) throw new ValidationError({ message: 'id should exist.' });
+    if (id === undefined)
+      throw new ValidationError({ message: 'id should exist.' });
 
     const data = await transactionsService.getTransactionById({
       id,
@@ -92,7 +93,8 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
       nestedInclude,
     } = req.query;
 
-    if (transferId === undefined) throw new ValidationError({ message: '"transferId" is required.' });
+    if (transferId === undefined)
+      throw new ValidationError({ message: '"transferId" is required.' });
 
     const data = await transactionsService.getTransactionsByTransferId({
       transferId,

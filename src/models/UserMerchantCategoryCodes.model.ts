@@ -1,9 +1,4 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 
 import { GenericSequelizeModelAttributes } from '@common/types';
 
@@ -36,36 +31,44 @@ export default class UserMerchantCategoryCodes extends Model {
   userId: number;
 }
 
-export const getByPassedParams = async ({
-  mccId,
-  userId,
-  categoryId,
-}: {
-  mccId?: number;
-  userId?: number;
-  categoryId?: number;
-}, attributes: GenericSequelizeModelAttributes = {},) => {
+export const getByPassedParams = async (
+  {
+    mccId,
+    userId,
+    categoryId,
+  }: {
+    mccId?: number;
+    userId?: number;
+    categoryId?: number;
+  },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
   const where: Record<string, number> = {};
 
   if (mccId) where.mccId = mccId;
   if (userId) where.userId = userId;
   if (categoryId) where.categoryId = categoryId;
 
-  const mcc = await UserMerchantCategoryCodes.findAll({ where, transaction: attributes.transaction });
+  const mcc = await UserMerchantCategoryCodes.findAll({
+    where,
+    transaction: attributes.transaction,
+  });
 
   return mcc;
 };
 
-export const createEntry = async ({
-  mccId,
-  userId,
-  categoryId,
-}, attributes: GenericSequelizeModelAttributes = {},) => {
-  const userMcc = await UserMerchantCategoryCodes.create({
-    mccId,
-    userId,
-    categoryId,
-  }, { transaction: attributes.transaction });
+export const createEntry = async (
+  { mccId, userId, categoryId },
+  attributes: GenericSequelizeModelAttributes = {},
+) => {
+  const userMcc = await UserMerchantCategoryCodes.create(
+    {
+      mccId,
+      userId,
+      categoryId,
+    },
+    { transaction: attributes.transaction },
+  );
 
   return userMcc;
 };
