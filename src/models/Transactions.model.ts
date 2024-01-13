@@ -363,35 +363,36 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 }
 
-export const getTransactions = async ({
-  from = 0,
-  limit = 20,
-  accountType,
-  accountId,
-  userId,
-  sortDirection = SORT_DIRECTIONS.desc,
-  includeUser,
-  includeAccount,
-  transactionType,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-  isRaw = false,
-}: {
-  from: number,
-  limit: number,
-  accountType: ACCOUNT_TYPES,
-  transactionType: string,
-  accountId: number,
-  userId: number
-  sortDirection: SORT_DIRECTIONS,
-  includeUser: boolean,
-  includeAccount: boolean,
-  includeCategory: boolean,
-  includeAll: boolean,
-  nestedInclude: boolean,
-  isRaw: boolean,
-},
+export const getTransactions = async (
+  {
+    from = 0,
+    limit = 20,
+    accountType,
+    accountId,
+    userId,
+    sortDirection = SORT_DIRECTIONS.desc,
+    includeUser,
+    includeAccount,
+    transactionType,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+    isRaw = false,
+  }: {
+    from: number;
+    limit: number;
+    accountType: ACCOUNT_TYPES;
+    transactionType: string;
+    accountId: number;
+    userId: number;
+    sortDirection: SORT_DIRECTIONS;
+    includeUser: boolean;
+    includeAccount: boolean;
+    includeCategory: boolean;
+    includeAll: boolean;
+    nestedInclude: boolean;
+    isRaw: boolean;
+  },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   const include = prepareTXInclude({
@@ -665,7 +666,7 @@ export const deleteTransactionById = async (
 
   if (tx.accountType !== ACCOUNT_TYPES.system) {
     throw new ValidationError({
-      message: "It's not possible to manually delete external transactions",
+      message: "It's not allowed to manually delete external transactions",
     });
   }
 

@@ -20,6 +20,7 @@ export const validateTransactionCreation = (
     accountId,
     destinationAccountId,
     destinationAmount,
+    destinationTransactionId,
   } = params;
 
   if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
@@ -34,6 +35,8 @@ export const validateTransactionCreation = (
     validateTransactionAmount(amount);
 
     if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (destinationTransactionId) return;
+
       if (!(accountId && destinationAccountId))
         throw new ValidationError({
           message: `Both "accountId" and "destinationAccountId" should be provided when "${TRANSACTION_TRANSFER_NATURE.common_transfer}" is provided`,

@@ -19,6 +19,7 @@ import {
 import { linkTransactions } from './link-transaction';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -92,26 +93,26 @@ const makeBasicBaseTxUpdation = async (
   const transactionType =
     prevData.accountType === ACCOUNT_TYPES.system
       ? // For system
-      newData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
+        newData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
         ? TRANSACTION_TYPES.expense
         : newData.transactionType
       : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams =
-  {
-    id: newData.id,
-    amount: newData.amount ?? prevData.amount,
-    refAmount: newData.amount ?? prevData.refAmount,
-    note: newData.note,
-    time: newData.time,
-    userId: newData.userId,
-    transactionType,
-    paymentType: newData.paymentType,
-    accountId: newData.accountId,
-    categoryId: newData.categoryId,
-    transferNature: newData.transferNature,
-    currencyCode: prevData.currencyCode,
-  };
+    {
+      id: newData.id,
+      amount: newData.amount ?? prevData.amount,
+      refAmount: newData.amount ?? prevData.refAmount,
+      note: newData.note,
+      time: newData.time,
+      userId: newData.userId,
+      transactionType,
+      paymentType: newData.paymentType,
+      accountId: newData.accountId,
+      categoryId: newData.categoryId,
+      transferNature: newData.transferNature,
+      currencyCode: prevData.currencyCode,
+    };
 
   const isBaseTxAccountChanged =
     newData.accountId && newData.accountId !== prevData.accountId;
@@ -277,16 +278,14 @@ const isUpdatingTransferTx = (
   prevData: Transactions.default,
 ) => {
   // Previously was transfer, now NOT a transfer
-  const nowNotTransfer = (
+  const nowNotTransfer =
     payload.transferNature === undefined &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
-  )
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
 
   // Previously was transfer, now also transfer
-  const updatingTransfer = (
+  const updatingTransfer =
     payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
-  )
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
 
   return nowNotTransfer || updatingTransfer;
 };
@@ -314,8 +313,15 @@ const isDiscardingTransfer = (
 /**
  * Updates transaction and updates account balance.
  */
-export const updateTransaction = async (payload: UpdateTransactionParams) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
+export const updateTransaction = async (
+  payload: UpdateTransactionParams,
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<
+  [baseTx: Transactions.default, oppositeTx?: Transactions.default]
+> => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction: Transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const prevData = await getTransactionById(
@@ -355,16 +361,20 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
         await deleteOppositeTransaction(helperFunctionsArgs);
       }
 
-      const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs)
+      const { baseTx, oppositeTx } =
+        await updateTransferTransaction(helperFunctionsArgs);
 
       updatedTransactions = [baseTx, oppositeTx];
     } else if (isCreatingTransfer(payload, prevData)) {
       if (payload.destinationTransactionId) {
-        const { baseTx, oppositeTx } = await linkTransactions({
-          userId: payload.userId,
-          baseTxId: payload.id,
-          destinationTransactionId: payload.destinationTransactionId,
-        }, { transaction });
+        const { baseTx, oppositeTx } = await linkTransactions(
+          {
+            userId: payload.userId,
+            baseTxId: payload.id,
+            destinationTransactionId: payload.destinationTransactionId,
+          },
+          { transaction },
+        );
 
         updatedTransactions = [baseTx, oppositeTx];
       } else {
@@ -385,12 +395,16 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
 
-    await transaction.commit();
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
 
     return updatedTransactions;
   } catch (e) {
     logger.error(e);
-    await transaction.rollback();
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
     throw e;
   }
 };

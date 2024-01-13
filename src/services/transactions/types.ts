@@ -32,6 +32,7 @@ interface UpdateTransferParams {
   destinationTransactionId?: number;
   destinationAccountId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
+  transferId?: string;
 }
 
 export type UpdateTransactionParams = UpdateParams & UpdateTransferParams;
