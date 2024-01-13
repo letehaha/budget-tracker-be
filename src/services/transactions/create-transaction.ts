@@ -276,7 +276,7 @@ export const createTransaction = async (
         const { baseTx, oppositeTx } = await linkTransactions(
           {
             userId,
-            baseTxId: baseTransaction.id,
+            baseTx: baseTransaction,
             destinationTransactionId,
           },
           { transaction },

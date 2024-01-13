@@ -370,7 +370,7 @@ export const updateTransaction = async (
         const { baseTx, oppositeTx } = await linkTransactions(
           {
             userId: payload.userId,
-            baseTxId: payload.id,
+            baseTx: updatedTransactions[0],
             destinationTransactionId: payload.destinationTransactionId,
           },
           { transaction },
