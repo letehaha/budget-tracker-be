@@ -407,5 +407,38 @@ describe('Create transaction controller', () => {
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+    it('throws an error when trying to link to the transaction that is already a transfer', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
+
+      const defaultTxPayload = helpers.buildTransactionPayload({
+        accountId: accountA.id,
+      });
+      const txPayload = {
+        ...defaultTxPayload,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: defaultTxPayload.amount,
+        destinationAccountId: accountB.id,
+      };
+      const [, oppositeTx] = await helpers.createTransaction({
+        payload: txPayload,
+        raw: true,
+      });
+
+      const accountC = await helpers.createAccount({ raw: true });
+
+      const transferTxPayload = helpers.buildTransactionPayload({
+        accountId: accountC.id,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationTransactionId: oppositeTx.id,
+      });
+
+      const result = await helpers.createTransaction({
+        payload: transferTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
   });
 });

@@ -22,6 +22,13 @@ const validateTransactionLinking = (
         "Trying to link with the transaction within the same account. It's allowed to link only between different accounts",
     });
   }
+  if (oppositeTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+    // TODO: disabled when multiple links are available
+    throw new ValidationError({
+      message:
+        'Trying to link with the transaction that is already a transfer.',
+    });
+  }
 };
 
 export const linkTransactions = async (
