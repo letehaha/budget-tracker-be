@@ -28,5 +28,5 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/tests/custom-matchers.d.ts"]
 }
