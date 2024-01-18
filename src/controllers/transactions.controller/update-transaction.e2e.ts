@@ -6,14 +6,12 @@ import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transacti
 
 describe('Update transaction controller', () => {
   it('should make basic updation', async () => {
-    const createdTransaction = (
-      await helpers.createTransaction({ raw: true })
-    )[0];
-    const txAmount = createdTransaction.amount;
+    const [baseTx] = await helpers.createTransaction({ raw: true });
+    const txAmount = baseTx.amount;
     const expectedNewAmount = txAmount + 1000;
 
     const res = await helpers.updateTransaction({
-      id: createdTransaction.id,
+      id: baseTx.id,
       payload: {
         amount: expectedNewAmount,
         transactionType: TRANSACTION_TYPES.income,
@@ -407,5 +405,186 @@ describe('Update transaction controller', () => {
         expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
       }
     });
+  });
+  describe('link transactions between each other', () => {
+    it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
+      'update %s to transfer when linking',
+      async (txType) => {
+        const accountA = await helpers.createAccount({ raw: true });
+        const accountB = await helpers.createAccount({ raw: true });
+
+        const oppositeTxType =
+          txType === TRANSACTION_TYPES.income
+            ? TRANSACTION_TYPES.expense
+            : TRANSACTION_TYPES.income;
+
+        const [tx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            transactionType: txType,
+          }),
+          raw: true,
+        });
+        const [tx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountB.id,
+            transactionType: oppositeTxType,
+          }),
+          raw: true,
+        });
+
+        await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationTransactionId: tx2.id,
+          },
+        });
+
+        const txsAfterUpdation = await helpers.getTransactions({ raw: true });
+
+        const tx1AfterUpdation = txsAfterUpdation.find(
+          (item) => item.id === tx1.id,
+        );
+        const tx2AfterUpdation = txsAfterUpdation.find(
+          (item) => item.id === tx2.id,
+        );
+
+        [
+          [tx1, tx1AfterUpdation],
+          [tx2, tx2AfterUpdation],
+        ].forEach(([tx, txAfter]) => {
+          // Expect that only transferNature and transferId were changed
+          expect({ ...tx }).toEqual({
+            ...txAfter,
+            transferNature: expect.toBeAnythingOrNull(),
+            transferId: expect.toBeAnythingOrNull(),
+          });
+
+          expect(txAfter.transferNature).toBe(
+            TRANSACTION_TRANSFER_NATURE.common_transfer,
+          );
+          expect(txAfter.transferId).toEqual(expect.any(String));
+        });
+
+        expect(tx1AfterUpdation.transferId).toBe(tx2AfterUpdation.transferId);
+      },
+    );
+
+    it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
+      'throws an error when trying to link tx from the same account',
+      async (txType) => {
+        const oppositeTxType =
+          txType === TRANSACTION_TYPES.income
+            ? TRANSACTION_TYPES.expense
+            : TRANSACTION_TYPES.income;
+
+        await helpers.monobank.pair();
+        const { transactions } = await helpers.monobank.mockTransactions();
+
+        const tx1 = transactions.find(
+          (item) => item.transactionType === txType,
+        );
+        const tx2 = transactions.find(
+          (item) => item.transactionType === oppositeTxType,
+        );
+
+        const result = await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationTransactionId: tx2.id,
+          },
+        });
+        expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      },
+    );
+
+    it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
+      'throws an error when trying to link tx with same transactionType. test %s type',
+      async (txType) => {
+        const accountA = await helpers.createAccount({ raw: true });
+        const accountB = await helpers.createAccount({ raw: true });
+
+        const [tx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            transactionType: txType,
+          }),
+          raw: true,
+        });
+        const [tx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountB.id,
+            transactionType: txType,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationTransactionId: tx2.id,
+          },
+        });
+
+        expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      },
+    );
+
+    it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
+      'throws an error when trying to link to the transaction that is already a transfer. test %s type',
+      async (txType) => {
+        const accountA = await helpers.createAccount({ raw: true });
+        const accountB = await helpers.createAccount({ raw: true });
+        const accountC = await helpers.createAccount({ raw: true });
+
+        const [tx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            transactionType: txType,
+          }),
+          raw: true,
+        });
+        const transactions = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: accountB.id,
+              amount: 10,
+              transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+              destinationAmount: 20,
+              destinationAccountId: accountC.id,
+            }),
+          },
+          raw: true,
+        });
+
+        const expenseTx = transactions.find(
+          (t) => t.transactionType === TRANSACTION_TYPES.expense,
+        );
+        const incomeTx = transactions.find(
+          (t) => t.transactionType === TRANSACTION_TYPES.income,
+        );
+
+        const result = await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationTransactionId:
+              txType === TRANSACTION_TYPES.income ? expenseTx.id : incomeTx.id,
+          },
+        });
+
+        expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      },
+    );
+
+    it.todo(
+      'update transfer of two linked transactions back to their initial state',
+    );
+    it.todo(
+      'update transfer of two EXTERNAL linked transactions back to their initial state',
+    );
   });
 });

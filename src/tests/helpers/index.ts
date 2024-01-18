@@ -226,6 +226,7 @@ interface UpdateTransactionBasePayload {
   payload?: Partial<ReturnType<typeof buildTransactionPayload>> & {
     destinationAmount?: number;
     destinationAccountId?: number;
+    destinationTransactionId?: number;
   };
 }
 

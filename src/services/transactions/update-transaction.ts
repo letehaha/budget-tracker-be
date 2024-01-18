@@ -90,12 +90,10 @@ const makeBasicBaseTxUpdation = async (
     { transaction },
   );
 
+  // Never update "transactionType" of non-system transactions. Just an additional guard
   const transactionType =
     prevData.accountType === ACCOUNT_TYPES.system
-      ? // For system
-        newData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
-        ? TRANSACTION_TYPES.expense
-        : newData.transactionType
+      ? newData.transactionType
       : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams =
