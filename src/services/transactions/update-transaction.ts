@@ -69,15 +69,15 @@ const validateTransaction = (
   // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
   //    Otherwise we will need to code additional logic to handle that
   // For now keep that logic only for system transactions
-  if (
-    prevData.accountType === ACCOUNT_TYPES.system &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transactionType !== TRANSACTION_TYPES.expense
-  ) {
-    throw new ValidationError({
-      message: 'You cannot edit non-primary transfer transaction',
-    });
-  }
+  // if (
+  //   prevData.accountType === ACCOUNT_TYPES.system &&
+  //   prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+  //   prevData.transactionType !== TRANSACTION_TYPES.expense
+  // ) {
+  //   throw new ValidationError({
+  //     message: 'You cannot edit non-primary transfer transaction',
+  //   });
+  // }
 };
 
 const makeBasicBaseTxUpdation = async (
