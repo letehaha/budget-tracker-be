@@ -5,6 +5,7 @@ import {
   getTransactionsByTransferId,
   createTransaction,
   updateTransaction,
+  unlinkTransferTransactions,
   deleteTransaction,
 } from '@controllers/transactions.controller';
 import { authenticateJwt } from '@middlewares/passport';
@@ -19,6 +20,7 @@ router.get(
   getTransactionsByTransferId,
 );
 router.post('/', authenticateJwt, createTransaction);
+router.put('/unlink', authenticateJwt, unlinkTransferTransactions);
 router.put('/:id', authenticateJwt, updateTransaction);
 router.delete('/:id', authenticateJwt, deleteTransaction);
 

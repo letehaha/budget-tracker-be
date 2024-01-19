@@ -275,6 +275,34 @@ export function getTransactions({ raw = false } = {}) {
   });
 }
 
+export function unlinkTransferTransactions({
+  transferIds,
+  raw,
+}: {
+  transferIds: string[];
+  raw?: false;
+}): Promise<Response>;
+export function unlinkTransferTransactions({
+  raw,
+  transferIds,
+}: {
+  transferIds: string[];
+  raw?: true;
+}): Promise<Transactions[]>;
+export function unlinkTransferTransactions({
+  raw = false,
+  transferIds = [],
+} = {}) {
+  return makeRequest({
+    method: 'put',
+    url: '/transactions/unlink',
+    payload: {
+      transferIds,
+    },
+    raw,
+  });
+}
+
 export async function getCurrenciesRates({
   codes,
 }: { codes?: string[] } = {}): Promise<ExchangeRates[]> {

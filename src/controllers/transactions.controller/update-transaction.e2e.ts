@@ -558,9 +558,5 @@ describe('Update transaction controller', () => {
         expect(txsAfterUpdation[0]).toEqual(tx1);
       },
     );
-    it.todo('test unlinking system transactions');
-    it.todo(
-      'update transfer of two EXTERNAL linked transactions back to their initial state',
-    );
   });
 });

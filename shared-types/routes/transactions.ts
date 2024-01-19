@@ -1,4 +1,9 @@
-import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
+import {
+  TransactionModel,
+  ACCOUNT_TYPES,
+  SORT_DIRECTIONS,
+  TRANSACTION_TYPES,
+} from 'shared-types';
 import { QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
@@ -34,7 +39,7 @@ export interface CreateTransactionBody {
 export interface UpdateTransactionBody {
   amount?: TransactionModel['amount'];
   destinationAmount?: TransactionModel['amount'];
-  destinationTransactionId?: TransactionModel['id']
+  destinationTransactionId?: TransactionModel['id'];
   note?: TransactionModel['note'];
   time?: string;
   transactionType?: TransactionModel['transactionType'];
@@ -43,4 +48,8 @@ export interface UpdateTransactionBody {
   destinationAccountId?: TransactionModel['accountId'];
   categoryId?: TransactionModel['categoryId'];
   transferNature?: TransactionModel['transferNature'];
+}
+
+export interface UnlinkTransferTransactionsBody {
+  transferIds: string[];
 }

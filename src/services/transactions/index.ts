@@ -5,3 +5,4 @@ export * from './get-transactions';
 export * from './update-transaction';
 export * from './get-by-transfer-id';
 export * from './get-transaction-by-some-id';
+export * from './unlink-transfer-transactions';
