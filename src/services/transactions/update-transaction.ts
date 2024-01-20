@@ -16,7 +16,7 @@ import {
   createOppositeTransaction,
   calcTransferTransactionRefAmount,
 } from './create-transaction';
-import { linkTransactions } from './link-transaction';
+import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -365,11 +365,13 @@ export const updateTransaction = async (
       updatedTransactions = [baseTx, oppositeTx];
     } else if (isCreatingTransfer(payload, prevData)) {
       if (payload.destinationTransactionId) {
-        const { baseTx, oppositeTx } = await linkTransactions(
+        const [[baseTx, oppositeTx]] = await linkTransactions(
           {
             userId: payload.userId,
-            baseTx: updatedTransactions[0],
-            destinationTransactionId: payload.destinationTransactionId,
+            ids: [
+              [updatedTransactions[0].id, payload.destinationTransactionId],
+            ],
+            ignoreBaseTxTypeValidation: true,
           },
           { transaction },
         );

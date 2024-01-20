@@ -16,7 +16,7 @@ import * as Accounts from '@models/Accounts.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
-import { linkTransactions } from './link-transaction';
+import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
 type CreateOppositeTransactionParams = [
@@ -273,11 +273,11 @@ export const createTransaction = async (
        * doesn't exist
        */
       if (destinationTransactionId) {
-        const { baseTx, oppositeTx } = await linkTransactions(
+        const [[baseTx, oppositeTx]] = await linkTransactions(
           {
             userId,
-            baseTx: baseTransaction,
-            destinationTransactionId,
+            ids: [[baseTransaction.id, destinationTransactionId]],
+            ignoreBaseTxTypeValidation: true,
           },
           { transaction },
         );

@@ -20,7 +20,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       includeAll,
       nestedInclude,
       isRaw,
-    } = req.query
+    } = req.query;
 
     const data = await transactionsService.getTransactions({
       userId,
@@ -41,7 +41,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
       response: data,
-    })
+    });
   } catch (err) {
     errorHandler(res, err);
   }

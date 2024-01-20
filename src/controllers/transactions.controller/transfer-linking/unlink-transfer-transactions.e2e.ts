@@ -80,19 +80,12 @@ describe('Unlink transfer transactions', () => {
     });
 
     // Now link 1 external with 1 system for each type
-    const updatedA = await helpers.updateTransaction({
-      id: expenseExternalTx.id,
+    const [updatedA, updatedB] = await helpers.linkTransactions({
       payload: {
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: incomeSystemTx.id,
-      },
-      raw: true,
-    });
-    const updatedB = await helpers.updateTransaction({
-      id: incomeExternalTx.id,
-      payload: {
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: expenseSystemTx.id,
+        ids: [
+          [expenseExternalTx.id, incomeSystemTx.id],
+          [incomeExternalTx.id, expenseSystemTx.id],
+        ],
       },
       raw: true,
     });

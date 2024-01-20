@@ -4,6 +4,7 @@ import {
   TRANSACTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   SORT_DIRECTIONS,
+  TransactionModel,
 } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
@@ -508,7 +509,9 @@ export const getTransactionsByTransferId = (
   });
 };
 
-export const getTransactionsByArrayOfField = async (
+export const getTransactionsByArrayOfField = async <
+  T extends keyof TransactionModel,
+>(
   {
     fieldValues,
     fieldName,
@@ -519,8 +522,8 @@ export const getTransactionsByArrayOfField = async (
     includeAll,
     nestedInclude,
   }: {
-    fieldValues: unknown[];
-    fieldName: string;
+    fieldValues: TransactionModel[T][];
+    fieldName: T;
     userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;

@@ -53,3 +53,7 @@ export interface UpdateTransactionBody {
 export interface UnlinkTransferTransactionsBody {
   transferIds: string[];
 }
+// Array of income/expense pairs to link between each other
+export interface LinkTransactionsBody {
+  ids: [number, number][];
+}

@@ -17,6 +17,8 @@ import ExchangeRates from '@models/ExchangeRates.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import monobank from './monobank';
 
+import * as transactionsService from '@services/transactions';
+
 export { monobank };
 export * from './account';
 
@@ -299,6 +301,29 @@ export function unlinkTransferTransactions({
     payload: {
       transferIds,
     },
+    raw,
+  });
+}
+
+export function linkTransactions({
+  payload,
+  raw,
+}: {
+  payload: endpointsTypes.LinkTransactionsBody;
+  raw?: false;
+}): Promise<Response>;
+export function linkTransactions({
+  payload,
+  raw,
+}: {
+  payload: endpointsTypes.LinkTransactionsBody;
+  raw?: true;
+}): ReturnType<typeof transactionsService.linkTransactions>;
+export function linkTransactions({ raw = false, payload }) {
+  return makeRequest({
+    method: 'put',
+    url: '/transactions/link',
+    payload,
     raw,
   });
 }
