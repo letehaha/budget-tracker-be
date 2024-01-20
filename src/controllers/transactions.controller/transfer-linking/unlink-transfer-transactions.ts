@@ -26,7 +26,6 @@ export const unlinkTransferTransactions = async (req, res: CustomResponse) => {
       .status(200)
       .json({ status: API_RESPONSE_STATUS.success, response: data });
   } catch (err) {
-    console.log('ERR', err);
     errorHandler(res, err);
   }
 };
