@@ -53,7 +53,8 @@ export interface UpdateTransactionBody {
 export interface UnlinkTransferTransactionsBody {
   transferIds: string[];
 }
-// Array of income/expense pairs to link between each other
+// Array of income/expense pairs to link between each other. It's better to pass
+// exactly exactly as described in the type, but in fact doesn't really matter
 export interface LinkTransactionsBody {
-  ids: [number, number][];
+  ids: [baseTxId: number, destinationTxId: number][];
 }
