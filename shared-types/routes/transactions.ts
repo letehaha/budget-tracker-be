@@ -18,6 +18,7 @@ export interface GetTransactionsQuery extends QueryPayload {
   type?: TRANSACTION_TYPES;
   accountType?: ACCOUNT_TYPES;
   accountId?: number;
+  excludeTransfer?: boolean;
 }
 
 export type GetTransactionsResponse = TransactionModel[];

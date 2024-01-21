@@ -379,6 +379,7 @@ export const getTransactions = async (
     includeAll,
     nestedInclude,
     isRaw = false,
+    excludeTransfer,
   }: {
     from: number;
     limit: number;
@@ -393,6 +394,7 @@ export const getTransactions = async (
     includeAll: boolean;
     nestedInclude: boolean;
     isRaw: boolean;
+    excludeTransfer?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
@@ -408,7 +410,14 @@ export const getTransactions = async (
     include,
     where: {
       userId,
-      ...removeUndefinedKeys({ accountType, accountId, transactionType }),
+      ...removeUndefinedKeys({
+        accountType,
+        accountId,
+        transactionType,
+        transferNature: excludeTransfer
+          ? TRANSACTION_TRANSFER_NATURE.not_transfer
+          : undefined,
+      }),
     },
     transaction,
     offset: from,

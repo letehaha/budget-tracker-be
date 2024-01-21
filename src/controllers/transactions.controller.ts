@@ -1,4 +1,8 @@
-import { API_RESPONSE_STATUS, SORT_DIRECTIONS } from 'shared-types';
+import {
+  API_RESPONSE_STATUS,
+  SORT_DIRECTIONS,
+  endpointsTypes,
+} from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { ValidationError } from '@js/errors';
 import * as transactionsService from '@services/transactions';
@@ -8,7 +12,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
     const {
-      sortDirection = SORT_DIRECTIONS.desc,
+      sort = SORT_DIRECTIONS.desc,
       limit,
       from = 0,
       type: transactionType,
@@ -19,13 +23,14 @@ export const getTransactions = async (req, res: CustomResponse) => {
       includeCategory,
       includeAll,
       nestedInclude,
-      isRaw,
-    } = req.query;
+      // isRaw,
+      excludeTransfer,
+    }: endpointsTypes.GetTransactionsQuery = req.query;
 
     const data = await transactionsService.getTransactions({
       userId,
       transactionType,
-      sortDirection,
+      sortDirection: sort,
       limit,
       from,
       accountType,
@@ -35,7 +40,8 @@ export const getTransactions = async (req, res: CustomResponse) => {
       includeCategory,
       includeAll,
       nestedInclude,
-      isRaw,
+      excludeTransfer,
+      isRaw: false,
     });
 
     return res.status(200).json({
