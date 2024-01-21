@@ -43,6 +43,21 @@ async function dropAllEnums(sequelize) {
   }
 }
 
+expect.extend({
+  toBeAnythingOrNull(received) {
+    if (received !== undefined) {
+      return {
+        message: () => `expected ${received} to be anything or null`,
+        pass: true,
+      };
+    }
+    return {
+      message: () => `expected ${received} not to be undefined`,
+      pass: false,
+    };
+  },
+});
+
 beforeEach(async () => {
   try {
     await connection.sequelize.drop({ cascade: true });

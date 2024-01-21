@@ -7,6 +7,8 @@ import {
   TRANSACTION_TYPES,
   endpointsTypes,
   TRANSACTION_TRANSFER_NATURE,
+  TransactionModel,
+  PAYMENT_TYPES,
 } from 'shared-types';
 import { app } from '@root/app';
 import Accounts from '@models/Accounts.model';
@@ -14,6 +16,8 @@ import Transactions from '@models/Transactions.model';
 import ExchangeRates from '@models/ExchangeRates.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import monobank from './monobank';
+
+import * as transactionsService from '@services/transactions';
 
 export { monobank };
 export * from './account';
@@ -85,12 +89,14 @@ type BuildAccountPayload = ReturnType<typeof buildAccountPayload>;
 export const buildTransactionPayload = ({
   accountId,
   ...overrides
-}: { accountId: number } & ReturnType<typeof buildTransactionPayload>) => ({
+}: { accountId: number } & ReturnType<
+  typeof buildTransactionPayload
+>): TransactionModel => ({
   accountId,
   amount: 1000,
   categoryId: 1,
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-  paymentType: 'creditCard',
+  paymentType: PAYMENT_TYPES.creditCard,
   time: startOfDay(new Date()),
   transactionType: TRANSACTION_TYPES.expense,
   accountType: ACCOUNT_TYPES.system,
@@ -127,6 +133,9 @@ export function getAccounts(): Promise<Accounts[]> {
   });
 }
 
+/**
+ * Creates an account. By default for base currency, but any payload can be passed
+ */
 export function createAccount(): Promise<Response>;
 export function createAccount({
   payload,
@@ -219,6 +228,7 @@ interface UpdateTransactionBasePayload {
   payload?: Partial<ReturnType<typeof buildTransactionPayload>> & {
     destinationAmount?: number;
     destinationAccountId?: number;
+    destinationTransactionId?: number;
   };
 }
 
@@ -263,6 +273,57 @@ export function getTransactions({ raw = false } = {}) {
   return makeRequest({
     method: 'get',
     url: '/transactions',
+    raw,
+  });
+}
+
+export function unlinkTransferTransactions({
+  transferIds,
+  raw,
+}: {
+  transferIds: string[];
+  raw?: false;
+}): Promise<Response>;
+export function unlinkTransferTransactions({
+  raw,
+  transferIds,
+}: {
+  transferIds: string[];
+  raw?: true;
+}): Promise<Transactions[]>;
+export function unlinkTransferTransactions({
+  raw = false,
+  transferIds = [],
+} = {}) {
+  return makeRequest({
+    method: 'put',
+    url: '/transactions/unlink',
+    payload: {
+      transferIds,
+    },
+    raw,
+  });
+}
+
+export function linkTransactions({
+  payload,
+  raw,
+}: {
+  payload: endpointsTypes.LinkTransactionsBody;
+  raw?: false;
+}): Promise<Response>;
+export function linkTransactions({
+  payload,
+  raw,
+}: {
+  payload: endpointsTypes.LinkTransactionsBody;
+  raw?: true;
+}): ReturnType<typeof transactionsService.linkTransactions>;
+export function linkTransactions({ raw = false, payload }) {
+  return makeRequest({
+    method: 'put',
+    url: '/transactions/link',
+    payload,
     raw,
   });
 }

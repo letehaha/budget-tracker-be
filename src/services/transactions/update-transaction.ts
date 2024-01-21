@@ -16,8 +16,10 @@ import {
   createOppositeTransaction,
   calcTransferTransactionRefAmount,
 } from './create-transaction';
+import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
+import { GenericSequelizeModelAttributes } from '@common/types';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -67,15 +69,15 @@ const validateTransaction = (
   // 2. To keep `refAmount` calculation correct abd be tied exactly to source tx.
   //    Otherwise we will need to code additional logic to handle that
   // For now keep that logic only for system transactions
-  if (
-    prevData.accountType === ACCOUNT_TYPES.system &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transactionType !== TRANSACTION_TYPES.expense
-  ) {
-    throw new ValidationError({
-      message: 'You cannot edit non-primary transfer transaction',
-    });
-  }
+  // if (
+  //   prevData.accountType === ACCOUNT_TYPES.system &&
+  //   prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+  //   prevData.transactionType !== TRANSACTION_TYPES.expense
+  // ) {
+  //   throw new ValidationError({
+  //     message: 'You cannot edit non-primary transfer transaction',
+  //   });
+  // }
 };
 
 const makeBasicBaseTxUpdation = async (
@@ -88,12 +90,10 @@ const makeBasicBaseTxUpdation = async (
     { transaction },
   );
 
+  // Never update "transactionType" of non-system transactions. Just an additional guard
   const transactionType =
     prevData.accountType === ACCOUNT_TYPES.system
-      ? // For system
-        newData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
-        ? TRANSACTION_TYPES.expense
-        : newData.transactionType
+      ? newData.transactionType
       : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams =
@@ -271,11 +271,55 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
   );
 };
 
+const isUpdatingTransferTx = (
+  payload: UpdateTransactionParams,
+  prevData: Transactions.default,
+) => {
+  // Previously was transfer, now NOT a transfer
+  const nowNotTransfer =
+    payload.transferNature === undefined &&
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+  // Previously was transfer, now also transfer
+  const updatingTransfer =
+    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+  return nowNotTransfer || updatingTransfer;
+};
+
+const isCreatingTransfer = (
+  payload: UpdateTransactionParams,
+  prevData: Transactions.default,
+) => {
+  return (
+    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
+  );
+};
+
+const isDiscardingTransfer = (
+  payload: UpdateTransactionParams,
+  prevData: Transactions.default,
+) => {
+  return (
+    payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
+  );
+};
+
 /**
  * Updates transaction and updates account balance.
  */
-export const updateTransaction = async (payload: UpdateTransactionParams) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
+export const updateTransaction = async (
+  payload: UpdateTransactionParams,
+  attributes: GenericSequelizeModelAttributes = {},
+): Promise<
+  [baseTx: Transactions.default, oppositeTx?: Transactions.default]
+> => {
+  const isTxPassedFromAbove = attributes.transaction !== undefined;
+  const transaction: Transaction =
+    attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const prevData = await getTransactionById(
@@ -305,13 +349,7 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
       transaction,
     ];
 
-    if (
-      (payload.transferNature === undefined &&
-        prevData.transferNature ===
-          TRANSACTION_TRANSFER_NATURE.common_transfer) ||
-      (payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer)
-    ) {
+    if (isUpdatingTransferTx(payload, prevData)) {
       // Handle the case when initially tx was "expense", became "transfer",
       // but now user wants to unmark it from transfer and make "income"
       if (
@@ -323,35 +361,50 @@ export const updateTransaction = async (payload: UpdateTransactionParams) => {
 
       const { baseTx, oppositeTx } =
         await updateTransferTransaction(helperFunctionsArgs);
+
       updatedTransactions = [baseTx, oppositeTx];
-    } else if (
-      payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-      prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
-    ) {
-      const { baseTx, oppositeTx } = await createOppositeTransaction([
-        // When updating existing tx we usually don't pass transactionType, so
-        // it will be `undefined`, that's why we derive it from prevData
-        {
-          ...payload,
-          transactionType: payload.transactionType ?? prevData.transactionType,
-        },
-        baseTransaction,
-        transaction,
-      ]);
-      updatedTransactions = [baseTx, oppositeTx];
-    } else if (
-      payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
-      prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
-    ) {
+    } else if (isCreatingTransfer(payload, prevData)) {
+      if (payload.destinationTransactionId) {
+        const [[baseTx, oppositeTx]] = await linkTransactions(
+          {
+            userId: payload.userId,
+            ids: [
+              [updatedTransactions[0].id, payload.destinationTransactionId],
+            ],
+            ignoreBaseTxTypeValidation: true,
+          },
+          { transaction },
+        );
+
+        updatedTransactions = [baseTx, oppositeTx];
+      } else {
+        const { baseTx, oppositeTx } = await createOppositeTransaction([
+          // When updating existing tx we usually don't pass transactionType, so
+          // it will be `undefined`, that's why we derive it from prevData
+          {
+            ...payload,
+            transactionType:
+              payload.transactionType ?? prevData.transactionType,
+          },
+          baseTransaction,
+          transaction,
+        ]);
+        updatedTransactions = [baseTx, oppositeTx];
+      }
+    } else if (isDiscardingTransfer(payload, prevData)) {
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
 
-    await transaction.commit();
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
 
     return updatedTransactions;
   } catch (e) {
     logger.error(e);
-    await transaction.rollback();
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
     throw e;
   }
 };

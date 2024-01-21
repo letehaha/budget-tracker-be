@@ -16,6 +16,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
     const {
       amount,
       destinationAmount,
+      destinationTransactionId,
       note,
       time,
       transactionType,
@@ -32,6 +33,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
 
     const params = {
       amount,
+      destinationTransactionId,
       destinationAmount,
       note,
       time: new Date(time),

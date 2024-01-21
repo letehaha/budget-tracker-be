@@ -1,50 +1,52 @@
-import { API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
+import {
+  API_RESPONSE_STATUS,
+  SORT_DIRECTIONS,
+  endpointsTypes,
+} from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { ValidationError } from '@js/errors';
-import * as Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
 import { errorHandler } from './helpers';
-
-const SORT_DIRECTIONS = Object.freeze({
-  asc: 'ASC',
-  desc: 'DESC',
-});
 
 export const getTransactions = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
-
     const {
       sort = SORT_DIRECTIONS.desc,
+      limit,
+      from = 0,
+      type: transactionType,
+      accountType,
+      accountId,
       includeUser,
       includeAccount,
       includeCategory,
       includeAll,
       nestedInclude,
-      limit,
-      from = 0,
-      accountType,
-      accountId,
+      // isRaw,
+      excludeTransfer,
     }: endpointsTypes.GetTransactionsQuery = req.query;
 
-    const transactions = await Transactions.getTransactions({
+    const data = await transactionsService.getTransactions({
       userId,
+      transactionType,
+      sortDirection: sort,
+      limit,
       from,
       accountType,
       accountId,
-      limit,
-      sortDirection: sort,
       includeUser,
       includeAccount,
       includeCategory,
       includeAll,
       nestedInclude,
-      isRaw: true,
+      excludeTransfer,
+      isRaw: false,
     });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: transactions,
+      response: data,
     });
   } catch (err) {
     errorHandler(res, err);

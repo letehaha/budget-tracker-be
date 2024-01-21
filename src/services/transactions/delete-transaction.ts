@@ -24,7 +24,7 @@ export const deleteTransaction = async ({
 
     if (accountType !== ACCOUNT_TYPES.system) {
       throw new ValidationError({
-        message: "It's not possible to manually delete external transactions",
+        message: "It's not allowed to manually delete external transactions",
       });
     }
 

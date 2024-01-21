@@ -11,6 +11,7 @@ export type CreateTransactionParams = Omit<
 > & {
   destinationAmount?: number;
   destinationAccountId?: number;
+  destinationTransactionId?: number;
 };
 
 interface UpdateParams {
@@ -28,8 +29,10 @@ interface UpdateParams {
 
 interface UpdateTransferParams {
   destinationAmount?: number;
+  destinationTransactionId?: number;
   destinationAccountId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
+  transferId?: string;
 }
 
 export type UpdateTransactionParams = UpdateParams & UpdateTransferParams;

@@ -3,6 +3,8 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
+  SORT_DIRECTIONS,
+  TransactionModel,
 } from 'shared-types';
 import { Op } from 'sequelize';
 import { Transaction } from 'sequelize/types';
@@ -362,20 +364,40 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 }
 
-export const getTransactions = async ({
-  from = 0,
-  limit = 20,
-  accountType,
-  accountId,
-  userId,
-  sortDirection = 'DESC',
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-  isRaw = false,
-}) => {
+export const getTransactions = async (
+  {
+    from = 0,
+    limit = 20,
+    accountType,
+    accountId,
+    userId,
+    sortDirection = SORT_DIRECTIONS.desc,
+    includeUser,
+    includeAccount,
+    transactionType,
+    includeCategory,
+    includeAll,
+    nestedInclude,
+    isRaw = false,
+    excludeTransfer,
+  }: {
+    from: number;
+    limit: number;
+    accountType: ACCOUNT_TYPES;
+    transactionType: string;
+    accountId: number;
+    userId: number;
+    sortDirection: SORT_DIRECTIONS;
+    includeUser: boolean;
+    includeAccount: boolean;
+    includeCategory: boolean;
+    includeAll: boolean;
+    nestedInclude: boolean;
+    isRaw: boolean;
+    excludeTransfer?: boolean;
+  },
+  { transaction }: { transaction?: Transaction } = {},
+) => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -388,11 +410,19 @@ export const getTransactions = async ({
     include,
     where: {
       userId,
-      ...removeUndefinedKeys({ accountType, accountId }),
+      ...removeUndefinedKeys({
+        accountType,
+        accountId,
+        transactionType,
+        transferNature: excludeTransfer
+          ? TRANSACTION_TRANSFER_NATURE.not_transfer
+          : undefined,
+      }),
     },
+    transaction,
     offset: from,
     limit: limit,
-    order: [['time', sortDirection.toUpperCase()]],
+    order: [['time', sortDirection]],
     raw: isRaw,
   });
 
@@ -488,7 +518,9 @@ export const getTransactionsByTransferId = (
   });
 };
 
-export const getTransactionsByArrayOfField = async (
+export const getTransactionsByArrayOfField = async <
+  T extends keyof TransactionModel,
+>(
   {
     fieldValues,
     fieldName,
@@ -499,8 +531,8 @@ export const getTransactionsByArrayOfField = async (
     includeAll,
     nestedInclude,
   }: {
-    fieldValues: unknown[];
-    fieldName: string;
+    fieldValues: TransactionModel[T][];
+    fieldName: T;
     userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
@@ -646,7 +678,7 @@ export const deleteTransactionById = async (
 
   if (tx.accountType !== ACCOUNT_TYPES.system) {
     throw new ValidationError({
-      message: "It's not possible to manually delete external transactions",
+      message: "It's not allowed to manually delete external transactions",
     });
   }
 

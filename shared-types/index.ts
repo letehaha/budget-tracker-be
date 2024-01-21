@@ -13,6 +13,11 @@ export enum PAYMENT_TYPES {
   debitCard = 'debitCard',
 }
 
+export enum SORT_DIRECTIONS {
+  asc = 'ASC',
+  desc = 'DESC',
+}
+
 export enum TRANSACTION_TYPES {
   income = 'income',
   expense = 'expense',

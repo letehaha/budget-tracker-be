@@ -16,6 +16,7 @@ import * as Accounts from '@models/Accounts.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
+import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
 type CreateOppositeTransactionParams = [
@@ -195,6 +196,7 @@ export const createTransaction = async (
     userId,
     accountId,
     transferNature,
+    destinationTransactionId,
     ...payload
   }: CreateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
@@ -259,23 +261,42 @@ export const createTransaction = async (
     ] = [baseTransaction];
 
     /**
-     * If transactions is transfer between two accounts, add transferId to both
+     * If transaction is transfer between two accounts, add transferId to both
      * transactions to connect them, and use destinationAmount and destinationAccountId
      * for the second transaction.
      */
     if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
-      const res = await createOppositeTransaction([
-        {
-          amount,
-          userId,
-          accountId,
-          transferNature,
-          ...payload,
-        },
-        baseTransaction,
-        transaction,
-      ]);
-      transactions = [res.baseTx, res.oppositeTx];
+      /**
+       * When "destinationTransactionId" is provided, we don't need to create an
+       * opposite transaction, since it's expected to use the existing one.
+       * We need to update the existing one, or fail the whole creation if it
+       * doesn't exist
+       */
+      if (destinationTransactionId) {
+        const [[baseTx, oppositeTx]] = await linkTransactions(
+          {
+            userId,
+            ids: [[baseTransaction.id, destinationTransactionId]],
+            ignoreBaseTxTypeValidation: true,
+          },
+          { transaction },
+        );
+
+        transactions = [baseTx, oppositeTx];
+      } else {
+        const res = await createOppositeTransaction([
+          {
+            amount,
+            userId,
+            accountId,
+            transferNature,
+            ...payload,
+          },
+          baseTransaction,
+          transaction,
+        ]);
+        transactions = [res.baseTx, res.oppositeTx];
+      }
     }
 
     if (!isTxPassedFromAbove) {
