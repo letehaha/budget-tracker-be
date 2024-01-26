@@ -59,6 +59,7 @@ app.use(
   cors({
     origin(requestOrigin, callback) {
       const ALLOWED_HOSTS = [
+        '127.0.0.1:8100',
         'budget-tracker.com:8100',
         '206.81.20.28:8081',
         'gamanets.money',
