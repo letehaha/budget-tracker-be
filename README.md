@@ -66,12 +66,29 @@ If you don't know how to access your postgres user or DB:
 2. Open the app, in the interface click on the "+" on the bottom left and add a new V11 server.
 3. Click "Initialize" button from the interface.
 4. If you have error "Post already in use", try to close apps that are using that port, or click on the server V11 in the interface and change port to 5433 (first option is much better)
-5. Connect to default DB user using either "psql -h localhost -p 5432 -U postgres -d postgres" or just click on the "postgres" db in the Postgres.app. If you changed port on the previos step, update the port
+5. Connect to default DB user using either
+
+```sh
+psql -h localhost -p 5432 -U postgres -d postgres
+```
+
+or just click on the "postgres" db in the Postgres.app. If you changed port on the previos step, update the port
+
 6. Now run following commands to setup a user (update dumb values with your own):
 
-- "CREATE USER myuser WITH PASSWORD "secretpassword";"
-- ALTER ROLE myuser SUPERUSER;
-- CREATE DATABASE budget-tracker; (db-name will be used for the app)
+1. You can omit first two steps if you don't mind using your current user.
+
+```sql
+CREATE USER myuser WITH PASSWORD 'secretpassword';
+```
+
+```sql
+ALTER ROLE myuser SUPERUSER;
+```
+
+```sql
+CREATE DATABASE "budget-tracker";
+```
 
 7. That's it.
 
