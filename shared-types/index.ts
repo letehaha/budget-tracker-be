@@ -3,6 +3,21 @@ export enum ACCOUNT_TYPES {
   monobank = 'monobank',
 }
 
+export enum ACCOUNT_CATEGORIES {
+  general = 'general',
+  cash = 'cash',
+  currentAccount = 'current-account',
+  creditCard = 'credit-card',
+  saving = 'saving',
+  bonus = 'bonus',
+  insurance = 'insurance',
+  investment = 'investment',
+  loan = 'loan',
+  mortgage = 'mortgage',
+  overdraft = 'overdraft',
+  crypto = 'crypto',
+}
+
 export enum PAYMENT_TYPES {
   bankTransfer = 'bankTransfer',
   voucher = 'voucher',

@@ -9,6 +9,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TransactionModel,
   PAYMENT_TYPES,
+  ACCOUNT_CATEGORIES,
 } from 'shared-types';
 import { app } from '@root/app';
 import Accounts from '@models/Accounts.model';
@@ -76,7 +77,7 @@ export const randomDate = (
 export const buildAccountPayload = (
   overrides: Partial<endpointsTypes.CreateAccountBody> = {},
 ): endpointsTypes.CreateAccountBody => ({
-  accountTypeId: 1,
+  accountCategory: ACCOUNT_CATEGORIES.general,
   currencyId: global.BASE_CURRENCY.id,
   name: 'test',
   type: ACCOUNT_TYPES.system,

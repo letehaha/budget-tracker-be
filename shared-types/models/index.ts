@@ -4,6 +4,7 @@ import {
   TRANSACTION_TYPES,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
+  ACCOUNT_CATEGORIES,
 } from 'shared-types';
 export * from './external-services';
 
@@ -40,7 +41,7 @@ export interface AccountModel {
   refCurrentBalance: number;
   creditLimit: number;
   refCreditLimit: number;
-  accountTypeId: number;
+  accountCategory: ACCOUNT_CATEGORIES;
   currencyId: number;
   userId: number;
   externalId?: string;

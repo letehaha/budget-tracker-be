@@ -2,7 +2,7 @@ import { AccountModel } from 'shared-types';
 import { BodyPayload } from './index';
 
 export interface CreateAccountBody extends BodyPayload {
-  accountTypeId: AccountModel['accountTypeId'];
+  accountCategory: AccountModel['accountCategory'];
   currencyId: AccountModel['currencyId'];
   name: AccountModel['name'];
   initialBalance: AccountModel['initialBalance'];
@@ -12,7 +12,7 @@ export interface CreateAccountBody extends BodyPayload {
 }
 
 export interface UpdateAccountBody extends BodyPayload {
-  accountTypeId?: AccountModel['accountTypeId'];
+  accountCategory?: AccountModel['accountCategory'];
   name?: AccountModel['name'];
   currentBalance?: AccountModel['currentBalance'];
   creditLimit?: AccountModel['creditLimit'];
