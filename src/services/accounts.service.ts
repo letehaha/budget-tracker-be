@@ -6,6 +6,7 @@ import {
   ExternalMonobankClientInfoResponse,
   MonobankUserModel,
   ACCOUNT_TYPES,
+  ACCOUNT_CATEGORIES,
 } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import * as Accounts from '@models/Accounts.model';
@@ -79,7 +80,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
         {
           userId,
           currencyId: accountCurrencyCodes[account.currencyCode],
-          accountTypeId: 4,
+          accountCategory: ACCOUNT_CATEGORIES.creditCard,
           name: account.maskedPan[0] || account.iban,
           externalId: account.id,
           initialBalance: account.balance,

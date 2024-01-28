@@ -1,4 +1,5 @@
 import {
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   API_RESPONSE_STATUS,
   endpointsTypes,
@@ -43,7 +44,7 @@ export const getAccountById = async (req, res: CustomResponse) => {
 
 export const createAccount = async (req, res) => {
   const {
-    accountTypeId,
+    accountCategory = ACCOUNT_CATEGORIES.general,
     currencyId,
     name,
     type = ACCOUNT_TYPES.system,
@@ -63,7 +64,7 @@ export const createAccount = async (req, res) => {
     }
 
     const account = await accountsService.createAccount({
-      accountTypeId,
+      accountCategory,
       currencyId,
       name,
       type,
@@ -85,7 +86,7 @@ export const updateAccount = async (req, res) => {
   const { id } = req.params;
   const { id: userId } = req.user;
   const {
-    accountTypeId,
+    accountCategory,
     name,
     creditLimit,
     isEnabled,
@@ -116,7 +117,7 @@ export const updateAccount = async (req, res) => {
       userId,
       ...removeUndefinedKeys({
         isEnabled,
-        accountTypeId: Number(accountTypeId),
+        accountCategory,
         currentBalance: Number(currentBalance),
         name,
         creditLimit: Number(creditLimit),

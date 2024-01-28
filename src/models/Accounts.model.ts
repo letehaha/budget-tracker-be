@@ -10,11 +10,10 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { ACCOUNT_TYPES } from 'shared-types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
-import AccountTypes from '@models/AccountTypes.model';
 import Balances from '@models/Balances.model';
 import Transactions from '@models/Transactions.model';
 
@@ -28,8 +27,7 @@ export interface AccountsAttributes {
   creditLimit: number;
   refCreditLimit: number;
   type: ACCOUNT_TYPES;
-  // general, creditCard, etc. TODO: delete it
-  accountTypeId: number;
+  accountCategory: ACCOUNT_CATEGORIES;
   currencyId: number;
   userId: number;
   externalId: string; // represents id from the original external system if exists
@@ -112,9 +110,12 @@ export default class Accounts extends Model<AccountsAttributes> {
   })
   type: ACCOUNT_TYPES;
 
-  @ForeignKey(() => AccountTypes)
-  @Column
-  accountTypeId: number;
+  @Column({
+    allowNull: false,
+    defaultValue: ACCOUNT_CATEGORIES.general,
+    type: DataType.ENUM({ values: Object.values(ACCOUNT_CATEGORIES) }),
+  })
+  accountCategory: ACCOUNT_CATEGORIES;
 
   @ForeignKey(() => Currencies)
   @Column
@@ -229,7 +230,7 @@ export interface CreateAccountPayload {
   externalId?: AccountsAttributes['externalId'];
   externalData?: AccountsAttributes['externalData'];
   isEnabled?: AccountsAttributes['isEnabled'];
-  accountTypeId: AccountsAttributes['accountTypeId'];
+  accountCategory: AccountsAttributes['accountCategory'];
   currencyId: AccountsAttributes['currencyId'];
   name: AccountsAttributes['name'];
   initialBalance: AccountsAttributes['initialBalance'];
@@ -276,7 +277,7 @@ export interface UpdateAccountByIdPayload {
   id: AccountsAttributes['id'];
   userId: AccountsAttributes['userId'];
   externalId?: AccountsAttributes['externalId'];
-  accountTypeId?: AccountsAttributes['accountTypeId'];
+  accountCategory?: AccountsAttributes['accountCategory'];
   // currency updating is disabled
   // currencyId?: AccountsAttributes['currencyId'];
   name?: AccountsAttributes['name'];
