@@ -6,10 +6,8 @@ export const namespace = cls.createNamespace('budget-tracker-namespace');
 Sequelize.useCLS(namespace);
 
 const connection: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sequelize?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Sequelize?: any;
+  sequelize?: Sequelize;
+  Sequelize?: typeof Sequelize;
 } = {};
 
 const DBConfig: Record<string, unknown> = config.get('db');
