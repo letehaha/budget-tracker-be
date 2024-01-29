@@ -24,7 +24,7 @@ const createWinstonLogger = () => {
 const winstonLogger = createWinstonLogger();
 
 const createLogger =
-  (severity: 'info' | 'warn') =>
+  (severity: 'info' | 'warn' | 'debug') =>
   (message: string, ...meta: Record<string, unknown>[]) => {
     winstonLogger.log(severity, message, ...meta);
   };
@@ -82,6 +82,7 @@ function loggerErrorHandler(
 const logger = {
   info: createLogger('info'),
   warn: createLogger('warn'),
+  debug: createLogger('debug'),
   error: loggerErrorHandler,
 };
 

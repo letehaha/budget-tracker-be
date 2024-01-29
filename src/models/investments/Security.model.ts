@@ -33,6 +33,8 @@ export interface SecurityAttributes {
   exchangeName?: string;
   providerName: SECURITY_PROVIDER;
   assetClass: ASSET_CLASS;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**

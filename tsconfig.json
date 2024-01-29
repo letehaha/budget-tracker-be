@@ -25,6 +25,7 @@
     "strict": false,
     "allowJs": true,
     "noImplicitAny": false,
+    "resolveJsonModule": true,
     "noUncheckedIndexedAccess": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
