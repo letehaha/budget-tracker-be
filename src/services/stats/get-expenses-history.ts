@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import {
   TransactionModel,
   TRANSACTION_TYPES,
@@ -9,33 +8,7 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 
 import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
-
-interface DateQuery {
-  // yyyy-mm-dd
-  from?: string;
-  // yyyy-mm-dd
-  to?: string;
-}
-
-const getWhereConditionForTime = ({ from, to }: DateQuery) => {
-  const where: { time?: Record<symbol, Date[] | Date> } = {};
-
-  if (from && to) {
-    where.time = {
-      [Op.between]: [new Date(from), new Date(to)],
-    };
-  } else if (from) {
-    where.time = {
-      [Op.gte]: new Date(from),
-    };
-  } else if (to) {
-    where.time = {
-      [Op.lte]: new Date(to),
-    };
-  }
-
-  return where;
-};
+import { getWhereConditionForTime } from './utils';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,

@@ -5,33 +5,7 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
 import * as Balances from '@models/Balances.model';
 import * as Accounts from '@models/Accounts.model';
-
-interface DateQuery {
-  // yyyy-mm-dd
-  from?: string;
-  // yyyy-mm-dd
-  to?: string;
-}
-
-const getWhereConditionForTime = ({ from, to }: DateQuery) => {
-  const where: { date?: Record<symbol, Date[] | Date> } = {};
-
-  if (from && to) {
-    where.date = {
-      [Op.between]: [new Date(from), new Date(to)],
-    };
-  } else if (from) {
-    where.date = {
-      [Op.gte]: new Date(from),
-    };
-  } else if (to) {
-    where.date = {
-      [Op.lte]: new Date(to),
-    };
-  }
-
-  return where;
-};
+import { getWhereConditionForTime } from './utils';
 
 /**
  * Retrieves the balances for the requested account for a user within a specified date range.
