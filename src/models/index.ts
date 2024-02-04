@@ -23,6 +23,7 @@ const sequelize = new Sequelize({
     max: 50,
     evict: 10000,
   },
+  // typeValidation: true,
 });
 
 if (process.env.NODE_ENV === 'defelopment') {
