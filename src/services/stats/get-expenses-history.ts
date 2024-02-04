@@ -71,7 +71,7 @@ export const getExpensesHistory = async (
         userId,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         transactionType: TRANSACTION_TYPES.expense,
-        ...getWhereConditionForTime({ from, to }),
+        ...getWhereConditionForTime({ from, to, columnName: 'time' }),
       }),
       order: [['time', 'ASC']],
       raw: attributes.raw || true,
