@@ -48,7 +48,7 @@ export const getBalanceHistoryForAccount = async (
 
     const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
-      where: getWhereConditionForTime({ from, to }),
+      where: getWhereConditionForTime({ from, to, columnName: 'date' }),
       order: [['date', 'ASC']],
       include: [
         {
@@ -120,6 +120,7 @@ export const getBalanceHistoryForAccount = async (
 
     return data;
   } catch (err) {
+    console.log(err);
     if (!isTxPassedFromAbove) {
       await transaction.rollback();
     }
