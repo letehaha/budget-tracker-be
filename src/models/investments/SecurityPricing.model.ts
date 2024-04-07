@@ -8,6 +8,18 @@ import {
 } from 'sequelize-typescript';
 import Security from '@models/investments/Security.model';
 
+export interface SecurityPricingAttributes {
+  // PR key
+  securityId: number;
+  // PK key
+  date: Date;
+  priceClose: string;
+  priceAsOf: Date;
+  source: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * Represents the dynamic pricing information of financial securities over time.
  * This table is specifically designed to store time-sensitive data like daily
@@ -21,7 +33,7 @@ import Security from '@models/investments/Security.model';
   tableName: 'SecurityPricings',
   // indexes: [{ fields: ['securityId', 'date'], unique: true, primaryKey: true }],
 })
-export default class SecurityPricing extends Model {
+export default class SecurityPricing extends Model<SecurityPricingAttributes> {
   @ForeignKey(() => Security)
   @Column({
     type: DataType.INTEGER,

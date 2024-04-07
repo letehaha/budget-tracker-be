@@ -1,27 +1,51 @@
 import { Router } from 'express';
+import { API_RESPONSE_STATUS } from 'shared-types';
 // import { marketDataService } from '@services/investments/market-data.service';
-import { syncSecuritiesList } from '@services/investments/securities.service';
+import {
+  syncSecuritiesList,
+  loadSecuritiesList,
+  syncSecuritiesPricing,
+} from '@services/investments/securities.service';
 
 const router = Router({});
 
 // get all holdings
-router.get('/holdings');
+// router.get('/holdings');
 // create a new holding
-router.post('/holdings');
+// router.post('/holdings');
 
 // get holding by id
-router.get('/holdings/:id');
+// router.get('/holdings/:id');
 // update holding
-router.put('/holdings/:id');
+// router.put('/holdings/:id');
 // delete holding
-router.delete('/holdings/:id');
+// router.delete('/holdings/:id');
 
+// curl http://127.0.0.1:8081/api/v1/investing/securities/sync
 router.get('/securities/sync', async (req, res) => {
   const data = await syncSecuritiesList();
 
-  return res.status(200).json(data);
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
 });
+router.get('/securities', async (req, res) => {
+  const data = await loadSecuritiesList();
 
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
+router.get('/securities/prices', async (req, res) => {
+  const data = await syncSecuritiesPricing();
+
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
 // get marked data. for example ?asset_class=crypto|stocks|etc & ticker= & symbol= & etc
 // so client can use it to fetch data for input field when user tries to add
 // holdings

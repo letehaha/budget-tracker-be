@@ -1,15 +1,47 @@
+import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
+import { differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
 import { logger } from '@js/utils';
-import { differenceInMinutes, differenceInSeconds } from 'date-fns';
 import Securities, {
-  SECURITY_PROVIDER,
-  ASSET_CLASS,
+  SecurityAttributes,
 } from '@models/investments/Security.model';
+import SecurityPricing, {
+  type SecurityPricingAttributes,
+} from '@models/investments/SecurityPricing.model';
 import chunk from 'lodash/chunk';
-import { marketDataService } from './market-data.service';
+import { marketDataService, type TickersResponse } from './market-data.service';
 
-// import tickersMock from './mocks/tickers-mock.json';
+import tickersMock from './mocks/tickers-mock.json';
+// import type { IAggs } from '@polygon.io/client-js';
+// import tickersPricesMock from './mocks/tickers-prices-mock.json';
+
+export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
+  { attributes }: { attributes?: T[] } = {},
+  { transaction }: GenericSequelizeModelAttributes = {},
+): Promise<Pick<SecurityAttributes, T>[]> {
+  const isTxPassedFromAbove = transaction !== undefined;
+  transaction = transaction ?? (await connection.sequelize.transaction());
+
+  try {
+    const securities = (await Securities.findAll({
+      transaction,
+      attributes,
+    })) as Pick<SecurityAttributes, T>[];
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return securities;
+  } catch (err) {
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+
+    throw err;
+  }
+}
 
 export const syncSecuritiesList = async ({
   transaction,
@@ -28,8 +60,8 @@ export const syncSecuritiesList = async ({
       `Started syncing stock tickers. ${startProfiling.toISOString()}`,
     );
 
-    const tickers = await marketDataService.getUSStockTickers();
-    // const tickers = tickersMock;
+    // const tickers = await marketDataService.getUSStockTickers();
+    const tickers = tickersMock as TickersResponse;
 
     const endProfiling = new Date();
 
@@ -54,7 +86,7 @@ export const syncSecuritiesList = async ({
           providerName: SECURITY_PROVIDER.polygon,
           assetClass: ASSET_CLASS.stocks,
           updatedAt: new Date(),
-        })),
+        })) as SecurityAttributes[],
         {
           updateOnDuplicate: [
             'name',
@@ -80,6 +112,67 @@ export const syncSecuritiesList = async ({
     }
 
     return tickers;
+  } catch (err) {
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+
+    throw err;
+  }
+};
+
+export const syncSecuritiesPricing = async ({
+  transaction,
+}: GenericSequelizeModelAttributes = {}) => {
+  if (!process.env.POLYGON_API_KEY) {
+    logger.warn('No polygon API key found, skipping sync');
+    return;
+  }
+
+  const isTxPassedFromAbove = transaction !== undefined;
+  transaction = transaction ?? (await connection.sequelize.transaction());
+
+  try {
+    const dailyPrices = await marketDataService.getAllDailyPricing();
+    // const dailyPrices = tickersPricesMock as unknown as IAggs;
+
+    const securities = await loadSecuritiesList(
+      { attributes: ['assetClass', 'id', 'symbol', 'currencyCode'] },
+      { transaction },
+    );
+
+    const prices = await marketDataService.getEndOfDayPricing(
+      securities,
+      dailyPrices,
+    );
+
+    const result = [];
+
+    for (const chunkedData of chunk(prices, 500)) {
+      const data: Omit<SecurityPricingAttributes, 'updatedAt' | 'createdAt'>[] =
+        chunkedData.map((item) => ({
+          securityId: item.security.id,
+          date: new Date(item.pricing.updatedAt),
+          priceClose: String(item.pricing.price),
+          priceAsOf: new Date(item.pricing.updatedAt),
+          source: marketDataService.source,
+        }));
+
+      result.push(...data);
+
+      await SecurityPricing.bulkCreate(data, {
+        updateOnDuplicate: ['priceClose', 'priceAsOf', 'updatedAt', 'source'],
+        transaction,
+      });
+    }
+
+    // TODO: update balances
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+
+    return result;
   } catch (err) {
     if (!isTxPassedFromAbove) {
       await transaction.rollback();

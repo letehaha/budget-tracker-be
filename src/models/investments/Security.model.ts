@@ -1,21 +1,8 @@
 import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
+import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
 import Holding from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-
-export enum SECURITY_PROVIDER {
-  polygon = 'polygon',
-  other = 'other',
-}
-
-export enum ASSET_CLASS {
-  cash = 'cash',
-  crypto = 'crypto',
-  fixed_income = 'fixed_income',
-  options = 'options',
-  stocks = 'stocks',
-  other = 'other',
-}
 
 export interface SecurityAttributes {
   id: number;
@@ -56,6 +43,14 @@ export interface SecurityAttributes {
   ],
 })
 export default class Security extends Model<SecurityAttributes> {
+  @Column({
+    unique: true,
+    allowNull: false,
+    autoIncrement: true,
+    primaryKey: true,
+  })
+  id: number;
+
   /**
    * The name of the security, typically the official name of the stock, bond,
    * or other financial instrument.

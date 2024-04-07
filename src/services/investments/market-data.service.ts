@@ -1,7 +1,10 @@
+import { ASSET_CLASS } from 'shared-types';
+import { subDays, format } from 'date-fns';
+import type { IRestClient } from '@polygon.io/client-js';
+import { restClient, type IAggs } from '@polygon.io/client-js';
+import type { SecurityAttributes } from '@models/investments/Security.model';
 import { UnwrapPromise, UnwrapArray } from '@common/types';
 import { requestsUtils, logger } from '@js/utils';
-import type { IRestClient } from '@polygon.io/client-js';
-import { restClient } from '@polygon.io/client-js';
 
 type ITickersResults = UnwrapArray<
   UnwrapPromise<
@@ -9,11 +12,22 @@ type ITickersResults = UnwrapArray<
   >['results']
 >;
 
-type TickersResponse = (ITickersResults & {
+export type TickersResponse = (ITickersResults & {
   exchangeAcronym: string;
   exchangeMic: string;
   exchangeName: string;
 })[];
+
+export type EndOfDayPricing<TSecurity> = {
+  security: TSecurity;
+  pricing: {
+    ticker: string;
+    price: number;
+    change: number;
+    changePct: number;
+    updatedAt: Date;
+  };
+};
 
 export class PolygonMarketDataService {
   private readonly api: IRestClient;
@@ -35,6 +49,14 @@ export class PolygonMarketDataService {
     });
 
     return data;
+  }
+
+  async getAllDailyPricing(): Promise<IAggs> {
+    const date = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+    return await this.api.stocks.aggregatesGroupedDaily(date, {
+      adjusted: 'true',
+    });
   }
 
   async getUSStockTickers(): Promise<TickersResponse> {
@@ -97,8 +119,97 @@ export class PolygonMarketDataService {
     }
     return tickers;
   }
+
+  async getEndOfDayPricing<
+    TSecurity extends Pick<
+      SecurityAttributes,
+      'id' | 'symbol' | 'assetClass' | 'currencyCode'
+    >,
+  >(
+    securities: TSecurity[],
+    allPricing: IAggs,
+  ): Promise<EndOfDayPricing<TSecurity>[]> {
+    // Create a map for efficient lookup of securities by their ticker symbol
+    const securitiesMap = new Map(
+      securities.map((security) => [
+        getPolygonTicker(security)?.ticker,
+        security,
+      ]),
+    );
+
+    const data = (allPricing.results || [])
+      .filter(
+        ({ t, c, T }) =>
+          t !== null &&
+          c !== null &&
+          securitiesMap.has(T) &&
+          securitiesMap.get(T)?.assetClass === 'stocks',
+      )
+      .map((pricing) => ({
+        security: securitiesMap.get(pricing.T),
+        pricing: {
+          ticker: pricing.T,
+          price: pricing.c,
+          change: pricing.c - pricing.o,
+          changePct: ((pricing.c - pricing.o) / pricing.o) * 100,
+          updatedAt: new Date(pricing.t),
+        },
+      }));
+
+    return data;
+  }
 }
 
 export const marketDataService = new PolygonMarketDataService(
   process.env.POLYGON_API_KEY,
 );
+
+class PolygonTicker {
+  constructor(
+    readonly market: 'stocks' | 'options' | 'fx' | 'crypto',
+    readonly ticker: string,
+  ) {}
+
+  get key() {
+    return `${this.market}|${this.ticker}`;
+  }
+
+  /** override so this object can be used directly in string interpolation for cache keys */
+  toString() {
+    return this.key;
+  }
+}
+export function isOptionTicker(ticker: string): boolean {
+  return ticker.length >= 16;
+}
+
+export function getPolygonTicker({
+  assetClass,
+  currencyCode,
+  symbol,
+}: Pick<
+  SecurityAttributes,
+  'assetClass' | 'currencyCode' | 'symbol'
+>): PolygonTicker | null {
+  if (!symbol) return null;
+
+  switch (assetClass) {
+    case ASSET_CLASS.options: {
+      return new PolygonTicker('options', `O:${symbol}`);
+    }
+    case ASSET_CLASS.crypto: {
+      return new PolygonTicker('crypto', `X:${symbol}${currencyCode}`);
+    }
+    case ASSET_CLASS.cash: {
+      return symbol === currencyCode
+        ? null // if the symbol matches the currencyCode then we're just dealing with a basic cash holding
+        : new PolygonTicker('fx', `C:${symbol}${currencyCode}`);
+    }
+  }
+
+  if (isOptionTicker(symbol)) {
+    return new PolygonTicker('options', `O:${symbol}`);
+  }
+
+  return new PolygonTicker('stocks', symbol);
+}
