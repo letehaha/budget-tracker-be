@@ -13,8 +13,8 @@ import chunk from 'lodash/chunk';
 import { marketDataService, type TickersResponse } from './market-data.service';
 
 import tickersMock from './mocks/tickers-mock.json';
-// import type { IAggs } from '@polygon.io/client-js';
-// import tickersPricesMock from './mocks/tickers-prices-mock.json';
+import type { IAggs } from '@polygon.io/client-js';
+import tickersPricesMock from './mocks/tickers-prices-mock.json';
 
 export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
   { attributes }: { attributes?: T[] } = {},
@@ -60,8 +60,12 @@ export const syncSecuritiesList = async ({
       `Started syncing stock tickers. ${startProfiling.toISOString()}`,
     );
 
-    // const tickers = await marketDataService.getUSStockTickers();
-    const tickers = tickersMock as TickersResponse;
+    let tickers: TickersResponse = [];
+    if (process.env.NODE_ENV === 'production') {
+      tickers = await marketDataService.getUSStockTickers();
+    } else {
+      tickers = tickersMock as TickersResponse;
+    }
 
     const endProfiling = new Date();
 
@@ -133,8 +137,13 @@ export const syncSecuritiesPricing = async ({
   transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
-    const dailyPrices = await marketDataService.getAllDailyPricing();
-    // const dailyPrices = tickersPricesMock as unknown as IAggs;
+    let dailyPrices: IAggs;
+
+    if (process.env.NODE_ENV === 'production') {
+      dailyPrices = await marketDataService.getAllDailyPricing();
+    } else {
+      dailyPrices = tickersPricesMock as unknown as IAggs;
+    }
 
     const securities = await loadSecuritiesList(
       { attributes: ['assetClass', 'id', 'symbol', 'currencyCode'] },
