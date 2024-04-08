@@ -29,6 +29,11 @@ import Security from '@models/investments/Security.model';
  * To assess the performance of a holding over time, the application can compare
  * historical prices from the SecurityPricing table with the purchase price
  * (potentially stored in the Holding model as cost basis) and the current price.
+ *
+ * To be super simple, the association looks like that:
+ * 1. Account has Holdings.
+ * 2. Holding contains Security name, it's value based on prices, and quantity.
+ * 3. InvestmentTransaction CRUDs Security inside Holding.
  */
 
 interface HoldingAttributes {
@@ -114,7 +119,7 @@ export default class Holding extends Model<HoldingAttributes> {
 
   /**
    * Indicates whether a particular holding should be excluded from certain
-   * calculations, analyses, or reports within your application. This can be for
+   * calculations, analyses, or reports within the application. This can be for
    * various reasons, depending on the specific needs or preferences of the user
    * or the application's functionality.
    */

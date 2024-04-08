@@ -15,6 +15,8 @@ import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
 import Transactions from '@models/Transactions.model';
+import Holdings from './investments/Holdings.model';
+import InvestmentTransactions from './investments/InvestmentTransaction.model';
 
 export interface AccountsAttributes {
   id: number;
@@ -48,6 +50,12 @@ export default class Accounts extends Model {
   })
   @HasMany(() => Transactions)
   transactions: Transactions[];
+
+  @HasMany(() => InvestmentTransactions)
+  investmentTransactions: InvestmentTransactions[];
+
+  @HasMany(() => Holdings)
+  holdings: Holdings[];
 
   @Column({
     unique: true,

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { API_RESPONSE_STATUS } from 'shared-types';
+import { authenticateJwt } from '@middlewares/passport';
 // import { marketDataService } from '@services/investments/market-data.service';
 import {
   syncSecuritiesList,
@@ -7,12 +8,36 @@ import {
   syncSecuritiesPricing,
 } from '@services/investments/securities.service';
 
+import {
+  loadHoldingsList,
+  addHolding,
+} from '@services/investments/holdings.service';
+
 const router = Router({});
 
 // get all holdings
-// router.get('/holdings');
+router.get('/holdings', authenticateJwt, async (req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: userId } = req.user as any;
+  const data = await loadHoldingsList({ userId });
+
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
 // create a new holding
-// router.post('/holdings');
+router.post('/holdings', authenticateJwt, async (req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: userId } = req.user as any;
+  const { accountId, securityId } = req.body;
+  const data = await addHolding({ userId, accountId, securityId });
+
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
 
 // get holding by id
 // router.get('/holdings/:id');

@@ -30,6 +30,7 @@ export default class Users extends Model {
     as: 'currencies',
     through: () => UsersCurrencies,
   })
+  // HasMany Accounts. Check 'associations.ts` file
   @Column({
     primaryKey: true,
     autoIncrement: true,
