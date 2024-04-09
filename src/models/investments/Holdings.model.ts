@@ -39,12 +39,13 @@ import Security from '@models/investments/Security.model';
 interface HoldingAttributes {
   accountId: number;
   securityId: number;
-  value;
-  refValue;
-  quantity;
-  costBasis;
-  currencyCode;
-  excluded;
+  value: string;
+  refValue: string;
+  quantity: string;
+  costBasis: string;
+  refCostBasis: string;
+  currencyCode: string;
+  excluded: boolean;
 }
 
 @Table({

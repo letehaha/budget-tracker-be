@@ -84,10 +84,10 @@ export async function addHolding(
       defaults: {
         accountId,
         securityId,
-        value: 0,
-        refValue: 0,
-        quantity: 0,
-        costBasis: 0,
+        value: '0',
+        refValue: '0',
+        quantity: '0',
+        costBasis: '0',
       },
       transaction,
     });
@@ -105,3 +105,7 @@ export async function addHolding(
     throw err;
   }
 }
+
+// TODO: Update existing via InvestmentTransactions
+// TODO: Delete existing
+// TODO: Check that existing is being deleted if Account is also deleted
