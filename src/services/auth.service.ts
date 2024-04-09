@@ -33,7 +33,7 @@ export const login = withTransaction(
             },
             config.get('jwtSecret'),
             {
-              expiresIn: 60 * 60, // 1 hour
+              expiresIn: 60 * 60 * 24 * 30, // 30 days
             },
           );
 
