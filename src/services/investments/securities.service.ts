@@ -2,6 +2,7 @@ import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
 import { differenceInMinutes, differenceInSeconds } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
+import { Op, literal, type Order } from 'sequelize';
 import { logger } from '@js/utils';
 import Securities, {
   SecurityAttributes,
@@ -17,15 +18,45 @@ import type { IAggs } from '@polygon.io/client-js';
 import tickersPricesMock from './mocks/tickers-prices-mock.json';
 
 export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
-  { attributes }: { attributes?: T[] } = {},
+  { attributes, query }: { attributes?: T[]; query?: string } = {},
   { transaction }: GenericSequelizeModelAttributes = {},
 ): Promise<Pick<SecurityAttributes, T>[]> {
   const isTxPassedFromAbove = transaction !== undefined;
   transaction = transaction ?? (await connection.sequelize.transaction());
 
+  let where: Record<string, unknown> = {};
+  let order: Order | undefined = undefined;
+
+  if (query) {
+    where = {
+      [Op.or]: [
+        { name: { [Op.iLike]: `%${query}%` } },
+        { symbol: { [Op.iLike]: `%${query}%` } },
+      ],
+    };
+    order = [
+      [
+        literal(
+          `CASE
+            WHEN "symbol" = '${query}' THEN 1
+            WHEN "name" = '${query}' THEN 2
+            WHEN "symbol" ILIKE '${query}%' THEN 3
+            WHEN "name" ILIKE '${query}%' THEN 4
+            ELSE 5
+          END`,
+        ),
+        'ASC',
+      ],
+      ['name', 'ASC'],
+      ['symbol', 'ASC'],
+    ];
+  }
+
   try {
     const securities = (await Securities.findAll({
       transaction,
+      where,
+      order,
       attributes,
     })) as Pick<SecurityAttributes, T>[];
 

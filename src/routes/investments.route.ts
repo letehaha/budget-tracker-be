@@ -55,14 +55,17 @@ router.get('/securities/sync', async (req, res) => {
     response: data,
   });
 });
-router.get('/securities', async (req, res) => {
-  const data = await loadSecuritiesList();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.get('/securities/:query?', async (req: any, res) => {
+  const { query } = req.query;
+  const data = await loadSecuritiesList({ query });
 
   return res.status(200).json({
     status: API_RESPONSE_STATUS.success,
     response: data,
   });
 });
+
 router.get('/securities/prices', async (req, res) => {
   const data = await syncSecuritiesPricing();
 
