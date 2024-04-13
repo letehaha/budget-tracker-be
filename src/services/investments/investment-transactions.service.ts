@@ -6,6 +6,8 @@ import InvestmentTransaction, {
 import { calculateRefAmount } from '../calculate-ref-amount.service';
 import Security from '@models/investments/Security.model';
 import { TRANSACTION_TYPES } from 'shared-types';
+import Holding from '@models/investments/Holdings.model';
+import SecurityPricing from '@models/investments/SecurityPricing.model';
 
 type CreationParams = Pick<
   InvestmentTransaction,
@@ -73,19 +75,63 @@ export async function createInvestmentTransaction(
         )
       : params.fees;
 
-    console.log('creation-params', {
-      ...creationParams,
-      amount,
-      refPrice,
-      refAmount,
-      refFees,
-    });
     const result = await InvestmentTransaction.create(
       { ...creationParams, amount, refPrice, refAmount, refFees },
       {
         transaction,
       },
     );
+
+    const currentPrice = await SecurityPricing.findOne({
+      where: {
+        securityId: params.securityId,
+      },
+      order: [['date', 'DESC']],
+      transaction,
+    });
+
+    console.log('currentPrice', currentPrice);
+
+    const currentHolding = await Holding.findOne({
+      where: {
+        accountId: params.accountId,
+        securityId: params.securityId,
+      },
+      transaction,
+    });
+
+    const newQuantity =
+      parseFloat(currentHolding.quantity) + parseFloat(params.quantity);
+    const value = newQuantity * parseFloat(currentPrice.priceClose);
+    const refValue = await calculateRefAmount(
+      {
+        amount: value,
+        userId,
+        baseCode: security.currencyCode,
+      },
+      { transaction },
+    );
+
+    await Holding.update(
+      {
+        value: String(value),
+        refValue: String(refValue),
+        quantity: String(newQuantity),
+        costBasis: String(parseFloat(currentHolding.costBasis) + amount),
+        refCostBasis: String(
+          parseFloat(currentHolding.refCostBasis) + refAmount,
+        ),
+      },
+      {
+        where: {
+          accountId: params.accountId,
+          securityId: params.securityId,
+        },
+        transaction,
+      },
+    );
+
+    // TODO: update account balance
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

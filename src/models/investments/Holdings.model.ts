@@ -34,6 +34,11 @@ import Security from '@models/investments/Security.model';
  * 1. Account has Holdings.
  * 2. Holding contains Security name, it's value based on prices, and quantity.
  * 3. InvestmentTransaction CRUDs Security inside Holding.
+ *
+ * **Notes:**
+ * 1. No need to store averageCost because we can easily calculate it from by
+ * using "costBasis / quantity" formula. That way we simply data storage and
+ * always have up to date value
  */
 
 interface HoldingAttributes {
@@ -62,13 +67,15 @@ export default class Holding extends Model<HoldingAttributes> {
   securityId: number;
 
   /**
-   * The `value` and `refValue` fields represent the current market value of the specific holding.
-   * This value is calculated based on the latest available market price of the `security` multiplied by
-   * the quantity of the security held in the holding. It reflects the present worth of the investment
-   * in the market. This field is crucial for understanding the real-time monetary worth of the
-   * investment and plays a key role in portfolio valuation, performance tracking, and making
-   * informed investment decisions. The value is dynamic and can fluctuate based on market conditions,
-   * requiring regular updates to ensure accuracy.
+   * The `value` and `refValue` fields represent the current market value of the
+   * specific holding.
+   * This value is calculated based on the latest available market price of the
+   * `security` multiplied by the quantity of the security held in the holding.
+   * It reflects the present worth of the investment in the market. This field
+   * is crucial for understanding the real-time monetary worth of the
+   * investment and plays a key role in portfolio valuation, performance tracking,
+   * and making informed investment decisions. The value is dynamic and can
+   * fluctuate based on market conditions, requiring regular updates to ensure accuracy.
    *
    * Important:
    * It needs to be recalculated every n-time to reflect real value.
@@ -95,11 +102,15 @@ export default class Holding extends Model<HoldingAttributes> {
   quantity: string;
 
   /**
-   * The `costBasis` field represents the original value or purchase price of an investment in the Holding model.
-   * It includes the price paid per unit of the security plus any associated expenses like commissions or fees.
-   * This field is vital for calculating capital gains or losses when the investment is sold and for assessing
-   * the overall performance of the investment. It also plays a crucial role in determining tax liabilities
-   * related to capital gains. The cost basis can be adjusted for corporate actions and other financial events.
+   * The `costBasis` field represents the original value or purchase price of an
+   * investment in the Holding model.
+   * It includes the price paid per unit of the security plus any associated
+   * expenses like commissions or fees.
+   * This field is vital for calculating capital gains or losses when the
+   * investment is sold and for assessing the overall performance of the
+   * investment. It also plays a crucial role in determining tax liabilities
+   * related to capital gains. The cost basis can be adjusted for corporate
+   * actions and other financial events.
    *
    * Example:
    * If an investor bought 100 shares of a company at $10 per share, and they paid
