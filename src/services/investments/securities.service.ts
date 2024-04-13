@@ -1,5 +1,10 @@
 import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
-import { differenceInMinutes, differenceInSeconds } from 'date-fns';
+import {
+  differenceInMinutes,
+  differenceInSeconds,
+  format,
+  subDays,
+} from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
 import { Op, literal, type Order } from 'sequelize';
@@ -74,6 +79,35 @@ export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
   }
 }
 
+export const syncSecuritiesData = async ({
+  transaction,
+}: GenericSequelizeModelAttributes = {}) => {
+  const isTxPassedFromAbove = transaction !== undefined;
+  transaction = transaction ?? (await connection.sequelize.transaction());
+
+  try {
+    logger.info('Started syncing all securities data.');
+
+    await syncSecuritiesList({ transaction });
+
+    logger.info('Started syncing all securities prices data.');
+
+    await syncSecuritiesPricing({ transaction });
+
+    logger.info('Finished syncing all securities data.');
+
+    if (!isTxPassedFromAbove) {
+      await transaction.commit();
+    }
+  } catch (err) {
+    if (!isTxPassedFromAbove) {
+      await transaction.rollback();
+    }
+
+    throw err;
+  }
+};
+
 export const syncSecuritiesList = async ({
   transaction,
 }: GenericSequelizeModelAttributes = {}) => {
@@ -92,10 +126,10 @@ export const syncSecuritiesList = async ({
     );
 
     let tickers: TickersResponse = [];
-    if (process.env.NODE_ENV === 'production') {
-      tickers = await marketDataService.getUSStockTickers();
-    } else {
+    if (process.env.NODE_ENV === 'test') {
       tickers = tickersMock as TickersResponse;
+    } else {
+      tickers = await marketDataService.getUSStockTickers();
     }
 
     const endProfiling = new Date();
@@ -109,31 +143,55 @@ export const syncSecuritiesList = async ({
 
     if (!tickers.length) return;
 
-    for (const chunkedData of chunk(tickers, 500)) {
-      await Securities.bulkCreate(
-        chunkedData.map((item) => ({
-          name: item.name,
-          symbol: item.ticker,
-          currencyCode: item.currency_name?.toUpperCase(),
-          exchangeAcronym: item.exchangeAcronym,
-          exchangeMic: item.exchangeMic,
-          exchangeName: item.exchangeName,
-          providerName: SECURITY_PROVIDER.polygon,
-          assetClass: ASSET_CLASS.stocks,
-          updatedAt: new Date(),
-        })) as SecurityAttributes[],
-        {
-          updateOnDuplicate: [
-            'name',
-            'currencyCode',
-            'currencyCode',
-            'exchangeAcronym',
-            'exchangeName',
-            'updatedAt',
-          ],
-          transaction,
-        },
-      );
+    let counter = 0;
+    for (const chunkedData of chunk(tickers, 1)) {
+      counter++;
+      try {
+        await Securities.bulkCreate(
+          chunkedData.map((item) => ({
+            name: item.name,
+            symbol: item.ticker,
+            currencyCode: item.currency_name?.toUpperCase(),
+            exchangeAcronym: item.exchangeAcronym,
+            exchangeMic: item.exchangeMic,
+            exchangeName: item.exchangeName,
+            providerName: SECURITY_PROVIDER.polygon,
+            assetClass: ASSET_CLASS.stocks,
+            updatedAt: new Date(),
+          })) as SecurityAttributes[],
+          {
+            conflictAttributes: ['symbol', 'exchangeMic'],
+            updateOnDuplicate: [
+              'name',
+              'currencyCode',
+              'exchangeAcronym',
+              'exchangeName',
+              'updatedAt',
+            ],
+            transaction,
+          },
+        );
+      } catch (err) {
+        logger.info(`
+          Chuncked metadata:
+
+          chunk number: ${counter}
+          length: ${chunkedData.length}
+          uniqueTickers: ${chunkedData.map((item) => item.ticker).length}
+          uniqueMisc: ${chunkedData.map((item) => item.exchangeMic).length}
+          uniqueValuesLength: ${
+            new Set(
+              chunkedData.map((item) => `${item.ticker}-${item.exchangeMic}`),
+            ).size
+          }
+          uniqueValues: ${[
+            ...new Set(
+              chunkedData.map((item) => `${item.ticker}-${item.exchangeMic}`),
+            ),
+          ]}
+        `);
+        throw err;
+      }
     }
 
     logger.info(`
@@ -170,11 +228,26 @@ export const syncSecuritiesPricing = async ({
   try {
     let dailyPrices: IAggs;
 
-    if (process.env.NODE_ENV === 'production') {
-      dailyPrices = await marketDataService.getAllDailyPricing();
-    } else {
+    const startProfiling = new Date();
+    logger.info(
+      `Started syncing stock tickers prices. ${startProfiling.toISOString()}`,
+    );
+
+    if (process.env.NODE_ENV === 'test') {
       dailyPrices = tickersPricesMock as unknown as IAggs;
+    } else {
+      const date = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      dailyPrices = await marketDataService.getAllDailyPricing({ date });
     }
+
+    const endProfiling = new Date();
+
+    logger.info(`
+      Finished LOADING stock tickers prices: ${endProfiling.toISOString()}.
+      Minutes took: ${differenceInMinutes(endProfiling, startProfiling)}.
+      Seconds took: ${differenceInSeconds(endProfiling, startProfiling)}.
+      Records loaded: ${dailyPrices.results.length}.
+    `);
 
     const securities = await loadSecuritiesList(
       { attributes: ['assetClass', 'id', 'symbol', 'currencyCode'] },

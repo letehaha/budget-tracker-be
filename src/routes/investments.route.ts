@@ -3,15 +3,15 @@ import { API_RESPONSE_STATUS } from 'shared-types';
 import { authenticateJwt } from '@middlewares/passport';
 // import { marketDataService } from '@services/investments/market-data.service';
 import {
-  syncSecuritiesList,
+  syncSecuritiesData,
   loadSecuritiesList,
-  syncSecuritiesPricing,
 } from '@services/investments/securities.service';
 
 import {
   loadHoldingsList,
   addHolding,
 } from '@services/investments/holdings.service';
+import { createInvestmentTransaction } from '@services/investments/investment-transactions.service';
 
 const router = Router({});
 
@@ -39,6 +39,40 @@ router.post('/holdings', authenticateJwt, async (req, res) => {
   });
 });
 
+router.post('/transaction', authenticateJwt, async (req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: userId } = req.user as any;
+  const {
+    accountId,
+    securityId,
+    transactionType,
+    date,
+    name,
+    quantity,
+    price,
+    fees,
+  } = req.body;
+
+  const data = await createInvestmentTransaction({
+    userId,
+    params: {
+      accountId,
+      securityId,
+      transactionType,
+      date,
+      name,
+      quantity,
+      price,
+      fees,
+    },
+  });
+
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
+
 // get holding by id
 // router.get('/holdings/:id');
 // update holding
@@ -48,11 +82,10 @@ router.post('/holdings', authenticateJwt, async (req, res) => {
 
 // curl http://127.0.0.1:8081/api/v1/investing/securities/sync
 router.get('/securities/sync', async (req, res) => {
-  const data = await syncSecuritiesList();
+  await syncSecuritiesData();
 
   return res.status(200).json({
     status: API_RESPONSE_STATUS.success,
-    response: data,
   });
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,14 +99,15 @@ router.get('/securities/:query?', async (req: any, res) => {
   });
 });
 
-router.get('/securities/prices', async (req, res) => {
-  const data = await syncSecuritiesPricing();
+// We have `syncSecuritiesData`
+// router.get('/securities/prices', async (req, res) => {
+//   const data = await syncSecuritiesPricing();
 
-  return res.status(200).json({
-    status: API_RESPONSE_STATUS.success,
-    response: data,
-  });
-});
+//   return res.status(200).json({
+//     status: API_RESPONSE_STATUS.success,
+//     response: data,
+//   });
+// });
 // get marked data. for example ?asset_class=crypto|stocks|etc & ticker= & symbol= & etc
 // so client can use it to fetch data for input field when user tries to add
 // holdings

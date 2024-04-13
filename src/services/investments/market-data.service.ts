@@ -1,5 +1,4 @@
 import { ASSET_CLASS } from 'shared-types';
-import { subDays, format } from 'date-fns';
 import type { IRestClient } from '@polygon.io/client-js';
 import { restClient, type IAggs } from '@polygon.io/client-js';
 import type { SecurityAttributes } from '@models/investments/Security.model';
@@ -51,9 +50,11 @@ export class PolygonMarketDataService {
     return data;
   }
 
-  async getAllDailyPricing(): Promise<IAggs> {
-    const date = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
+  async getAllDailyPricing({
+    date,
+  }: {
+    date: string; // yyyy-MM-dd
+  }): Promise<IAggs> {
     return await this.api.stocks.aggregatesGroupedDaily(date, {
       adjusted: 'true',
     });

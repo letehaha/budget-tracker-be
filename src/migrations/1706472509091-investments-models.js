@@ -5,8 +5,6 @@ const SECURITIES_NAME = 'Securities';
 const HOLDINGS_NAME = 'Holdings';
 const INVESTMENT_TRANSACTIONS_NAME = 'InvestmentTransactions';
 
-const UNIQUE_SECURITIES_INDEX_NAME = 'unique_securities_symbol_exchangeMic';
-
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -192,7 +190,7 @@ module.exports = {
           defaultValue: 'income'
         },
         date: {
-          type: Sequelize.DATEONLY,
+          type: Sequelize.DATE,
           allowNull: false
         },
         name: {

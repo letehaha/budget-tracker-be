@@ -10,7 +10,7 @@ import {
 import Account from '@models/Accounts.model';
 import Security from '@models/investments/Security.model';
 
-enum INVESTMENT_TRANSACTION_CATEGORY {
+export enum INVESTMENT_TRANSACTION_CATEGORY {
   buy = 'buy',
   sell = 'sell',
   dividend = 'dividend',
@@ -49,7 +49,7 @@ export default class InvestmentTransaction extends Model {
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
   transactionType: TRANSACTION_TYPES;
 
-  @Column({ type: DataType.DATEONLY })
+  @Column({ type: DataType.DATE })
   date: string;
 
   /**
@@ -71,6 +71,8 @@ export default class InvestmentTransaction extends Model {
 
   @Column({ type: DataType.DECIMAL(20, 10), allowNull: true })
   fees: string;
+  @Column({ type: DataType.DECIMAL(20, 10), allowNull: true })
+  refFees: string;
 
   /**
    * * The quantity of the security involved in the transaction. This is crucial
@@ -123,6 +125,12 @@ export default class InvestmentTransaction extends Model {
   // (hash, used to connect two transactions)
   @Column({ allowNull: true, defaultValue: null })
   transferId: string;
+
+  @Column
+  updatedAt: Date;
+
+  @Column
+  createdAt: Date;
 
   @BelongsTo(() => Account)
   account: Account;

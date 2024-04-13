@@ -19,32 +19,29 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.addIndex(
-        SECURITIES_NAME,
-        ['symbol', 'exchangeMic'],
-        {
-          unique: true,
-          name: UNIQUE_SECURITIES_INDEX_NAME,
-          transaction,
-        },
-      );
+      await queryInterface.addConstraint(SECURITIES_NAME, {
+        fields: ['symbol', 'exchangeMic'], // Columns to include in the unique constraint
+        type: 'unique',
+        name: UNIQUE_SECURITIES_INDEX_NAME,
+        transaction,
+      });
 
       await queryInterface.addIndex(
         INVESTMENT_TRANSACTIONS_NAME,
-        ['accountId', 'date'],
         {
+          fields: ['accountId', 'date'],
           name: INVESTMENT_TRANSACTIONS_INDEX_NAME,
-          transaction,
         },
+        { transaction }
       );
 
       await queryInterface.addIndex(
         SECURITY_PRICINGS_NAME,
-        ['date'],
         {
+          fields: ['date'],
           name: SECURITY_PRICINGS_INDEX_NAME,
-          transaction
         },
+        { transaction }
       );
 
       await transaction.commit();
@@ -59,7 +56,7 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeIndex(
+      await queryInterface.removeConstraint(
         SECURITIES_NAME,
         UNIQUE_SECURITIES_INDEX_NAME,
         { transaction },
