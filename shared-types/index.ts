@@ -51,20 +51,6 @@ export enum TRANSACTION_TRANSFER_NATURE {
   transfer_out_wallet = 'transfer_out_wallet',
 }
 
-export enum SECURITY_PROVIDER {
-  polygon = 'polygon',
-  other = 'other',
-}
-
-export enum ASSET_CLASS {
-  cash = 'cash',
-  crypto = 'crypto',
-  fixed_income = 'fixed_income',
-  options = 'options',
-  stocks = 'stocks',
-  other = 'other',
-}
-
 export * from './api';
 export * from './models';
 export * as endpointsTypes from './routes';

@@ -1,4 +1,9 @@
-import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
+import {
+  SECURITY_PROVIDER,
+  ASSET_CLASS,
+  SecurityModel,
+  SecurityPricingModel,
+} from 'shared-types';
 import {
   differenceInMinutes,
   differenceInSeconds,
@@ -9,12 +14,8 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
 import { Op, literal, type Order } from 'sequelize';
 import { logger } from '@js/utils';
-import Securities, {
-  SecurityAttributes,
-} from '@models/investments/Security.model';
-import SecurityPricing, {
-  type SecurityPricingAttributes,
-} from '@models/investments/SecurityPricing.model';
+import Securities from '@models/investments/Security.model';
+import SecurityPricing from '@models/investments/SecurityPricing.model';
 import chunk from 'lodash/chunk';
 import { marketDataService, type TickersResponse } from './market-data.service';
 
@@ -22,10 +23,10 @@ import tickersMock from './mocks/tickers-mock.json';
 import type { IAggs } from '@polygon.io/client-js';
 import tickersPricesMock from './mocks/tickers-prices-mock.json';
 
-export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
+export async function loadSecuritiesList<T extends keyof SecurityModel>(
   { attributes, query }: { attributes?: T[]; query?: string } = {},
   { transaction }: GenericSequelizeModelAttributes = {},
-): Promise<Pick<SecurityAttributes, T>[]> {
+): Promise<Pick<SecurityModel, T>[]> {
   const isTxPassedFromAbove = transaction !== undefined;
   transaction = transaction ?? (await connection.sequelize.transaction());
 
@@ -63,7 +64,7 @@ export async function loadSecuritiesList<T extends keyof SecurityAttributes>(
       where,
       order,
       attributes,
-    })) as Pick<SecurityAttributes, T>[];
+    })) as Pick<SecurityModel, T>[];
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();
@@ -158,7 +159,7 @@ export const syncSecuritiesList = async ({
             providerName: SECURITY_PROVIDER.polygon,
             assetClass: ASSET_CLASS.stocks,
             updatedAt: new Date(),
-          })) as SecurityAttributes[],
+          })) as SecurityModel[],
           {
             conflictAttributes: ['symbol', 'exchangeMic'],
             updateOnDuplicate: [
@@ -262,14 +263,16 @@ export const syncSecuritiesPricing = async ({
     const result = [];
 
     for (const chunkedData of chunk(prices, 500)) {
-      const data: Omit<SecurityPricingAttributes, 'updatedAt' | 'createdAt'>[] =
-        chunkedData.map((item) => ({
-          securityId: item.security.id,
-          date: new Date(item.pricing.updatedAt),
-          priceClose: String(item.pricing.price),
-          priceAsOf: new Date(item.pricing.updatedAt),
-          source: marketDataService.source,
-        }));
+      const data: Omit<
+        SecurityPricingModel,
+        'updatedAt' | 'createdAt' | 'security'
+      >[] = chunkedData.map((item) => ({
+        securityId: item.security.id,
+        date: new Date(item.pricing.updatedAt),
+        priceClose: String(item.pricing.price),
+        priceAsOf: new Date(item.pricing.updatedAt),
+        source: marketDataService.source,
+      }));
 
       result.push(...data);
 

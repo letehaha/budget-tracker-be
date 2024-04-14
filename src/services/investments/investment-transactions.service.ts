@@ -1,16 +1,18 @@
+import {
+  TRANSACTION_TYPES,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  InvestmentTransactionModel,
+} from 'shared-types';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import { connection } from '@models/index';
-import InvestmentTransaction, {
-  INVESTMENT_TRANSACTION_CATEGORY,
-} from '@models/investments/InvestmentTransaction.model';
+import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import { calculateRefAmount } from '../calculate-ref-amount.service';
 import Security from '@models/investments/Security.model';
-import { TRANSACTION_TYPES } from 'shared-types';
 import Holding from '@models/investments/Holdings.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 
 type CreationParams = Pick<
-  InvestmentTransaction,
+  InvestmentTransactionModel,
   | 'accountId'
   | 'securityId'
   | 'transactionType'
@@ -76,7 +78,13 @@ export async function createInvestmentTransaction(
       : params.fees;
 
     const result = await InvestmentTransaction.create(
-      { ...creationParams, amount, refPrice, refAmount, refFees },
+      {
+        ...creationParams,
+        amount: String(amount),
+        refPrice: String(refPrice),
+        refAmount: String(refAmount),
+        refFees: String(refFees),
+      },
       {
         transaction,
       },
@@ -89,8 +97,6 @@ export async function createInvestmentTransaction(
       order: [['date', 'DESC']],
       transaction,
     });
-
-    console.log('currentPrice', currentPrice);
 
     const currentHolding = await Holding.findOne({
       where: {

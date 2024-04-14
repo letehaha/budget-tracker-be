@@ -1,7 +1,6 @@
-import { ASSET_CLASS } from 'shared-types';
+import { ASSET_CLASS, type SecurityModel } from 'shared-types';
 import type { IRestClient } from '@polygon.io/client-js';
 import { restClient, type IAggs } from '@polygon.io/client-js';
-import type { SecurityAttributes } from '@models/investments/Security.model';
 import { UnwrapPromise, UnwrapArray } from '@common/types';
 import { requestsUtils, logger } from '@js/utils';
 
@@ -123,7 +122,7 @@ export class PolygonMarketDataService {
 
   async getEndOfDayPricing<
     TSecurity extends Pick<
-      SecurityAttributes,
+      SecurityModel,
       'id' | 'symbol' | 'assetClass' | 'currencyCode'
     >,
   >(
@@ -189,7 +188,7 @@ export function getPolygonTicker({
   currencyCode,
   symbol,
 }: Pick<
-  SecurityAttributes,
+  SecurityModel,
   'assetClass' | 'currencyCode' | 'symbol'
 >): PolygonTicker | null {
   if (!symbol) return null;

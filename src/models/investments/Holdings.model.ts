@@ -1,3 +1,4 @@
+import { HoldingModel } from 'shared-types';
 import {
   Table,
   Column,
@@ -41,23 +42,11 @@ import Security from '@models/investments/Security.model';
  * always have up to date value
  */
 
-interface HoldingAttributes {
-  accountId: number;
-  securityId: number;
-  value: string;
-  refValue: string;
-  quantity: string;
-  costBasis: string;
-  refCostBasis: string;
-  currencyCode: string;
-  excluded: boolean;
-}
-
 @Table({
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holding extends Model<HoldingAttributes> {
+export default class Holding extends Model<HoldingModel> {
   @ForeignKey(() => Account)
   @Column
   accountId: number;

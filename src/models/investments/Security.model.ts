@@ -1,28 +1,8 @@
 import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
-import { SECURITY_PROVIDER, ASSET_CLASS } from 'shared-types';
+import { SECURITY_PROVIDER, ASSET_CLASS, SecurityModel } from 'shared-types';
 import Holding from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-
-export interface SecurityAttributes {
-  id: number;
-  name?: string;
-  symbol?: string;
-  cusip?: string;
-  isin?: string;
-  sharesPerContract?: string;
-  currencyCode: string;
-  cryptoCurrencyCode?: string;
-  pricingLastSyncedAt?: Date;
-  isBrokerageCash: boolean;
-  exchangeAcronym?: string;
-  exchangeMic?: string;
-  exchangeName?: string;
-  providerName: SECURITY_PROVIDER;
-  assetClass: ASSET_CLASS;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 /**
  * Represents static information about financial securities, such as stocks, bonds, mutual funds, etc.
@@ -42,7 +22,7 @@ export interface SecurityAttributes {
     },
   ],
 })
-export default class Security extends Model<SecurityAttributes> {
+export default class Security extends Model<SecurityModel> {
   @Column({
     unique: true,
     allowNull: false,

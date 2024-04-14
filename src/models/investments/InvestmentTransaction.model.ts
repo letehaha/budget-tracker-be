@@ -1,4 +1,9 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
+import {
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  InvestmentTransactionModel,
+} from 'shared-types';
 import {
   Table,
   Column,
@@ -10,22 +15,11 @@ import {
 import Account from '@models/Accounts.model';
 import Security from '@models/investments/Security.model';
 
-export enum INVESTMENT_TRANSACTION_CATEGORY {
-  buy = 'buy',
-  sell = 'sell',
-  dividend = 'dividend',
-  transfer = 'transfer',
-  tax = 'tax',
-  fee = 'fee',
-  cancel = 'cancel',
-  other = 'other',
-}
-
 @Table({
   timestamps: true,
   tableName: 'InvestmentTransactions',
 })
-export default class InvestmentTransaction extends Model {
+export default class InvestmentTransaction extends Model<InvestmentTransactionModel> {
   @Column({
     unique: true,
     allowNull: false,
