@@ -64,7 +64,7 @@ export async function loadSecuritiesList<T extends keyof SecurityModel>(
       where,
       order,
       attributes,
-    })) as Pick<SecurityModel, T>[];
+    })) as unknown as Pick<SecurityModel, T>[];
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

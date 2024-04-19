@@ -11,7 +11,10 @@ import {
   loadHoldingsList,
   addHolding,
 } from '@services/investments/holdings.service';
-import { createInvestmentTransaction } from '@services/investments/investment-transactions.service';
+import {
+  createInvestmentTransaction,
+  getInvestmentTransactions,
+} from '@services/investments/investment-transactions.service';
 
 const router = Router({});
 
@@ -65,6 +68,26 @@ router.post('/transaction', authenticateJwt, async (req, res) => {
       price,
       fees,
     },
+  });
+
+  return res.status(200).json({
+    status: API_RESPONSE_STATUS.success,
+    response: data,
+  });
+});
+
+router.get('/transactions', authenticateJwt, async (req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: userId } = req.user as any;
+  const { accountId, securityId } = req.query as {
+    accountId?: string;
+    securityId?: string;
+  };
+
+  const data = await getInvestmentTransactions({
+    userId,
+    securityId: parseFloat(securityId),
+    accountId: parseFloat(accountId),
   });
 
   return res.status(200).json({

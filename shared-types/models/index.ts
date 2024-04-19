@@ -341,6 +341,7 @@ export interface InvestmentTransactionModel {
   transferId: string;
   updatedAt: Date;
   createdAt: Date;
+
   security?: SecurityModel;
   account?: AccountModel;
 }
