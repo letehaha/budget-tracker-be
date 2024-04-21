@@ -1,5 +1,4 @@
 import axios from 'axios';
-// const CryptoJS = require('crypto-js');
 import crypto from 'crypto';
 
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
