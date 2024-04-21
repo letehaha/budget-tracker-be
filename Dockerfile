@@ -1,4 +1,4 @@
-FROM node:20.9.0
+FROM node:21.7.3
 WORKDIR /app
 COPY . .
 RUN npm ci
