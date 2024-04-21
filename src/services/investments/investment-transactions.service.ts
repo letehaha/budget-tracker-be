@@ -9,9 +9,10 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import { calculateRefAmount } from '../calculate-ref-amount.service';
 import Security from '@models/investments/Security.model';
 import Holding from '@models/investments/Holdings.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
 import Accounts from '@models/Accounts.model';
 import { removeUndefinedKeys } from '@js/helpers';
+import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import Currencies from '@models/Currencies.model';
 
 type CreationParams = Pick<
   InvestmentTransactionModel,
@@ -25,6 +26,13 @@ type CreationParams = Pick<
   | 'fees'
 >;
 
+/**
+ *
+ * 1. Create tx with the correct values
+ * 2. Update Holdings
+ * 3. Update Account balances
+ * 4. Update Balances table
+ */
 export async function createInvestmentTransaction(
   { params, userId }: { params: CreationParams; userId: number },
   { transaction }: GenericSequelizeModelAttributes = {},
@@ -77,7 +85,7 @@ export async function createInvestmentTransaction(
           },
           { transaction },
         )
-      : params.fees;
+      : parseFloat(params.fees);
 
     const result = await InvestmentTransaction.create(
       {
@@ -92,14 +100,6 @@ export async function createInvestmentTransaction(
       },
     );
 
-    const currentPrice = await SecurityPricing.findOne({
-      where: {
-        securityId: params.securityId,
-      },
-      order: [['date', 'DESC']],
-      transaction,
-    });
-
     const currentHolding = await Holding.findOne({
       where: {
         accountId: params.accountId,
@@ -110,7 +110,8 @@ export async function createInvestmentTransaction(
 
     const newQuantity =
       parseFloat(currentHolding.quantity) + parseFloat(params.quantity);
-    const value = newQuantity * parseFloat(currentPrice.priceClose);
+    const value = newQuantity * parseFloat(params.price);
+
     const refValue = await calculateRefAmount(
       {
         amount: value,
@@ -120,15 +121,18 @@ export async function createInvestmentTransaction(
       { transaction },
     );
 
+    const newCostBasis: number =
+      parseFloat(currentHolding.costBasis) + amount + parseFloat(params.fees);
+    const newRefCostBasis: number =
+      parseFloat(currentHolding.refCostBasis) + refAmount + refFees;
+
     await Holding.update(
       {
         value: String(value),
         refValue: String(refValue),
         quantity: String(newQuantity),
-        costBasis: String(parseFloat(currentHolding.costBasis) + amount),
-        refCostBasis: String(
-          parseFloat(currentHolding.refCostBasis) + refAmount,
-        ),
+        costBasis: String(newCostBasis),
+        refCostBasis: String(newRefCostBasis),
       },
       {
         where: {
@@ -139,7 +143,27 @@ export async function createInvestmentTransaction(
       },
     );
 
-    // TODO: update account balance
+    const currency = await Currencies.findOne({
+      where: { code: security.currencyCode },
+      transaction,
+    });
+
+    await updateAccountBalanceForChangedTx(
+      {
+        userId,
+        accountId: params.accountId,
+        transactionType: params.transactionType,
+        // We store amounts in Account as integer, so need to mutiply that by 100
+        amount: Math.floor(
+          (parseFloat(currentHolding.costBasis) + amount) * 100,
+        ),
+        refAmount: Math.floor(
+          (parseFloat(currentHolding.refCostBasis) + refAmount) * 100,
+        ),
+        currencyId: currency.id,
+      },
+      { transaction },
+    );
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

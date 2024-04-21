@@ -88,6 +88,7 @@ export async function addHolding(
         refValue: '0',
         quantity: '0',
         costBasis: '0',
+        refCostBasis: '0',
       },
       transaction,
     });
