@@ -23,6 +23,8 @@ import tickersMock from './mocks/tickers-mock.json';
 import type { IAggs } from '@polygon.io/client-js';
 import tickersPricesMock from './mocks/tickers-prices-mock.json';
 
+const IS_TEST_ENV = process.env.NODE_ENV === 'test';
+
 export async function loadSecuritiesList<T extends keyof SecurityModel>(
   { attributes, query }: { attributes?: T[]; query?: string } = {},
   { transaction }: GenericSequelizeModelAttributes = {},
@@ -112,7 +114,7 @@ export const syncSecuritiesData = async ({
 export const syncSecuritiesList = async ({
   transaction,
 }: GenericSequelizeModelAttributes = {}) => {
-  if (!process.env.POLYGON_API_KEY) {
+  if (!process.env.POLYGON_API_KEY && !IS_TEST_ENV) {
     logger.warn('No Polygon API key found, skipping sync');
     return;
   }
@@ -127,7 +129,7 @@ export const syncSecuritiesList = async ({
     );
 
     let tickers: TickersResponse = [];
-    if (process.env.NODE_ENV === 'test') {
+    if (IS_TEST_ENV) {
       tickers = tickersMock as TickersResponse;
     } else {
       tickers = await marketDataService.getUSStockTickers();
@@ -218,7 +220,7 @@ export const syncSecuritiesList = async ({
 export const syncSecuritiesPricing = async ({
   transaction,
 }: GenericSequelizeModelAttributes = {}) => {
-  if (!process.env.POLYGON_API_KEY) {
+  if (!process.env.POLYGON_API_KEY && !IS_TEST_ENV) {
     logger.warn('No polygon API key found, skipping sync');
     return;
   }
@@ -234,7 +236,7 @@ export const syncSecuritiesPricing = async ({
       `Started syncing stock tickers prices. ${startProfiling.toISOString()}`,
     );
 
-    if (process.env.NODE_ENV === 'test') {
+    if (IS_TEST_ENV) {
       dailyPrices = tickersPricesMock as unknown as IAggs;
     } else {
       const date = format(subDays(new Date(), 1), 'yyyy-MM-dd');

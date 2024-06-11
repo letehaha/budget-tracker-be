@@ -11,7 +11,7 @@ jest.mock('axios');
 const umzug = new Umzug({
   migrations: {
     // The params that get passed to the migrations
-    params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
+    params: [connection.sequelize!.getQueryInterface(), connection.sequelize!.constructor],
     // The path to the migrations directory
     path: path.join(__dirname, '../migrations'),
     // The pattern that determines whether files are migrations
@@ -27,6 +27,7 @@ global.BASE_CURRENCY = null;
 global.BASE_CURRENCY_CODE = 'USD';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
+global.SECURITIES_LIST = null;
 
 async function dropAllEnums(sequelize) {
   // Get all ENUM types
@@ -65,7 +66,7 @@ beforeEach(async () => {
       const result = await redisClient.hello();
       return !!result;
     });
-    await connection.sequelize.drop({ cascade: true });
+    await connection.sequelize!.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
     const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
     if (workerKeys.length) {
@@ -106,6 +107,19 @@ beforeEach(async () => {
       global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
     }
 
+    if (!global.SECURITIES_LIST) {
+      await makeRequest({
+        method: 'get',
+        url: '/investing/securities/sync',
+      });
+      const securities = await makeRequest({
+        method: 'get',
+        url: '/investing/securities',
+        raw: true,
+      });
+      global.SECURITIES_LIST = securities;
+    }
+
     await makeRequest({
       method: 'post',
       url: '/user/currencies/base',
@@ -114,7 +128,8 @@ beforeEach(async () => {
   } catch (err) {
     console.log(err);
   }
-}, 10_000);
+  // we need to load secruties, and it takes some time, so default 5_000 not enough even for mocked data
+}, 15_000);
 
 afterAll(async () => {
   try {
