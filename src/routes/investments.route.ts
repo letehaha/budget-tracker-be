@@ -7,14 +7,13 @@ import {
   loadSecuritiesList,
 } from '@services/investments/securities.service';
 
-import {
-  loadHoldingsList,
-  createHolding,
-} from '@services/investments/holdings';
+import { loadHoldingsList } from '@services/investments/holdings';
 import {
   createInvestmentTransaction,
   getInvestmentTransactions,
-} from '@services/investments/investment-transactions.service';
+} from '@services/investments/transactions';
+
+import { createHolding } from '@controllers/investments/holdings';
 
 const router = Router({});
 
@@ -30,17 +29,7 @@ router.get('/holdings', authenticateJwt, async (req, res) => {
   });
 });
 // create a new holding
-router.post('/holdings', authenticateJwt, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { id: userId } = req.user as any;
-  const { accountId, securityId } = req.body;
-  const data = await createHolding({ userId, accountId, securityId });
-
-  return res.status(200).json({
-    status: API_RESPONSE_STATUS.success,
-    response: data,
-  });
-});
+router.post('/holdings', authenticateJwt, createHolding);
 
 router.post('/transaction', authenticateJwt, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

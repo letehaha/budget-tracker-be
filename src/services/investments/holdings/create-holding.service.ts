@@ -4,6 +4,7 @@ import { connection } from '@models/index';
 import Account from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import Security from '@models/investments/Security.model';
+import { ValidationError } from '@js/errors';
 
 export async function createHolding(
   {
@@ -26,7 +27,9 @@ export async function createHolding(
     });
 
     if (!account) {
-      throw new Error('Account does not belong to the user or does not exist.');
+      throw new ValidationError({
+        message: 'Account does not belong to the user or does not exist.',
+      });
     }
 
     const security = await Security.findOne({
@@ -35,7 +38,9 @@ export async function createHolding(
     });
 
     if (!security) {
-      throw new Error('Security does not exist.');
+      throw new ValidationError({
+        message: 'Security with the provided id does not exist.',
+      });
     }
 
     const [holding] = await Holdings.findOrCreate({
