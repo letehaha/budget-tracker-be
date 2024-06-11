@@ -50,7 +50,7 @@ export default class InvestmentTransaction extends Model<InvestmentTransactionMo
    * A descriptive name or title for the investment transaction, providing a
    * quick overview of the transaction's nature. Same as `note` in `Transactions`
    */
-  @Column
+  @Column({ type: DataType.STRING, allowNull: true })
   name: string;
 
   /**
@@ -78,7 +78,7 @@ export default class InvestmentTransaction extends Model<InvestmentTransactionMo
   /**
    * The price per unit of the security at the time of the transaction.
    * This is used to calculate the total transaction amount and update the cost
-   * basis of the holding.
+   * basis of the holding. TODO: why null is allowed?
    */
   @Column({ type: DataType.DECIMAL(20, 10), allowNull: true })
   price: string;
