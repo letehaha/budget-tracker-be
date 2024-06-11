@@ -6,29 +6,19 @@ import {
   syncSecuritiesData,
   loadSecuritiesList,
 } from '@services/investments/securities.service';
-
-import { loadHoldingsList } from '@services/investments/holdings';
 import {
   createInvestmentTransaction,
   getInvestmentTransactions,
 } from '@services/investments/transactions';
 
-import { createHolding } from '@controllers/investments/holdings';
+import { createHolding, loadHoldings } from '@controllers/investments/holdings';
 
 const router = Router({});
 
-// get all holdings
-router.get('/holdings', authenticateJwt, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { id: userId } = req.user as any;
-  const data = await loadHoldingsList({ userId });
-
-  return res.status(200).json({
-    status: API_RESPONSE_STATUS.success,
-    response: data,
-  });
-});
-// create a new holding
+/**
+ * Holdings CRUD
+ */
+router.get('/holdings', authenticateJwt, loadHoldings);
 router.post('/holdings', authenticateJwt, createHolding);
 
 router.post('/transaction', authenticateJwt, async (req, res) => {
