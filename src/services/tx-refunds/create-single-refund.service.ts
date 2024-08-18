@@ -4,6 +4,7 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { NotFoundError, ValidationError } from '@js/errors';
+import { TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 
 interface CreateSingleRefundParams {
   userId: number;
@@ -13,6 +14,15 @@ interface CreateSingleRefundParams {
 
 /**
  * Creates a single refund transaction for an original transaction.
+ * There's following rules when creating is disallowed:
+ * 1. When base_tx or refund_tx cannot be found.
+ * 2. When base_tx and refund_tx have the same transactionType. They should always be opposite
+ * 3. Refund `refAmount` is GREATER than base tx `refAmount`. `amount` can be greater or less, due to
+ *    different currencies.
+ * 4. Sum of multiple refunds is greater than the `refAmount` of the base tx. Basically the same as
+ *    3rd point.
+ * 5. Refund over `transfer` transaction. Might be supported in the future, but not now.
+ * 6. Refund over existing refund.
  *
  * @async
  * @export
@@ -49,6 +59,17 @@ export async function createSingleRefund(
       });
     }
 
+    if (originalTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+      throw new ValidationError({
+        message: 'Original (non-refund) transaction cannot be transfer one.',
+      });
+    }
+    if (refundTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+      throw new ValidationError({
+        message: 'Refund transaction cannot be a transfer one.',
+      });
+    }
+
     // Check if transaction types are opposite
     if (originalTx.transactionType === refundTx.transactionType) {
       throw new ValidationError({
@@ -61,6 +82,37 @@ export async function createSingleRefund(
     if (Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
       throw new ValidationError({
         message: 'Refund amount cannot be greater than the original transaction amount',
+      });
+    }
+
+    // Prevent "refund" over "refund"
+    const isOriginalTxRefund = await RefundTransactions.default.findOne({
+      where: { refund_tx_id: originalTxId },
+      transaction,
+    });
+
+    if (isOriginalTxRefund) {
+      throw new ValidationError({
+        message: 'Cannot refund a "refund" transaction',
+      });
+    }
+
+    // Fetch all existing refunds for the original transaction
+    const existingRefunds = await RefundTransactions.default.findAll({
+      where: { original_tx_id: originalTxId },
+      include: [{ model: Transactions.default, as: 'refundTransaction' }],
+      transaction,
+    });
+
+    // Calculate the total refunded amount
+    const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
+      return sum + Math.abs(refund.refundTransaction.refAmount);
+    }, 0);
+
+    // Check if the new refund would exceed the original transaction amount
+    if (totalRefundedAmount + Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
+      throw new ValidationError({
+        message: 'Total refund amount cannot be greater than the original transaction amount',
       });
     }
 
@@ -85,6 +137,3 @@ export async function createSingleRefund(
     throw e;
   }
 }
-
-// TODO: refund deletion
-// TODO: update transaction that has linked refund
