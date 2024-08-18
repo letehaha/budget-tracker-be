@@ -1,8 +1,4 @@
-import {
-  ACCOUNT_TYPES,
-  TRANSACTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-} from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
 import { connection } from '@models/index';
@@ -52,21 +48,15 @@ export const calcTransferTransactionRefAmount = async (
     baseTransaction: Transactions.default;
     destinationAmount: number;
     oppositeTxCurrencyCode: string;
-    baseCurrency?: UnwrapPromise<
-      ReturnType<typeof UsersCurrencies.getBaseCurrency>
-    >;
+    baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   if (!baseCurrency) {
-    baseCurrency = await UsersCurrencies.getBaseCurrency(
-      { userId },
-      { transaction },
-    );
+    baseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
   }
 
-  const isSourceRef =
-    baseTransaction.currencyCode === baseCurrency.currency.code;
+  const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
   const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
 
   let oppositeRefAmount = destinationAmount;
@@ -110,13 +100,10 @@ export const calcTransferTransactionRefAmount = async (
  * 2. generate "transferId" and put it to both transactions
  * 3. Calculate correct refAmount for both base and opposite tx. Logic is described down in the code
  */
-export const createOppositeTransaction = async (
-  params: CreateOppositeTransactionParams,
-) => {
+export const createOppositeTransaction = async (params: CreateOppositeTransactionParams) => {
   const [creationParams, baseTransaction, transaction] = params;
 
-  const { destinationAmount, destinationAccountId, userId, transactionType } =
-    creationParams;
+  const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
@@ -141,10 +128,7 @@ export const createOppositeTransaction = async (
     id: destinationAccountId,
   });
 
-  const defaultUserCurrency = await UsersCurrencies.getBaseCurrency(
-    { userId },
-    { transaction },
-  );
+  const defaultUserCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
 
   const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } =
     await calcTransferTransactionRefAmount(
@@ -250,15 +234,11 @@ export const createTransaction = async (
       );
     }
 
-    const baseTransaction = await Transactions.createTransaction(
-      generalTxParams,
-      { transaction },
-    );
+    const baseTransaction = await Transactions.createTransaction(generalTxParams, { transaction });
 
-    let transactions: [
-      baseTx: Transactions.default,
-      oppositeTx?: Transactions.default,
-    ] = [baseTransaction];
+    let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [
+      baseTransaction,
+    ];
 
     /**
      * If transaction is transfer between two accounts, add transferId to both

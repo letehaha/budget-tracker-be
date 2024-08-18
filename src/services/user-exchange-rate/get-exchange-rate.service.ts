@@ -8,20 +8,12 @@ import * as Currencies from '@models/Currencies.model';
 const formatRate = (rate) => Math.trunc(rate * 100000) / 100000;
 
 export async function getExchangeRate(
-  {
-    userId,
-    baseId,
-    quoteId,
-  }: { userId: number; baseId: number; quoteId: number },
+  { userId, baseId, quoteId }: { userId: number; baseId: number; quoteId: number },
   { transaction }: { transaction?: Transaction },
 ): Promise<UserExchangeRates.default | ExchangeRates.default>;
 
 export async function getExchangeRate(
-  {
-    userId,
-    baseCode,
-    quoteCode,
-  }: { userId: number; baseCode: string; quoteCode: string },
+  { userId, baseCode, quoteCode }: { userId: number; baseCode: string; quoteCode: string },
   { transaction }: { transaction?: Transaction },
 ): Promise<UserExchangeRates.default | ExchangeRates.default>;
 
@@ -44,14 +36,8 @@ export async function getExchangeRate(
   let pair = { baseCode, quoteCode };
 
   if (!baseCode && !quoteCode) {
-    const { code: base } = await Currencies.getCurrency(
-      { id: Number(baseId) },
-      { transaction },
-    );
-    const { code: quote } = await Currencies.getCurrency(
-      { id: Number(quoteId) },
-      { transaction },
-    );
+    const { code: base } = await Currencies.getCurrency({ id: Number(baseId) }, { transaction });
+    const { code: quote } = await Currencies.getCurrency({ id: Number(quoteId) }, { transaction });
 
     pair = { baseCode: base, quoteCode: quote };
   }
@@ -74,10 +60,10 @@ export async function getExchangeRate(
       };
     }
 
-    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs(
-      [pair],
-      { transaction, raw: true },
-    );
+    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs([pair], {
+      transaction,
+      raw: true,
+    });
 
     return {
       ...exchangeRate,

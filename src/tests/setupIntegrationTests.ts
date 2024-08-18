@@ -9,10 +9,7 @@ jest.mock('axios');
 const umzug = new Umzug({
   migrations: {
     // The params that get passed to the migrations
-    params: [
-      connection.sequelize.getQueryInterface(),
-      connection.sequelize.constructor,
-    ],
+    params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
     // The path to the migrations directory
     path: path.join(__dirname, '../migrations'),
     // The pattern that determines whether files are migrations
@@ -60,6 +57,7 @@ expect.extend({
 
 beforeEach(async () => {
   try {
+    await umzug.down();
     await connection.sequelize.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
     redisClient.FLUSHALL('SYNC');

@@ -15,15 +15,6 @@ module.exports = {
         data.data = JSON.parse(
           fs.readFileSync('./src/tests/test-exchange-rates.json'),
         );
-      } else {
-        data = await axios({
-          method: 'get',
-          redirect: 'follow',
-          url: 'https://api.apilayer.com/exchangerates_data/latest?base=USD',
-          headers: {
-            apikey: process.env.API_LAYER_API_KEY,
-          },
-        });
       }
 
       const currencies = await queryInterface.sequelize.query(
