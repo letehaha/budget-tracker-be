@@ -57,7 +57,6 @@ expect.extend({
 
 beforeEach(async () => {
   try {
-    await umzug.down();
     await connection.sequelize.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
     redisClient.FLUSHALL('SYNC');

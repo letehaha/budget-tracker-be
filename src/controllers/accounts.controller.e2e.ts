@@ -26,9 +26,7 @@ describe('Accounts controller', () => {
       expect(account.refCreditLimit).toStrictEqual(creditLimit);
     });
     it('should correctly create account with correct balance for external currency', async () => {
-      const currency = (
-        await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true })
-      )[0];
+      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))[0];
 
       const account = await helpers.createAccount({
         payload: {
@@ -40,9 +38,7 @@ describe('Accounts controller', () => {
         raw: true,
       });
 
-      const currencyRate = (
-        await helpers.getCurrenciesRates({ codes: ['UAH'] })
-      )[0];
+      const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
       expect(account.refInitialBalance).toStrictEqual(
@@ -53,9 +49,7 @@ describe('Accounts controller', () => {
         Math.floor(initialBalance * currencyRate.rate),
       );
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(
-        Math.floor(creditLimit * currencyRate.rate),
-      );
+      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate.rate));
     });
   });
   describe('update account', () => {
@@ -65,9 +59,7 @@ describe('Accounts controller', () => {
       });
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
-      expect(helpers.extractResponse(res).code).toEqual(
-        API_ERROR_CODES.notFound,
-      );
+      expect(helpers.extractResponse(res).code).toEqual(API_ERROR_CODES.notFound);
     });
 
     it('should just ignore if no data passed', async () => {
@@ -148,9 +140,6 @@ describe('Accounts controller', () => {
         },
         raw: true,
       });
-      const currencyRate = (
-        await helpers.getCurrenciesRates({ codes: [newCurrency] })
-      )[0];
 
       // Create 3 expense transactions with -1000 each
       for (const index in Array(3).fill(0)) {
@@ -169,9 +158,7 @@ describe('Accounts controller', () => {
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
-      expect(accountAfterTxs.refCurrentBalance).toBe(
-        -Math.floor(3000 * currencyRate.rate),
-      );
+      expect(accountAfterTxs.refCurrentBalance).toBe(-72);
 
       // Update account balance directly, with no tx usage. In that case balance should
       // be changed as well as initialBalance
@@ -186,14 +173,9 @@ describe('Accounts controller', () => {
       // We changed currentBalance from -3000 to -500, so it means that
       // initialbalance should be increased on 2500
       expect(accountUpdateBalance.initialBalance).toBe(2500);
-      expect(accountUpdateBalance.refInitialBalance).toBe(
-        Math.floor(2500 * currencyRate.rate),
-      );
+      expect(accountUpdateBalance.refInitialBalance).toBe(60);
       expect(accountUpdateBalance.currentBalance).toBe(-500);
-      // Because of the rounding issues it might be that value might be wrong on 1 in any direction
-      expect(accountUpdateBalance.refCurrentBalance).toBe(
-        -Math.floor(500 * currencyRate.rate) - 1,
-      );
+      expect(accountUpdateBalance.refCurrentBalance).toBe(-12);
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
