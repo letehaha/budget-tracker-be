@@ -10,9 +10,16 @@ import {
   deleteTransaction,
 } from '@controllers/transactions.controller';
 import { createRefund } from '@controllers/transactions.controller/refunds/create-refund';
+import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
+import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
 import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
+
+// Define all named routes level above to avoid matching with /:id
+router.get('/refund', authenticateJwt, getRefund);
+router.post('/refund', authenticateJwt, createRefund);
+router.delete('/refund', authenticateJwt, deleteRefund);
 
 router.get('/', authenticateJwt, getTransactions);
 router.get('/:id', authenticateJwt, getTransactionById);
@@ -22,7 +29,5 @@ router.put('/unlink', authenticateJwt, unlinkTransferTransactions);
 router.put('/link', authenticateJwt, linkTransactions);
 router.put('/:id', authenticateJwt, updateTransaction);
 router.delete('/:id', authenticateJwt, deleteTransaction);
-
-router.post('/refund', authenticateJwt, createRefund);
 
 export default router;

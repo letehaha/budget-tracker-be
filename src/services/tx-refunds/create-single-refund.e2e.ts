@@ -15,6 +15,19 @@ const callCreateSingleRefund = async (
   return raw ? helpers.extractResponse(result) : result;
 };
 
+const callDeleteRefund = async (
+  payload: { originalTxId: number; refundTxId: number },
+  raw = false,
+) => {
+  const result = await helpers.makeRequest({
+    method: 'delete',
+    url: '/transactions/refund',
+    payload,
+  });
+
+  return raw ? helpers.extractResponse(result) : result;
+};
+
 describe('Refund Transactions service', () => {
   describe('createSingleRefund', () => {
     describe('success cases', () => {
@@ -293,6 +306,57 @@ describe('Refund Transactions service', () => {
 
         expect(result.original_tx_id).toEqual(baseTx.id);
         expect(result.refund_tx_id).toEqual(refundTx2.id);
+      });
+
+      it('successfully creates refund tx after unlinking', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        let creationResponse = await callCreateSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx.id,
+          },
+          true,
+        );
+
+        expect(creationResponse.original_tx_id).toEqual(baseTx.id);
+        expect(creationResponse.refund_tx_id).toEqual(refundTx.id);
+
+        const unlinkResponse = await callDeleteRefund({
+          originalTxId: baseTx.id,
+          refundTxId: refundTx.id,
+        });
+
+        expect(unlinkResponse.statusCode).toBe(200);
+
+        creationResponse = await callCreateSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx.id,
+          },
+          true,
+        );
+
+        expect(creationResponse.original_tx_id).toEqual(baseTx.id);
+        expect(creationResponse.refund_tx_id).toEqual(refundTx.id);
       });
     });
 
@@ -587,6 +651,31 @@ describe('Refund Transactions service', () => {
         expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
         expect(helpers.extractResponse(result).message).toContain(
           'Cannot refund a "refund" transaction',
+        );
+      });
+
+      it('fails when trying to link transcation to itself', async () => {
+        const account1 = await helpers.createAccount({ raw: true });
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account1.id,
+              amount: 10,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+          },
+          raw: true,
+        });
+
+        const result = await callCreateSingleRefund({
+          originalTxId: baseTx.id,
+          refundTxId: baseTx.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain(
+          'Attempt to link a single transaction to itself',
         );
       });
     });

@@ -45,10 +45,7 @@ export async function makeRequest({
   let tempUrl = url;
 
   if (method === 'get') {
-    tempUrl =
-      tempUrl +
-      '?' +
-      new URLSearchParams(payload as Record<string, string>).toString();
+    tempUrl = tempUrl + '?' + new URLSearchParams(payload as Record<string, string>).toString();
   }
 
   const base = request(app)[method](`${apiPrefix}${tempUrl}`);
@@ -65,13 +62,8 @@ export const sleep = (time = 1000) => {
   return new Promise((resolve) => setTimeout(resolve, time));
 };
 
-export const randomDate = (
-  start: Date = new Date(2020, 1, 5),
-  end: Date = new Date(),
-) => {
-  return new Date(
-    start.getTime() + Math.random() * (end.getTime() - start.getTime()),
-  );
+export const randomDate = (start: Date = new Date(2020, 1, 5), end: Date = new Date()) => {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 };
 
 export const buildAccountPayload = (
@@ -90,9 +82,7 @@ type BuildAccountPayload = ReturnType<typeof buildAccountPayload>;
 export const buildTransactionPayload = ({
   accountId,
   ...overrides
-}: { accountId: number } & ReturnType<
-  typeof buildTransactionPayload
->): TransactionModel => ({
+}: { accountId: number } & ReturnType<typeof buildTransactionPayload>): TransactionModel => ({
   accountId,
   amount: 1000,
   categoryId: 1,
@@ -104,20 +94,8 @@ export const buildTransactionPayload = ({
   ...overrides,
 });
 
-export function getAccount({
-  id,
-  raw,
-}: {
-  id: number;
-  raw: false;
-}): Promise<Response>;
-export function getAccount({
-  id,
-  raw,
-}: {
-  id: number;
-  raw: true;
-}): Promise<Accounts>;
+export function getAccount({ id, raw }: { id: number; raw: false }): Promise<Response>;
+export function getAccount({ id, raw }: { id: number; raw: true }): Promise<Accounts>;
 export function getAccount({ id, raw = false }: { id: number; raw?: boolean }) {
   return makeRequest({
     method: 'get',
@@ -152,10 +130,7 @@ export function createAccount({
   payload?: BuildAccountPayload;
   raw: true;
 }): Promise<Accounts>;
-export function createAccount({
-  payload = buildAccountPayload(),
-  raw = false,
-} = {}) {
+export function createAccount({ payload = buildAccountPayload(), raw = false } = {}) {
   return makeRequest({
     method: 'post',
     url: '/accounts',
@@ -206,10 +181,7 @@ export async function createTransaction({
 }: CreateTransactionBasePayload & { raw?: true }): Promise<
   [baseTx: Transactions, oppositeTx?: Transactions]
 >;
-export async function createTransaction({
-  raw = false,
-  payload = undefined,
-} = {}) {
+export async function createTransaction({ raw = false, payload = undefined } = {}) {
   let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
 
   if (payload === undefined) {
@@ -254,9 +226,7 @@ export function updateTransaction({ raw = false, id, payload = {} }) {
   });
 }
 
-export function deleteTransaction({
-  id,
-}: { id?: number } = {}): Promise<Response> {
+export function deleteTransaction({ id }: { id?: number } = {}): Promise<Response> {
   return makeRequest({
     method: 'delete',
     url: `/transactions/${id}`,
@@ -265,11 +235,7 @@ export function deleteTransaction({
 
 export function getTransactions(): Promise<Response>;
 export function getTransactions({ raw }: { raw?: false }): Promise<Response>;
-export function getTransactions({
-  raw,
-}: {
-  raw?: true;
-}): Promise<Transactions[]>;
+export function getTransactions({ raw }: { raw?: true }): Promise<Transactions[]>;
 export function getTransactions({ raw = false } = {}) {
   return makeRequest({
     method: 'get',
@@ -292,10 +258,7 @@ export function unlinkTransferTransactions({
   transferIds: string[];
   raw?: true;
 }): Promise<Transactions[]>;
-export function unlinkTransferTransactions({
-  raw = false,
-  transferIds = [],
-} = {}) {
+export function unlinkTransferTransactions({ raw = false, transferIds = [] } = {}) {
   return makeRequest({
     method: 'put',
     url: '/transactions/unlink',
@@ -329,9 +292,9 @@ export function linkTransactions({ raw = false, payload }) {
   });
 }
 
-export async function getCurrenciesRates({
-  codes,
-}: { codes?: string[] } = {}): Promise<ExchangeRates[]> {
+export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): Promise<
+  ExchangeRates[]
+> {
   const data = await makeRequest({
     method: 'get',
     url: '/user/currencies/rates',
@@ -368,9 +331,7 @@ export function addUserCurrencies({
       currencies: [
         ...currencyIds.map((id) => ({ currencyId: id })),
         ...currencyCodes.map((code) => ({
-          currencyId: global.MODELS_CURRENCIES.find(
-            (item) => item.code === code,
-          ).id,
+          currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id,
         })),
       ],
     },

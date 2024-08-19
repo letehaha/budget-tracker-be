@@ -59,6 +59,12 @@ export async function createSingleRefund(
       });
     }
 
+    if (originalTx.id === refundTx.id) {
+      throw new ValidationError({
+        message: 'Attempt to link a single transaction to itself.',
+      });
+    }
+
     if (originalTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
       throw new ValidationError({
         message: 'Original (non-refund) transaction cannot be transfer one.',

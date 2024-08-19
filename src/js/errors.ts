@@ -1,6 +1,7 @@
 import { API_ERROR_CODES } from 'shared-types';
 
 export enum ERROR_CODES {
+  BadRequest = 400,
   Unauthorized = 401,
   NotFoundError = 404,
   ConflictError = 409,
@@ -14,17 +15,24 @@ export class CustomError extends Error {
   public code: API_ERROR_CODES;
   public details: Record<string, unknown>;
 
-  constructor(
-    httpCode,
-    code: API_ERROR_CODES,
-    message: string,
-    details?: Record<string, unknown>,
-  ) {
+  constructor(httpCode, code: API_ERROR_CODES, message: string, details?: Record<string, unknown>) {
     super(message);
 
     this.httpCode = httpCode;
     this.code = code;
     this.details = details;
+  }
+}
+
+export class BadRequestError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.BadRequest,
+    message,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+  }) {
+    super(ERROR_CODES.BadRequest, code, message);
   }
 }
 

@@ -10,6 +10,7 @@ export enum API_ERROR_CODES {
   unexpected = 'UNEXPECTED',
   validationError = 'VALIDATION_ERROR',
   forbidden = 'FORBIDDEN',
+  BadRequest = 'BAD_REQUEST',
 
   // auth
   unauthorized = 'UNAUTHENTICATED',
