@@ -12,12 +12,14 @@ import {
 import { createRefund } from '@controllers/transactions.controller/refunds/create-refund';
 import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
 import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
+import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
 import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
 
 // Define all named routes level above to avoid matching with /:id
 router.get('/refund', authenticateJwt, getRefund);
+router.get('/refunds', authenticateJwt, getRefunds);
 router.post('/refund', authenticateJwt, createRefund);
 router.delete('/refund', authenticateJwt, deleteRefund);
 
