@@ -678,6 +678,190 @@ describe('Refund Transactions service', () => {
           'Attempt to link a single transaction to itself',
         );
       });
+
+      it('fails when trying to use the same refund transaction for multiple original transactions', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        // Create two original transactions
+        const [originalTx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const [originalTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        // Create a single refund transaction
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Link the refund to the first original transaction (should succeed)
+        await callCreateSingleRefund({
+          originalTxId: originalTx1.id,
+          refundTxId: refundTx.id,
+        });
+
+        // Attempt to link the same refund to the second original transaction (should fail)
+        const result = await callCreateSingleRefund({
+          originalTxId: originalTx2.id,
+          refundTxId: refundTx.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain(
+          '"refundTxId" already marked as a refund',
+        );
+      });
+    });
+
+    describe('nullish original_tx_id cases', () => {
+      describe('success cases', () => {
+        it('successfully creates a refund transaction without an original transaction', async () => {
+          const account = await helpers.createAccount({ raw: true });
+
+          const [refundTx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 100,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            raw: true,
+          });
+
+          const result = await callCreateSingleRefund(
+            {
+              originalTxId: null,
+              refundTxId: refundTx.id,
+            },
+            true,
+          );
+
+          expect(result.original_tx_id).toBeNull();
+          expect(result.refund_tx_id).toEqual(refundTx.id);
+        });
+
+        it('successfully creates multiple refund transactions without original transactions', async () => {
+          const account = await helpers.createAccount({ raw: true });
+
+          const [refundTx1] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 50,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            raw: true,
+          });
+
+          const [refundTx2] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 75,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            raw: true,
+          });
+
+          const result1 = await callCreateSingleRefund(
+            {
+              originalTxId: null,
+              refundTxId: refundTx1.id,
+            },
+            true,
+          );
+
+          const result2 = await callCreateSingleRefund(
+            {
+              originalTxId: null,
+              refundTxId: refundTx2.id,
+            },
+            true,
+          );
+
+          expect(result1.original_tx_id).toBeNull();
+          expect(result1.refund_tx_id).toEqual(refundTx1.id);
+          expect(result2.original_tx_id).toBeNull();
+          expect(result2.refund_tx_id).toEqual(refundTx2.id);
+        });
+      });
+
+      describe('failure cases', () => {
+        it('fails when trying to create a refund transaction with null originalTxId and transfer nature', async () => {
+          const account1 = await helpers.createAccount({ raw: true });
+          const account2 = await helpers.createAccount({
+            payload: helpers.buildAccountPayload({ userId: account1.userId }),
+            raw: true,
+          });
+
+          const [transferTx] = await helpers.createTransaction({
+            payload: {
+              ...helpers.buildTransactionPayload({
+                accountId: account1.id,
+                amount: 100,
+                transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+                destinationAmount: 100,
+                destinationAccountId: account2.id,
+              }),
+            },
+            raw: true,
+          });
+
+          const result = await callCreateSingleRefund({
+            originalTxId: null,
+            refundTxId: transferTx.id,
+          });
+
+          expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+          expect(helpers.extractResponse(result).message).toContain(
+            'Refund transaction cannot be a transfer one',
+          );
+        });
+
+        it('fails when trying to create a duplicate refund transaction with null originalTxId', async () => {
+          const account = await helpers.createAccount({ raw: true });
+
+          const [refundTx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 100,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            raw: true,
+          });
+
+          // First creation should succeed
+          await callCreateSingleRefund({
+            originalTxId: null,
+            refundTxId: refundTx.id,
+          });
+
+          // Second creation should fail
+          const result = await callCreateSingleRefund({
+            originalTxId: null,
+            refundTxId: refundTx.id,
+          });
+
+          expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+          expect(helpers.extractResponse(result).message).toContain(
+            '"refundTxId" already marked as a refund',
+          );
+        });
+      });
     });
   });
 });

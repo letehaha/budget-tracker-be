@@ -226,19 +226,9 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(
-    instance: Transactions,
-    { transaction },
-  ) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+  static async updateAccountBalanceAfterCreate(instance: Transactions, { transaction }) {
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
+      instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx(
@@ -258,10 +248,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @AfterUpdate
-  static async updateAccountBalanceAfterUpdate(
-    instance: Transactions,
-    { transaction },
-  ) {
+  static async updateAccountBalanceAfterUpdate(instance: Transactions, { transaction }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -329,19 +316,9 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @BeforeDestroy
-  static async updateAccountBalanceBeforeDestroy(
-    instance: Transactions,
-    { transaction },
-  ) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+  static async updateAccountBalanceBeforeDestroy(instance: Transactions, { transaction }) {
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
+      instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx(
@@ -357,10 +334,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
       );
     }
 
-    await Balances.handleTransactionChange(
-      { data: instance, isDelete: true },
-      { transaction },
-    );
+    await Balances.handleTransactionChange({ data: instance, isDelete: true }, { transaction });
   }
 }
 
@@ -414,9 +388,7 @@ export const getTransactions = async (
         accountType,
         accountId,
         transactionType,
-        transferNature: excludeTransfer
-          ? TRANSACTION_TRANSFER_NATURE.not_transfer
-          : undefined,
+        transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
       }),
     },
     transaction,
@@ -467,7 +439,7 @@ export const getTransactionById = (
     nestedInclude?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {},
-) => {
+): Promise<Transactions | null> => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -518,9 +490,7 @@ export const getTransactionsByTransferId = (
   });
 };
 
-export const getTransactionsByArrayOfField = async <
-  T extends keyof TransactionModel,
->(
+export const getTransactionsByArrayOfField = async <T extends keyof TransactionModel>(
   {
     fieldValues,
     fieldName,
@@ -593,17 +563,13 @@ type CreateTxOptionalParams = Partial<
   >
 >;
 
-export type CreateTransactionPayload = CreateTxRequiredParams &
-  CreateTxOptionalParams;
+export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams;
 
 export const createTransaction = async (
   { userId, ...rest }: CreateTransactionPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const response = await Transactions.create(
-    { userId, ...rest },
-    { transaction },
-  );
+  const response = await Transactions.create({ userId, ...rest }, { transaction });
 
   return getTransactionById(
     {

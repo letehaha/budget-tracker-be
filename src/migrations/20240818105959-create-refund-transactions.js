@@ -2,44 +2,73 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('RefundTransactions', {
-      original_tx_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        primaryKey: true,
-        references: {
-          model: 'Transactions',
-          key: 'id'
-        },
-        onDelete: 'CASCADE'
-      },
-      refund_tx_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        primaryKey: true,
-        references: {
-          model: 'Transactions',
-          key: 'id'
-        },
-        onDelete: 'CASCADE'
-      },
-      createdAt: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.fn('NOW'),
-      },
-      updatedAt: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.fn('NOW'),
-      },
-    });
+  up: async (queryInterface, Sequelize) => {
+    const transaction = await queryInterface.sequelize.transaction();
 
-    await queryInterface.addIndex('RefundTransactions', ['original_tx_id']);
+    try {
+      await queryInterface.createTable('RefundTransactions', {
+        id: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          primaryKey: true,
+          autoIncrement: true
+        },
+        original_tx_id: {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          references: {
+            model: 'Transactions',
+            key: 'id'
+          },
+          onDelete: 'SET NULL'
+        },
+        refund_tx_id: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          unique: true,
+          references: {
+            model: 'Transactions',
+            key: 'id'
+          },
+          onDelete: 'CASCADE'
+        },
+        createdAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.fn('NOW'),
+        },
+        updatedAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.fn('NOW'),
+        },
+      }, { transaction });
+
+      await queryInterface.addIndex('RefundTransactions', ['original_tx_id'], { transaction });
+      await queryInterface.addIndex('RefundTransactions', ['refund_tx_id'], {
+        unique: true,
+        transaction
+      });
+
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
   },
-  async down (queryInterface, Sequelize) {
-    await queryInterface.removeIndex('RefundTransactions', ['original_tx_id']);
-    await queryInterface.dropTable('RefundTransactions');
+
+  down: async (queryInterface, Sequelize) => {
+    const transaction = await queryInterface.sequelize.transaction();
+
+    try {
+      await queryInterface.removeIndex('RefundTransactions', ['original_tx_id'], { transaction });
+      await queryInterface.removeIndex('RefundTransactions', ['refund_tx_id'], { transaction });
+      await queryInterface.dropTable('RefundTransactions', { transaction });
+
+      await transaction.commit();
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
   }
 };

@@ -20,7 +20,7 @@ export const deleteRefund = async (req, res: CustomResponse) => {
       userId,
     };
 
-    if (!originalTxId || !refundTxId) {
+    if (!refundTxId) {
       throw new BadRequestError({
         message: 'Missing required params',
       });

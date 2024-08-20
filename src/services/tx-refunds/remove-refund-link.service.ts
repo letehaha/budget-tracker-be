@@ -7,7 +7,7 @@ import { NotFoundError, ValidationError } from '@js/errors';
 
 interface RemoveRefundLinkParams {
   userId: number;
-  originalTxId: number;
+  originalTxId: number | null;
   refundTxId: number;
 }
 
@@ -41,7 +41,7 @@ export async function removeRefundLink(
     ]);
 
     // Ensure the user has permission to modify these transactions
-    if (originalTx.userId !== userId || refundTx.userId !== userId) {
+    if ((originalTx && originalTx.userId !== userId) || refundTx.userId !== userId) {
       throw new ValidationError({
         message: 'You do not have permission to remove this refund link',
       });
