@@ -15,4 +15,5 @@ export interface GetTransactionsParams {
   accountId: number;
   isRaw: boolean;
   excludeTransfer?: boolean;
+  excludeRefunds?: boolean;
 }

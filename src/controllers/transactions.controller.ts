@@ -21,6 +21,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       nestedInclude,
       // isRaw,
       excludeTransfer,
+      excludeRefunds,
     }: endpointsTypes.GetTransactionsQuery = req.query;
 
     const data = await transactionsService.getTransactions({
@@ -37,6 +38,7 @@ export const getTransactions = async (req, res: CustomResponse) => {
       includeAll,
       nestedInclude,
       excludeTransfer,
+      excludeRefunds,
       isRaw: false,
     });
 

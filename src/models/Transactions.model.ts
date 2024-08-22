@@ -365,6 +365,7 @@ export const getTransactions = async (
     nestedInclude,
     isRaw = false,
     excludeTransfer,
+    excludeRefunds,
   }: {
     from: number;
     limit: number;
@@ -380,6 +381,7 @@ export const getTransactions = async (
     nestedInclude: boolean;
     isRaw: boolean;
     excludeTransfer?: boolean;
+    excludeRefunds?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
@@ -400,6 +402,7 @@ export const getTransactions = async (
         accountId,
         transactionType,
         transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
+        refundLinked: excludeRefunds ? false : undefined,
       }),
     },
     transaction,
