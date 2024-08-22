@@ -6,3 +6,6 @@
 # eslint warnings cleanup
 98d83972abe722240c5424eec809102daec2256f
 23f67d705be8d1f000723772a269c3ee52cd8512
+
+# prettier re-formatting when switched to 100 chars max-len
+66d5fa71bfe50de0eb08cb4542fc0f6e28435d72
