@@ -2,44 +2,6 @@ import { TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 
-const callCreateSingleRefund = async (
-  payload: { originalTxId: number | null; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'post',
-    url: '/transactions/refund',
-    payload,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-
-const callDeleteRefund = async (
-  payload: { originalTxId: number | null; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'delete',
-    url: '/transactions/refund',
-    payload,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-
-const callGetRefund = async (
-  { originalTxId, refundTxId }: { originalTxId: number; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'get',
-    url: `/transactions/refund?originalTxId=${originalTxId}&refundTxId=${refundTxId}`,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-
 describe('removeRefundLink', () => {
   describe('success cases', () => {
     it('successfully removes a refund link between two transactions', async () => {
@@ -63,21 +25,21 @@ describe('removeRefundLink', () => {
         raw: true,
       });
 
-      const creationResponse = await callCreateSingleRefund({
+      const creationResponse = await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
       expect(creationResponse.statusCode).toBe(200);
 
-      const deletionResponse = await callDeleteRefund({
+      const deletionResponse = await helpers.deleteRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
       expect(deletionResponse.statusCode).toBe(200);
 
-      const getResponse = await callGetRefund({
+      const getResponse = await helpers.getSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
@@ -95,7 +57,7 @@ describe('removeRefundLink', () => {
 
   describe('failure cases', () => {
     it('fails when refund link does not exist', async () => {
-      const response = await callDeleteRefund({
+      const response = await helpers.deleteRefund({
         originalTxId: 999999,
         refundTxId: 999998,
       });
@@ -115,14 +77,14 @@ describe('removeRefundLink', () => {
         raw: true,
       });
 
-      let response = await callDeleteRefund({
+      let response = await helpers.deleteRefund({
         originalTxId: baseTx.id,
         refundTxId: 999998,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      response = await callDeleteRefund({
+      response = await helpers.deleteRefund({
         originalTxId: 999998,
         refundTxId: baseTx.id,
       });
@@ -154,21 +116,21 @@ describe('removeRefundLink', () => {
           raw: true,
         });
 
-        const creationResponse = await callCreateSingleRefund({
+        const creationResponse = await helpers.createSingleRefund({
           originalTxId: null,
           refundTxId: refundTx.id,
         });
 
         expect(creationResponse.statusCode).toBe(200);
 
-        const deletionResponse = await callDeleteRefund({
+        const deletionResponse = await helpers.deleteRefund({
           originalTxId: null,
           refundTxId: refundTx.id,
         });
 
         expect(deletionResponse.statusCode).toBe(200);
 
-        const getResponse = await callGetRefund({
+        const getResponse = await helpers.getSingleRefund({
           originalTxId: null,
           refundTxId: refundTx.id,
         });
@@ -184,7 +146,7 @@ describe('removeRefundLink', () => {
 
     describe('failure cases', () => {
       it('fails when trying to remove a non-existent refund link with null original_tx_id', async () => {
-        const response = await callDeleteRefund({
+        const response = await helpers.deleteRefund({
           originalTxId: null,
           refundTxId: 999998,
         });
@@ -214,12 +176,12 @@ describe('removeRefundLink', () => {
           }),
         ]);
 
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: originalTx[0].id,
           refundTxId: refundTx[0].id,
         });
 
-        const response = await callDeleteRefund({
+        const response = await helpers.deleteRefund({
           originalTxId: null,
           refundTxId: refundTx[0].id,
         });

@@ -26,6 +26,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       categoryId,
       accountType = ACCOUNT_TYPES.system,
       transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
+      refundForTxId,
     }: endpointsTypes.CreateTransactionBody & {
       accountType: ACCOUNT_TYPES;
     } = req.body;
@@ -45,6 +46,7 @@ export const createTransaction = async (req, res: CustomResponse) => {
       accountType,
       transferNature,
       userId,
+      refundForTxId,
     };
 
     validateTransactionCreation(params);

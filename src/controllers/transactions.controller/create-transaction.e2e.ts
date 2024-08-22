@@ -407,4 +407,116 @@ describe('Create transaction controller', () => {
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
+  describe('Create refund transaction', () => {
+    it('should successfully create a refund transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const [originalTx] = await helpers.createTransaction({
+        payload: originalTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundForTxId: originalTx.id,
+      };
+      const [refundTx] = await helpers.createTransaction({
+        payload: refundTxPayload,
+        raw: true,
+      });
+
+      const refundResponse = await helpers.getSingleRefund({
+        originalTxId: originalTx.id,
+        refundTxId: refundTx.id,
+      });
+
+      expect(refundTx.amount).toBe(refundTxPayload.amount);
+      expect(refundTx.transactionType).toBe(TRANSACTION_TYPES.income);
+      // Check that refund was successfully created
+      expect(refundResponse.statusCode).toBe(200);
+    });
+
+    it('should throw an error when trying to create a refund for non-existent transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundForTxId: 99999, // Non-existent ID
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('should not allow creating a refund for a transaction that is already a transfer', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
+
+      const transferTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 100,
+        destinationAccountId: accountB.id,
+      };
+      const [transferTx] = await helpers.createTransaction({
+        payload: transferTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundForTxId: transferTx.id,
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should not allow creating a refund with transferNature', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const [originalTx] = await helpers.createTransaction({
+        payload: originalTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundForTxId: originalTx.id,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
 });

@@ -1,8 +1,4 @@
-import {
-  TRANSACTION_TYPES,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-} from 'shared-types';
+import { TRANSACTION_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import * as Transactions from '@models/Transactions.model';
 
 export type CreateTransactionParams = Omit<
@@ -12,6 +8,7 @@ export type CreateTransactionParams = Omit<
   destinationAmount?: number;
   destinationAccountId?: number;
   destinationTransactionId?: number;
+  refundForTxId?: number;
 };
 
 interface UpdateParams {

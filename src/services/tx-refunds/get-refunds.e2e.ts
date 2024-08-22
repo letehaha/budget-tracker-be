@@ -1,35 +1,6 @@
 import { TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
-import type { GetRefundTransactionsParams } from './get-refunds.service';
-
-const callCreateSingleRefund = async (
-  payload: { originalTxId: number; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'post',
-    url: '/transactions/refund',
-    payload,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-const callGetRefundTransactions = async (
-  params: Omit<GetRefundTransactionsParams, 'userId'>,
-  raw = false,
-) => {
-  const queryString = Object.entries(params)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-    .join('&');
-
-  const result = await helpers.makeRequest({
-    method: 'get',
-    url: `/transactions/refunds?${queryString}`,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
 
 describe.skip('getRefundTransactions', () => {
   describe('success cases', () => {
@@ -52,12 +23,12 @@ describe.skip('getRefundTransactions', () => {
         raw: true,
       });
 
-      await callCreateSingleRefund({
+      await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
-      const response = await callGetRefundTransactions({});
+      const response = await helpers.getRefundTransactions({});
 
       expect(response.statusCode).toBe(200);
       expect(helpers.extractResponse(response).data.length).toBe(1);
@@ -84,12 +55,12 @@ describe.skip('getRefundTransactions', () => {
         raw: true,
       });
 
-      await callCreateSingleRefund({
+      await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
-      const response = await callGetRefundTransactions({ categoryId: categoryId });
+      const response = await helpers.getRefundTransactions({ categoryId: categoryId });
 
       expect(response.statusCode).toBe(200);
 
@@ -120,12 +91,12 @@ describe.skip('getRefundTransactions', () => {
         raw: true,
       });
 
-      await callCreateSingleRefund({
+      await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
-      const response = await callGetRefundTransactions(
+      const response = await helpers.getRefundTransactions(
         { transactionType: TRANSACTION_TYPES.expense },
         true,
       );
@@ -158,12 +129,12 @@ describe.skip('getRefundTransactions', () => {
         raw: true,
       });
 
-      await callCreateSingleRefund({
+      await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
-      const response = await callGetRefundTransactions({ accountId: account.id }, true);
+      const response = await helpers.getRefundTransactions({ accountId: account.id }, true);
 
       expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
@@ -192,12 +163,12 @@ describe.skip('getRefundTransactions', () => {
         raw: true,
       });
 
-      await callCreateSingleRefund({
+      await helpers.createSingleRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
       });
 
-      const response = await callGetRefundTransactions(
+      const response = await helpers.getRefundTransactions(
         {
           categoryId,
           transactionType: TRANSACTION_TYPES.expense,
@@ -222,8 +193,8 @@ describe.skip('getRefundTransactions', () => {
     //   const account = await helpers.createAccount({ raw: true });
     //   // Create multiple refund transactions here...
 
-    //   const response1 = await callGetRefundTransactions({ page: 1, limit: 1 }, true);
-    //   const response2 = await callGetRefundTransactions({ page: 2, limit: 1 }, true);
+    //   const response1 = await helpers.getRefundTransactions({ page: 1, limit: 1 }, true);
+    //   const response2 = await helpers.getRefundTransactions({ page: 2, limit: 1 }, true);
 
     //   expect(response1.success).toBe(true);
     //   expect(response2.success).toBe(true);
@@ -237,29 +208,29 @@ describe.skip('getRefundTransactions', () => {
 
   describe('failure cases', () => {
     it('fails when invalid categoryId is provided', async () => {
-      const response = await callGetRefundTransactions({ categoryId: -10 });
+      const response = await helpers.getRefundTransactions({ categoryId: -10 });
       expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
     });
 
     it('fails when invalid transactionType is provided', async () => {
-      const response = await callGetRefundTransactions({
+      const response = await helpers.getRefundTransactions({
         transactionType: 'invalid' as TRANSACTION_TYPES,
       });
       expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
     });
 
     it('fails when invalid accountId is provided', async () => {
-      const response = await callGetRefundTransactions({ accountId: -10 });
+      const response = await helpers.getRefundTransactions({ accountId: -10 });
       expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
     });
 
     it('fails when invalid page number is provided', async () => {
-      const response = await callGetRefundTransactions({ page: -10 });
+      const response = await helpers.getRefundTransactions({ page: -10 });
       expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
     });
 
     it('fails when invalid limit is provided', async () => {
-      const response = await callGetRefundTransactions({ limit: -10 });
+      const response = await helpers.getRefundTransactions({ limit: -10 });
       expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
     });
   });

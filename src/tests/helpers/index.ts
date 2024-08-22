@@ -22,6 +22,7 @@ import * as transactionsService from '@services/transactions';
 
 export { monobank };
 export * from './account';
+export * from './refunds';
 
 const apiPrefix = config.get('apiPrefix');
 

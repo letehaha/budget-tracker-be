@@ -15,6 +15,8 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
+import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
+
 type CreateOppositeTransactionParams = [
   creationParams: CreateTransactionParams | UpdateTransactionParams,
   baseTransaction: Transactions.default,
@@ -181,6 +183,7 @@ export const createTransaction = async (
     accountId,
     transferNature,
     destinationTransactionId,
+    refundForTxId,
     ...payload
   }: CreateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
@@ -190,6 +193,13 @@ export const createTransaction = async (
     attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
+    if (refundForTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+      throw new ValidationError({
+        message:
+          'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
+      });
+    }
+
     const generalTxParams: Transactions.CreateTransactionPayload = {
       ...payload,
       amount,
@@ -240,19 +250,27 @@ export const createTransaction = async (
       baseTransaction,
     ];
 
-    /**
-     * If transaction is transfer between two accounts, add transferId to both
-     * transactions to connect them, and use destinationAmount and destinationAccountId
-     * for the second transaction.
-     */
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+    // TODO: when creating ZOD schema, make sure that `transferNature` and `refundTransactionId`
+    // cannot be passed together
+    if (refundForTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      await createSingleRefund(
+        { userId, originalTxId: refundForTxId, refundTxId: baseTransaction.id },
+        { transaction },
+      );
+    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       /**
-       * When "destinationTransactionId" is provided, we don't need to create an
-       * opposite transaction, since it's expected to use the existing one.
-       * We need to update the existing one, or fail the whole creation if it
-       * doesn't exist
+       * If transaction is transfer between two accounts, add transferId to both
+       * transactions to connect them, and use destinationAmount and destinationAccountId
+       * for the second transaction.
        */
+
       if (destinationTransactionId) {
+        /**
+         * When "destinationTransactionId" is provided, we don't need to create an
+         * opposite transaction, since it's expected to use the existing one.
+         * We need to update the existing one, or fail the whole creation if it
+         * doesn't exist
+         */
         const [[baseTx, oppositeTx]] = await linkTransactions(
           {
             userId,

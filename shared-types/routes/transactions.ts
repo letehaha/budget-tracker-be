@@ -1,9 +1,4 @@
-import {
-  TransactionModel,
-  ACCOUNT_TYPES,
-  SORT_DIRECTIONS,
-  TRANSACTION_TYPES,
-} from 'shared-types';
+import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
 import { QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
@@ -35,6 +30,8 @@ export interface CreateTransactionBody {
   destinationAmount?: TransactionModel['amount'];
   destinationTransactionId?: number;
   transferNature?: TransactionModel['transferNature'];
+  // When transaction is being created, it can be marked as a refund for another transaction
+  refundForTxId?: number;
 }
 
 export interface UpdateTransactionBody {

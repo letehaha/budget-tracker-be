@@ -48,6 +48,12 @@ export async function createSingleRefund(
       Transactions.getTransactionById({ userId, id: refundTxId }, { transaction }),
     ]);
 
+    if (originalTxId && !originalTx) {
+      throw new NotFoundError({
+        message: 'Original transaction not found',
+      });
+    }
+
     if (!refundTx) {
       throw new NotFoundError({
         message: 'Refund transaction not found',

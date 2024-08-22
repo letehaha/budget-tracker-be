@@ -2,32 +2,6 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 
-const callCreateSingleRefund = async (
-  payload: { originalTxId: number; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'post',
-    url: '/transactions/refund',
-    payload,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-
-const callDeleteRefund = async (
-  payload: { originalTxId: number; refundTxId: number },
-  raw = false,
-) => {
-  const result = await helpers.makeRequest({
-    method: 'delete',
-    url: '/transactions/refund',
-    payload,
-  });
-
-  return raw ? helpers.extractResponse(result) : result;
-};
-
 describe('Refund Transactions service', () => {
   describe('createSingleRefund', () => {
     describe('success cases', () => {
@@ -52,7 +26,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund(
+        const result = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -96,7 +70,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund(
+        const result = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -143,7 +117,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund(
+        const result = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -183,7 +157,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund(
+        const result = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -218,7 +192,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result1 = await callCreateSingleRefund(
+        const result1 = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx1.id,
@@ -239,7 +213,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result2 = await callCreateSingleRefund(
+        const result2 = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx2.id,
@@ -281,7 +255,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx1.id,
         });
@@ -296,7 +270,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund(
+        const result = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx2.id,
@@ -329,7 +303,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        let creationResponse = await callCreateSingleRefund(
+        let creationResponse = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -340,14 +314,14 @@ describe('Refund Transactions service', () => {
         expect(creationResponse.original_tx_id).toEqual(baseTx.id);
         expect(creationResponse.refund_tx_id).toEqual(refundTx.id);
 
-        const unlinkResponse = await callDeleteRefund({
+        const unlinkResponse = await helpers.deleteRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx.id,
         });
 
         expect(unlinkResponse.statusCode).toBe(200);
 
-        creationResponse = await callCreateSingleRefund(
+        creationResponse = await helpers.createSingleRefund(
           {
             originalTxId: baseTx.id,
             refundTxId: refundTx.id,
@@ -393,7 +367,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx.id,
         });
@@ -425,7 +399,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx.id,
         });
@@ -455,7 +429,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx.id,
         });
@@ -486,7 +460,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx1.id,
         });
@@ -501,7 +475,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx2.id,
         });
@@ -540,7 +514,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx1.id,
         });
@@ -555,7 +529,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: refundTx2.id,
         });
@@ -595,7 +569,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTransferTx.id,
           refundTxId: refundTx.id,
         });
@@ -628,7 +602,7 @@ describe('Refund Transactions service', () => {
         });
 
         // Link the refund to the original transaction
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: originalTx.id,
           refundTxId: refundTx.id,
         });
@@ -643,7 +617,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: refundTx.id,
           refundTxId: refundOfRefundTx.id,
         });
@@ -668,7 +642,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: baseTx.id,
           refundTxId: baseTx.id,
         });
@@ -712,13 +686,13 @@ describe('Refund Transactions service', () => {
         });
 
         // Link the refund to the first original transaction (should succeed)
-        await callCreateSingleRefund({
+        await helpers.createSingleRefund({
           originalTxId: originalTx1.id,
           refundTxId: refundTx.id,
         });
 
         // Attempt to link the same refund to the second original transaction (should fail)
-        const result = await callCreateSingleRefund({
+        const result = await helpers.createSingleRefund({
           originalTxId: originalTx2.id,
           refundTxId: refundTx.id,
         });
@@ -744,7 +718,7 @@ describe('Refund Transactions service', () => {
             raw: true,
           });
 
-          const result = await callCreateSingleRefund(
+          const result = await helpers.createSingleRefund(
             {
               originalTxId: null,
               refundTxId: refundTx.id,
@@ -777,7 +751,7 @@ describe('Refund Transactions service', () => {
             raw: true,
           });
 
-          const result1 = await callCreateSingleRefund(
+          const result1 = await helpers.createSingleRefund(
             {
               originalTxId: null,
               refundTxId: refundTx1.id,
@@ -785,7 +759,7 @@ describe('Refund Transactions service', () => {
             true,
           );
 
-          const result2 = await callCreateSingleRefund(
+          const result2 = await helpers.createSingleRefund(
             {
               originalTxId: null,
               refundTxId: refundTx2.id,
@@ -821,7 +795,7 @@ describe('Refund Transactions service', () => {
             raw: true,
           });
 
-          const result = await callCreateSingleRefund({
+          const result = await helpers.createSingleRefund({
             originalTxId: null,
             refundTxId: transferTx.id,
           });
@@ -845,13 +819,13 @@ describe('Refund Transactions service', () => {
           });
 
           // First creation should succeed
-          await callCreateSingleRefund({
+          await helpers.createSingleRefund({
             originalTxId: null,
             refundTxId: refundTx.id,
           });
 
           // Second creation should fail
-          const result = await callCreateSingleRefund({
+          const result = await helpers.createSingleRefund({
             originalTxId: null,
             refundTxId: refundTx.id,
           });
