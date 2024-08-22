@@ -32,6 +32,10 @@ describe('removeRefundLink', () => {
 
       expect(creationResponse.statusCode).toBe(200);
 
+      let transactions = await helpers.getTransactions({ raw: true });
+
+      expect(transactions.every((tx) => tx.refundLinked)).toBe(true);
+
       const deletionResponse = await helpers.deleteRefund({
         originalTxId: originalTx.id,
         refundTxId: refundTx.id,
@@ -46,12 +50,58 @@ describe('removeRefundLink', () => {
 
       expect(getResponse.statusCode).toBe(404);
 
-      const transactions = await helpers.getTransactions({ raw: true });
+      transactions = await helpers.getTransactions({ raw: true });
 
       // Check that after refund deletion all transactions are in place
       expect(
         [originalTx.id, refundTx.id].every((id) => transactions.find((tx) => tx.id === id)),
       ).toBe(true);
+      expect(transactions.every((tx) => tx.refundLinked)).toBe(false);
+    });
+
+    it('successfully removes a refund link between two transactions when some transaction is deleted', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [originalTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const [refundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const creationResponse = await helpers.createSingleRefund({
+        originalTxId: originalTx.id,
+        refundTxId: refundTx.id,
+      });
+
+      expect(creationResponse.statusCode).toBe(200);
+
+      let transactions = await helpers.getTransactions({ raw: true });
+
+      expect(transactions.every((tx) => tx.refundLinked)).toBe(true);
+
+      await helpers.deleteTransaction({ id: refundTx.id });
+
+      const getResponse = await helpers.getSingleRefund({
+        originalTxId: originalTx.id,
+        refundTxId: refundTx.id,
+      });
+
+      expect(getResponse.statusCode).toBe(404);
+
+      transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.every((tx) => tx.refundLinked)).toBe(false);
     });
   });
 

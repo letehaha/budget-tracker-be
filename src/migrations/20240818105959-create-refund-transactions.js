@@ -50,6 +50,13 @@ module.exports = {
         transaction
       });
 
+      // Add has_refund column to Transactions table
+      await queryInterface.addColumn('Transactions', 'refundLinked', {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      }, { transaction });
+
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
@@ -64,6 +71,8 @@ module.exports = {
       await queryInterface.removeIndex('RefundTransactions', ['original_tx_id'], { transaction });
       await queryInterface.removeIndex('RefundTransactions', ['refund_tx_id'], { transaction });
       await queryInterface.dropTable('RefundTransactions', { transaction });
+
+      await queryInterface.removeColumn('Transactions', 'refundLinked', { transaction });
 
       await transaction.commit();
     } catch (err) {

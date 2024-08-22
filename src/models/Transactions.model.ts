@@ -94,6 +94,7 @@ export interface TransactionsAttributes {
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
+  refundLinked: boolean;
 }
 
 @Table({
@@ -207,6 +208,16 @@ export default class Transactions extends Model<TransactionsAttributes> {
     defaultValue: 0,
   })
   cashbackAmount: number;
+
+  // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
+  // optimization purposes. All the related refund information is tored in the "RefundTransactions"
+  // table
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  refundLinked: boolean;
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
@@ -625,6 +636,7 @@ export const updateTransactions = (
     accountType?: ACCOUNT_TYPES;
     currencyId?: number;
     refCurrencyCode?: string;
+    refundLinked?: boolean;
   },
   where: Record<string, unknown> & { userId: number },
   { transaction }: { transaction?: Transaction } = {},

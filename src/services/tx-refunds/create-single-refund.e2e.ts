@@ -34,8 +34,11 @@ describe('Refund Transactions service', () => {
           true,
         );
 
+        const transactions = await helpers.getTransactions({ raw: true });
+
         expect(result.original_tx_id).toEqual(baseTx.id);
         expect(result.refund_tx_id).toEqual(refundTx.id);
+        expect(transactions.every((tx) => tx.refundLinked)).toBe(true);
       });
 
       it(`successfully creates a refund link between two transactions with different currencies when:

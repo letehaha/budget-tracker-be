@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -49,6 +50,12 @@ export async function removeRefundLink(
 
     // Remove the refund link
     await refundLink.destroy({ transaction });
+
+    await Transactions.updateTransactions(
+      { refundLinked: false },
+      { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
+      { transaction },
+    );
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

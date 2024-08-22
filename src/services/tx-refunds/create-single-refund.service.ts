@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -144,6 +145,12 @@ export async function createSingleRefund(
     // Create the refund transaction link
     const refundTransaction = await RefundTransactions.createRefundTransaction(
       { original_tx_id: originalTxId, refund_tx_id: refundTxId },
+      { transaction },
+    );
+
+    await Transactions.updateTransactions(
+      { refundLinked: true },
+      { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
       { transaction },
     );
 
