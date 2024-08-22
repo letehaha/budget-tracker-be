@@ -23,8 +23,7 @@ const validateTransactionLinking = ({
   }
   if (opposite.transactionType === base.transactionType) {
     throw new ValidationError({
-      message:
-        'Trying to link with the transaction that has the same "transactionType".',
+      message: 'Trying to link with the transaction that has the same "transactionType".',
     });
   }
   if (opposite.accountId === base.accountId) {
@@ -56,18 +55,13 @@ export const linkTransactions = async (
     ignoreBaseTxTypeValidation?: boolean;
   },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<
-  [baseTx: Transactions.default, oppositeTx: Transactions.default][]
-> => {
+): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
   const transaction: Transaction =
     attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    const result: [
-      baseTx: Transactions.default,
-      oppositeTx: Transactions.default,
-    ][] = [];
+    const result: [baseTx: Transactions.default, oppositeTx: Transactions.default][] = [];
 
     for (const [baseTxId, oppositeTxId] of ids) {
       let transactions = await Transactions.getTransactionsByArrayOfField(

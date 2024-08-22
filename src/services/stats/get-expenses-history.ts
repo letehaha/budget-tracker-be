@@ -1,8 +1,4 @@
-import {
-  TransactionModel,
-  TRANSACTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-} from 'shared-types';
+import { TransactionModel, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { removeUndefinedKeys } from '@js/helpers';
 import { GenericSequelizeModelAttributes } from '@common/types';
 
@@ -12,13 +8,7 @@ import { getWhereConditionForTime } from './utils';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,
-  | 'accountId'
-  | 'time'
-  | 'amount'
-  | 'refAmount'
-  | 'currencyId'
-  | 'currencyCode'
-  | 'categoryId'
+  'accountId' | 'time' | 'amount' | 'refAmount' | 'currencyId' | 'currencyCode' | 'categoryId'
 >;
 
 /**
@@ -51,8 +41,7 @@ export const getExpensesHistory = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<GetExpensesHistoryResponseSchema[]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const dataAttributes: (keyof Transactions.default)[] = [

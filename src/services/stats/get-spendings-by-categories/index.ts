@@ -15,8 +15,7 @@ export const getSpendingsByCategories = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const transactions = await getExpensesHistory(params);

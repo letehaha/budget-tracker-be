@@ -8,12 +8,7 @@ import * as userService from '@services/user.service';
 import * as categoriesService from '@services/categories.service';
 import { DEFAULT_CATEGORIES } from '@js/const';
 import { logger } from '@js/utils/logger';
-import {
-  Unauthorized,
-  NotFoundError,
-  UnexpectedError,
-  ConflictError,
-} from '@js/errors';
+import { Unauthorized, NotFoundError, UnexpectedError, ConflictError } from '@js/errors';
 
 export const login = async ({
   username,
@@ -56,29 +51,19 @@ export const login = async ({
   }
 };
 
-export const register = async ({
-  username,
-  password,
-}: {
-  username: string;
-  password: string;
-}) => {
+export const register = async ({ username, password }: { username: string; password: string }) => {
   let registrationTransaction = null;
 
   try {
     // Define registration transaction
     registrationTransaction = await connection.sequelize.transaction({
-      isolationLevel:
-        connection.Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
+      isolationLevel: connection.Sequelize.Transaction.ISOLATION_LEVELS.READ_UNCOMMITTED,
     });
 
     // Check if user already exists
     let user = await userService.getUserByCredentials({ username });
     if (user) {
-      throw new ConflictError(
-        API_ERROR_CODES.userExists,
-        'User already exists!',
-      );
+      throw new ConflictError(API_ERROR_CODES.userExists, 'User already exists!');
     }
 
     const salt = bcrypt.genSaltSync(10);
@@ -128,10 +113,7 @@ export const register = async ({
       }
     });
 
-    await categoriesService.bulkCreate(
-      { data: subcats },
-      { transaction: registrationTransaction },
-    );
+    await categoriesService.bulkCreate({ data: subcats }, { transaction: registrationTransaction });
 
     // set defaultCategoryId so the undefined mcc codes will use it
     const defaultCategoryId = categories.find(

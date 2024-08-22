@@ -20,8 +20,7 @@ export const getCategories = async (req, res: CustomResponse) => {
 
 export const createCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { name, imageUrl, color, parentId }: endpointsTypes.CreateCategoryBody =
-    req.body;
+  const { name, imageUrl, color, parentId }: endpointsTypes.CreateCategoryBody = req.body;
 
   try {
     const data = await categoriesService.createCategory({

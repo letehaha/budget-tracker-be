@@ -3,17 +3,13 @@ import { ValidationError } from '@js/errors';
 import { CreateTransactionParams } from '@services/transactions/types';
 
 export const validateTransactionAmount = (amount): void => {
-  if (amount === 0)
-    throw new ValidationError({ message: 'Amount cannot be 0.' });
-  if (amount < 0)
-    throw new ValidationError({ message: 'Amount should be positive.' });
+  if (amount === 0) throw new ValidationError({ message: 'Amount cannot be 0.' });
+  if (amount < 0) throw new ValidationError({ message: 'Amount should be positive.' });
   if (!Number.isInteger(amount))
     throw new ValidationError({ message: 'Amount should be an integer.' });
 };
 
-export const validateTransactionCreation = (
-  params: CreateTransactionParams,
-) => {
+export const validateTransactionCreation = (params: CreateTransactionParams) => {
   const {
     amount,
     transferNature,

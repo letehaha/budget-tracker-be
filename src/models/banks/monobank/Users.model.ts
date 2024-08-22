@@ -51,22 +51,14 @@ export const getUserBySystemId = async (
 ) => {
   const user = await MonobankUsers.findOne({
     where: { systemUserId },
-    attributes: [
-      'id',
-      'clientId',
-      'name',
-      'webHookUrl',
-      'systemUserId',
-      'apiToken',
-    ],
+    attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId', 'apiToken'],
     ...attributes,
   });
 
   return user;
 };
 
-export interface MonoUserUpdatePayload
-  extends endpointsTypes.UpdateMonobankUserBody {
+export interface MonoUserUpdatePayload extends endpointsTypes.UpdateMonobankUserBody {
   systemUserId: number;
 }
 export const updateUser = async (

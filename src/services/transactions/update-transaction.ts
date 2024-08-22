@@ -1,8 +1,4 @@
-import {
-  ACCOUNT_TYPES,
-  TRANSACTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-} from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import { logger } from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
@@ -12,10 +8,7 @@ import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Accounts from '@models/Accounts.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { getTransactionById } from './get-by-id';
-import {
-  createOppositeTransaction,
-  calcTransferTransactionRefAmount,
-} from './create-transaction';
+import { createOppositeTransaction, calcTransferTransactionRefAmount } from './create-transaction';
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -32,19 +25,11 @@ export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
  * 1. Do not allow editing specified fields
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
-const validateTransaction = (
-  newData: UpdateTransactionParams,
-  prevData: Transactions.default,
-) => {
-  if (+newData.id !== +prevData.id)
-    throw new ValidationError({ message: 'id cannot be changed' });
+const validateTransaction = (newData: UpdateTransactionParams, prevData: Transactions.default) => {
+  if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' });
 
   if (prevData.accountType !== ACCOUNT_TYPES.system) {
-    if (
-      EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some(
-        (field) => newData[field] !== undefined,
-      )
-    ) {
+    if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some((field) => newData[field] !== undefined)) {
       throw new ValidationError({
         message: 'Attempt to edit readonly fields of the external account',
       });
@@ -57,8 +42,7 @@ const validateTransaction = (
     newData.transactionType !== prevData.transactionType
   ) {
     throw new ValidationError({
-      message:
-        'It\'s disallowed to change "transactionType" of the non-system account',
+      message: 'It\'s disallowed to change "transactionType" of the non-system account',
     });
   }
 
@@ -96,24 +80,22 @@ const makeBasicBaseTxUpdation = async (
       ? newData.transactionType
       : prevData.transactionType;
 
-  const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams =
-    {
-      id: newData.id,
-      amount: newData.amount ?? prevData.amount,
-      refAmount: newData.amount ?? prevData.refAmount,
-      note: newData.note,
-      time: newData.time,
-      userId: newData.userId,
-      transactionType,
-      paymentType: newData.paymentType,
-      accountId: newData.accountId,
-      categoryId: newData.categoryId,
-      transferNature: newData.transferNature,
-      currencyCode: prevData.currencyCode,
-    };
+  const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
+    id: newData.id,
+    amount: newData.amount ?? prevData.amount,
+    refAmount: newData.amount ?? prevData.refAmount,
+    note: newData.note,
+    time: newData.time,
+    userId: newData.userId,
+    transactionType,
+    paymentType: newData.paymentType,
+    accountId: newData.accountId,
+    categoryId: newData.categoryId,
+    transferNature: newData.transferNature,
+    currencyCode: prevData.currencyCode,
+  };
 
-  const isBaseTxAccountChanged =
-    newData.accountId && newData.accountId !== prevData.accountId;
+  const isBaseTxAccountChanged = newData.accountId && newData.accountId !== prevData.accountId;
 
   if (isBaseTxAccountChanged) {
     // Since accountId is changed, we need to change currency too
@@ -138,10 +120,9 @@ const makeBasicBaseTxUpdation = async (
     );
   }
 
-  const baseTransaction = await Transactions.updateTransactionById(
-    baseTransactionUpdateParams,
-    { transaction },
-  );
+  const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams, {
+    transaction,
+  });
 
   return baseTransaction;
 };
@@ -163,15 +144,8 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, , transaction] = params;
   let [, , baseTransaction] = params;
 
-  const {
-    userId,
-    destinationAmount,
-    note,
-    time,
-    paymentType,
-    destinationAccountId,
-    categoryId,
-  } = newData;
+  const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } =
+    newData;
 
   const oppositeTx = (
     await Transactions.getTransactionsByArrayOfField({
@@ -225,10 +199,9 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   updateOppositeTxParams.refAmount = oppositeRefAmount;
   baseTransaction = updatedBaseTransaction;
 
-  const destinationTransaction = await Transactions.updateTransactionById(
-    updateOppositeTxParams,
-    { transaction },
-  );
+  const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams, {
+    transaction,
+  });
 
   return { baseTx: baseTransaction, oppositeTx: destinationTransaction };
 };
@@ -271,10 +244,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
   );
 };
 
-const isUpdatingTransferTx = (
-  payload: UpdateTransactionParams,
-  prevData: Transactions.default,
-) => {
+const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   // Previously was transfer, now NOT a transfer
   const nowNotTransfer =
     payload.transferNature === undefined &&
@@ -288,20 +258,14 @@ const isUpdatingTransferTx = (
   return nowNotTransfer || updatingTransfer;
 };
 
-const isCreatingTransfer = (
-  payload: UpdateTransactionParams,
-  prevData: Transactions.default,
-) => {
+const isCreatingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
     payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
     prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
   );
 };
 
-const isDiscardingTransfer = (
-  payload: UpdateTransactionParams,
-  prevData: Transactions.default,
-) => {
+const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
     payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
     prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
@@ -314,9 +278,7 @@ const isDiscardingTransfer = (
 export const updateTransaction = async (
   payload: UpdateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<
-  [baseTx: Transactions.default, oppositeTx?: Transactions.default]
-> => {
+): Promise<[baseTx: Transactions.default, oppositeTx?: Transactions.default]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
   const transaction: Transaction =
     attributes.transaction ?? (await connection.sequelize.transaction());
@@ -332,15 +294,9 @@ export const updateTransaction = async (
 
     // Make basic updation to the base transaction. "Transfer" transactions
     // handled down in the code
-    const baseTransaction = await makeBasicBaseTxUpdation(
-      payload,
-      prevData,
-      transaction,
-    );
+    const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
 
-    let updatedTransactions: [Transactions.default, Transactions.default?] = [
-      baseTransaction,
-    ];
+    let updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
 
     const helperFunctionsArgs: HelperFunctionsArgs = [
       payload,
@@ -359,8 +315,7 @@ export const updateTransaction = async (
         await deleteOppositeTransaction(helperFunctionsArgs);
       }
 
-      const { baseTx, oppositeTx } =
-        await updateTransferTransaction(helperFunctionsArgs);
+      const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
 
       updatedTransactions = [baseTx, oppositeTx];
     } else if (isCreatingTransfer(payload, prevData)) {
@@ -368,9 +323,7 @@ export const updateTransaction = async (
         const [[baseTx, oppositeTx]] = await linkTransactions(
           {
             userId: payload.userId,
-            ids: [
-              [updatedTransactions[0].id, payload.destinationTransactionId],
-            ],
+            ids: [[updatedTransactions[0].id, payload.destinationTransactionId]],
             ignoreBaseTxTypeValidation: true,
           },
           { transaction },
@@ -383,8 +336,7 @@ export const updateTransaction = async (
           // it will be `undefined`, that's why we derive it from prevData
           {
             ...payload,
-            transactionType:
-              payload.transactionType ?? prevData.transactionType,
+            transactionType: payload.transactionType ?? prevData.transactionType,
           },
           baseTransaction,
           transaction,

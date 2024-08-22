@@ -20,9 +20,7 @@ export const linkTransactions = async (req, res: CustomResponse) => {
       ids,
     });
 
-    return res
-      .status(200)
-      .json({ status: API_RESPONSE_STATUS.success, response: data });
+    return res.status(200).json({ status: API_RESPONSE_STATUS.success, response: data });
   } catch (err) {
     errorHandler(res, err);
   }

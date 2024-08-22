@@ -15,11 +15,9 @@ module.exports = {
 
     try {
       // 1. On system account deletion, delete all associated transactions
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_accountId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_accountId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         fields: ['accountId'],
         type: 'foreign key',
@@ -34,11 +32,9 @@ module.exports = {
       });
 
       // 2. On system user deletion, delete all associated system transactions
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         fields: ['userId'],
         type: 'foreign key',
@@ -72,11 +68,9 @@ module.exports = {
       });
 
       // 4. On system user deletion, delete all associated mono users
-      await queryInterface.removeConstraint(
-        'MonobankUsers',
-        'MonobankUsers_systemUserId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankUsers', 'MonobankUsers_systemUserId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('MonobankUsers', {
         fields: ['systemUserId'],
         type: 'foreign key',
@@ -110,11 +104,9 @@ module.exports = {
       });
 
       // 6. On system user deletion, delete all associated categories
-      await queryInterface.removeConstraint(
-        'Categories',
-        'Categories_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Categories', 'Categories_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Categories', {
         fields: ['userId'],
         type: 'foreign key',
@@ -129,11 +121,7 @@ module.exports = {
       });
 
       // 7. On system user deletion, delete all associated accounts
-      await queryInterface.removeConstraint(
-        'Accounts',
-        'Accounts_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Accounts', 'Accounts_userId_fkey', { transaction });
       await queryInterface.addConstraint('Accounts', {
         fields: ['userId'],
         type: 'foreign key',
@@ -157,11 +145,9 @@ module.exports = {
 
     try {
       // 1. On system account deletion, delete all associated transactions
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_accountId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_accountId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         type: 'foreign key',
         fields: ['accountId'],
@@ -176,11 +162,9 @@ module.exports = {
       });
 
       // 2. On system user deletion, delete all associated system transactions
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Transactions', {
         fields: ['userId'],
         type: 'foreign key',
@@ -214,11 +198,9 @@ module.exports = {
       });
 
       // 4. On system user deletion, delete all associated mono users
-      await queryInterface.removeConstraint(
-        'MonobankUsers',
-        'MonobankUsers_systemUserId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankUsers', 'MonobankUsers_systemUserId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('MonobankUsers', {
         fields: ['systemUserId'],
         type: 'foreign key',
@@ -252,11 +234,9 @@ module.exports = {
       });
 
       // 6. On system user deletion, delete all associated categories
-      await queryInterface.removeConstraint(
-        'Categories',
-        'Categories_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Categories', 'Categories_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('Categories', {
         fields: ['userId'],
         type: 'foreign key',
@@ -271,11 +251,7 @@ module.exports = {
       });
 
       // 7. On system user deletion, delete all associated accounts
-      await queryInterface.removeConstraint(
-        'Accounts',
-        'Accounts_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Accounts', 'Accounts_userId_fkey', { transaction });
       await queryInterface.addConstraint('Accounts', {
         fields: ['userId'],
         type: 'foreign key',

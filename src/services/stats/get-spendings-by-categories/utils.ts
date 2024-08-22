@@ -10,20 +10,17 @@ interface TransactionGroup {
   nestedCategories: { [categoryId: number]: TransactionGroup };
 }
 
-export const groupData = (
-  categories: Categories.default[],
-  transactions: TransactionEntity,
-) => {
+export const groupData = (categories: Categories.default[], transactions: TransactionEntity) => {
   const nodes: { [key: number]: TransactionGroup } = {};
   const roots: { [key: number]: TransactionGroup } = {};
 
   // Initialize all categories as nodes
-  categories.forEach(category => {
+  categories.forEach((category) => {
     nodes[category.id] = { id: category.id, nestedCategories: {}, transactions: [] };
   });
 
   // Build the tree
-  categories.forEach(category => {
+  categories.forEach((category) => {
     if (category.parentId === null) {
       roots[category.id] = nodes[category.id];
     } else if (nodes[category.parentId]) {
@@ -32,7 +29,7 @@ export const groupData = (
   });
 
   // Assign transactions to their respective categories
-  transactions.forEach(transaction => {
+  transactions.forEach((transaction) => {
     if (nodes[transaction.categoryId]) {
       nodes[transaction.categoryId].transactions.push(transaction);
     }
@@ -50,7 +47,7 @@ export const groupData = (
   };
 
   // Filter roots based on transactions and nested categories having transactions
-  Object.keys(roots).forEach(rootId => {
+  Object.keys(roots).forEach((rootId) => {
     if (!filterEmptyNodes(roots[rootId])) {
       delete roots[rootId];
     }

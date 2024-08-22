@@ -122,12 +122,7 @@ describe('Unlink transfer transactions', () => {
     });
 
     // After unlinking check that transactions now are COMPLETELY SAME
-    [
-      expenseExternalTx,
-      incomeExternalTx,
-      expenseSystemTx,
-      incomeSystemTx,
-    ].forEach((tx) => {
+    [expenseExternalTx, incomeExternalTx, expenseSystemTx, incomeSystemTx].forEach((tx) => {
       expect(result.find((t) => t.id === tx.id)).toEqual(tx);
     });
   });

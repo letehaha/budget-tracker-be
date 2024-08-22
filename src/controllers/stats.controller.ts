@@ -1,8 +1,4 @@
-import {
-  API_RESPONSE_STATUS,
-  BalanceModel,
-  endpointsTypes,
-} from 'shared-types';
+import { API_RESPONSE_STATUS, BalanceModel, endpointsTypes } from 'shared-types';
 import { isValid, isBefore, isEqual } from 'date-fns';
 import { CustomResponse } from '@common/types';
 import * as statsService from '@services/stats';
@@ -31,8 +27,7 @@ const tryBasicDateValidation = ({ from, to }) => {
 
 export const getBalanceHistory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetBalanceHistoryPayload =
-    req.query;
+  const { from, to, accountId }: endpointsTypes.GetBalanceHistoryPayload = req.query;
 
   try {
     tryBasicDateValidation({ from, to });
@@ -87,8 +82,7 @@ export const getTotalBalance = async (req, res: CustomResponse) => {
 
 export const getExpensesHistory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload =
-    req.query;
+  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
 
   try {
     tryBasicDateValidation({ from, to });
@@ -113,8 +107,7 @@ export const getExpensesHistory = async (req, res: CustomResponse) => {
 
 export const getSpendingsByCategories = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload =
-    req.query;
+  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
 
   try {
     tryBasicDateValidation({ from, to });
@@ -128,12 +121,10 @@ export const getSpendingsByCategories = async (req, res: CustomResponse) => {
       }),
     );
 
-    return res
-      .status(200)
-      .json<endpointsTypes.GetSpendingsByCategoriesReturnType>({
-        status: API_RESPONSE_STATUS.success,
-        response: result,
-      });
+    return res.status(200).json<endpointsTypes.GetSpendingsByCategoriesReturnType>({
+      status: API_RESPONSE_STATUS.success,
+      response: result,
+    });
   } catch (err) {
     errorHandler(res, err);
   }
@@ -141,8 +132,7 @@ export const getSpendingsByCategories = async (req, res: CustomResponse) => {
 
 export const getExpensesAmountForPeriod = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload =
-    req.query;
+  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
 
   try {
     tryBasicDateValidation({ from, to });

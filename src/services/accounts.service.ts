@@ -54,10 +54,7 @@ export const createSystemAccountsFromMonobankAccounts = async (
 
   const currencies = await Promise.all(
     currencyCodes.map((code) =>
-      Currencies.createCurrency(
-        { code },
-        { transaction: attributes.transaction },
-      ),
+      Currencies.createCurrency({ code }, { transaction: attributes.transaction }),
     ),
   );
 
@@ -105,15 +102,11 @@ export const pairMonobankAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const { token, userId } = payload;
-    let user = await monobankUsersService.getUserByToken(
-      { token, userId },
-      { transaction },
-    );
+    let user = await monobankUsersService.getUserByToken({ token, userId }, { transaction });
     // If user is found, return
     if (user) {
       await transaction.commit();
@@ -188,10 +181,7 @@ export const pairMonobankAccount = async (
 };
 
 export const createAccount = async (
-  payload: Omit<
-    Accounts.CreateAccountPayload,
-    'refCreditLimit' | 'refInitialBalance'
-  >,
+  payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<AccountModel> => {
   const { userId, creditLimit, currencyId, initialBalance } = payload;
@@ -250,15 +240,13 @@ export const updateAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const accountData = await Accounts.default.findByPk(id, { transaction });
 
     const currentBalanceIsChanging =
-      payload.currentBalance !== undefined &&
-      payload.currentBalance !== accountData.currentBalance;
+      payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
     let initialBalance = accountData.initialBalance;
     let refInitialBalance = accountData.refInitialBalance;
     let refCurrentBalance = accountData.refCurrentBalance;
@@ -321,11 +309,7 @@ export const updateAccount = async (
   }
 };
 
-const calculateNewBalance = (
-  amount: number,
-  previousAmount: number,
-  currentBalance: number,
-) => {
+const calculateNewBalance = (amount: number, previousAmount: number, currentBalance: number) => {
   if (amount > previousAmount) {
     return currentBalance + (amount - previousAmount);
   } else if (amount < previousAmount) {
@@ -335,10 +319,7 @@ const calculateNewBalance = (
   return currentBalance;
 };
 
-const defineCorrectAmountFromTxType = (
-  amount: number,
-  transactionType: TRANSACTION_TYPES,
-) => {
+const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {
   return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
 };
 
@@ -428,18 +409,9 @@ export async function updateAccountBalanceForChangedTx(
   );
 
   const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
-  const oldAmount = defineCorrectAmountFromTxType(
-    prevAmount,
-    prevTransactionType,
-  );
-  const newRefAmount = defineCorrectAmountFromTxType(
-    refAmount,
-    transactionType,
-  );
-  const oldRefAmount = defineCorrectAmountFromTxType(
-    prevRefAmount,
-    prevTransactionType,
-  );
+  const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType);
+  const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType);
+  const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType);
 
   // TODO: for now keep that deadcode, cause it doesn't really work. But when have time, recheck it past neednes
   // if (currencyId !== accountCurrencyId) {
@@ -457,11 +429,7 @@ export async function updateAccountBalanceForChangedTx(
       id: accountId,
       userId,
       currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
-      refCurrentBalance: calculateNewBalance(
-        newRefAmount,
-        oldRefAmount,
-        refCurrentBalance,
-      ),
+      refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
     },
     { transaction },
   );

@@ -28,8 +28,9 @@ describe('Update transaction controller', () => {
   it('should change account (so and currency) and update refAmount correctly', async () => {
     const [createdTransaction] = await helpers.createTransaction({ raw: true });
 
-    const { account: accountUAH, currencyRate } =
-      await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+    const { account: accountUAH, currencyRate } = await helpers.createAccountWithNewCurrency({
+      currency: 'UAH',
+    });
 
     const [baseTx] = await helpers.updateTransaction({
       id: createdTransaction.id,
@@ -129,10 +130,12 @@ describe('Update transaction controller', () => {
   );
   describe('test refAmount is correct when changing transfer transaction accounts to ref account', () => {
     it('EUR->UAH to EUR->USD, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
-      const { account: accountEUR } =
-        await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
-      const { account: accountUAH } =
-        await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+      const { account: accountEUR } = await helpers.createAccountWithNewCurrency({
+        currency: 'EUR',
+      });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({
+        currency: 'UAH',
+      });
       const accountUSD = await helpers.createAccount({ raw: true });
 
       const [baseTx] = await helpers.createTransaction({
@@ -148,24 +151,25 @@ describe('Update transaction controller', () => {
         raw: true,
       });
 
-      const [updatedBaseTx, updatedOppositeTx] =
-        await helpers.updateTransaction({
-          id: baseTx.id,
-          payload: {
-            destinationAccountId: accountUSD.id,
-            destinationAmount: 1000,
-          },
-          raw: true,
-        });
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: {
+          destinationAccountId: accountUSD.id,
+          destinationAmount: 1000,
+        },
+        raw: true,
+      });
 
       expect(updatedOppositeTx.amount).toEqual(updatedOppositeTx.refAmount);
       expect(updatedBaseTx.refAmount).toEqual(updatedOppositeTx.refAmount);
     });
     it('UAH->EUR to USD->EUR, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
-      const { account: accountEUR } =
-        await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
-      const { account: accountUAH } =
-        await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+      const { account: accountEUR } = await helpers.createAccountWithNewCurrency({
+        currency: 'EUR',
+      });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({
+        currency: 'UAH',
+      });
       const accountUSD = await helpers.createAccount({ raw: true });
 
       const [baseTx, oppositeTx] = await helpers.createTransaction({
@@ -183,15 +187,14 @@ describe('Update transaction controller', () => {
 
       // Change base tx account to USD, amount makes same as refAmount
       // opposite tx amount stays as previous, but refAmount makes same as base tx
-      const [updatedBaseTx, updatedOppositeTx] =
-        await helpers.updateTransaction({
-          id: baseTx.id,
-          payload: {
-            accountId: accountUSD.id,
-            amount: 2500,
-          },
-          raw: true,
-        });
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: {
+          accountId: accountUSD.id,
+          amount: 2500,
+        },
+        raw: true,
+      });
 
       expect(updatedBaseTx.amount).toEqual(updatedBaseTx.refAmount);
       expect(updatedOppositeTx.amount).toEqual(oppositeTx.amount);
@@ -238,16 +241,15 @@ describe('Update transaction controller', () => {
           );
           const newTxBalanceRecord = balanceHistory.find(
             (item) =>
-              item.date === externalTxBalanceRecord.date &&
-              item.accountId === oppositeTx.accountId,
+              item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId,
           );
 
           expect(newTxBalanceRecord.amount).toBe(
             expected === 0
               ? 0
               : oppositeTx.transactionType === TRANSACTION_TYPES.expense
-              ? -expected
-              : expected,
+                ? -expected
+                : expected,
           );
         };
 
@@ -287,13 +289,9 @@ describe('Update transaction controller', () => {
         });
 
         // Check that opposite tx is deleted
-        expect(
-          transactionsAfterUpdate.find((i) => i.id === oppositeTx.id),
-        ).toBe(undefined);
+        expect(transactionsAfterUpdate.find((i) => i.id === oppositeTx.id)).toBe(undefined);
         // Check that base tx doesn't have transferId anymore
-        expect(
-          transactionsAfterUpdate.find((i) => i.id === baseTx.id).transferId,
-        ).toBe(null);
+        expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id).transferId).toBe(null);
       },
     );
     it('throws error when trying to make invalid actions', async () => {
@@ -374,12 +372,8 @@ describe('Update transaction controller', () => {
 
         const txsAfterUpdation = await helpers.getTransactions({ raw: true });
 
-        const tx1AfterUpdation = txsAfterUpdation.find(
-          (item) => item.id === tx1.id,
-        );
-        const tx2AfterUpdation = txsAfterUpdation.find(
-          (item) => item.id === tx2.id,
-        );
+        const tx1AfterUpdation = txsAfterUpdation.find((item) => item.id === tx1.id);
+        const tx2AfterUpdation = txsAfterUpdation.find((item) => item.id === tx2.id);
 
         [
           [tx1, tx1AfterUpdation],
@@ -392,9 +386,7 @@ describe('Update transaction controller', () => {
             transferId: expect.toBeAnythingOrNull(),
           });
 
-          expect(txAfter.transferNature).toBe(
-            TRANSACTION_TRANSFER_NATURE.common_transfer,
-          );
+          expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
           expect(txAfter.transferId).toEqual(expect.any(String));
         });
 
@@ -413,12 +405,8 @@ describe('Update transaction controller', () => {
         await helpers.monobank.pair();
         const { transactions } = await helpers.monobank.mockTransactions();
 
-        const tx1 = transactions.find(
-          (item) => item.transactionType === txType,
-        );
-        const tx2 = transactions.find(
-          (item) => item.transactionType === oppositeTxType,
-        );
+        const tx1 = transactions.find((item) => item.transactionType === txType);
+        const tx2 = transactions.find((item) => item.transactionType === oppositeTxType);
 
         const result = await helpers.updateTransaction({
           id: tx1.id,
@@ -491,12 +479,8 @@ describe('Update transaction controller', () => {
           raw: true,
         });
 
-        const expenseTx = transactions.find(
-          (t) => t.transactionType === TRANSACTION_TYPES.expense,
-        );
-        const incomeTx = transactions.find(
-          (t) => t.transactionType === TRANSACTION_TYPES.income,
-        );
+        const expenseTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.expense);
+        const incomeTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.income);
 
         const result = await helpers.updateTransaction({
           id: tx1.id,

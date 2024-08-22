@@ -1,12 +1,7 @@
 import axios from 'axios';
 import config from 'config';
 import PQueue from 'p-queue';
-import {
-  addMonths,
-  endOfMonth,
-  startOfMonth,
-  differenceInCalendarMonths,
-} from 'date-fns';
+import { addMonths, endOfMonth, startOfMonth, differenceInCalendarMonths } from 'date-fns';
 import {
   API_ERROR_CODES,
   API_RESPONSE_STATUS,
@@ -41,13 +36,7 @@ const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
-function dateRange({
-  from,
-  to,
-}: {
-  from: number;
-  to: number;
-}): { start: number; end: number }[] {
+function dateRange({ from, to }: { from: number; to: number }): { start: number; end: number }[] {
   const difference = differenceInCalendarMonths(new Date(to), new Date(from));
   const dates = [];
 
@@ -116,9 +105,7 @@ async function createMonoTransaction(
   if (userMcc.length) {
     categoryId = userMcc[0].get('categoryId');
   } else {
-    categoryId = (await Users.getUserDefaultCategory({ id: userData.id })).get(
-      'defaultCategoryId',
-    );
+    categoryId = (await Users.getUserDefaultCategory({ id: userData.id })).get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
@@ -142,8 +129,7 @@ async function createMonoTransaction(
     cashbackAmount: data.cashbackAmount,
     accountId: account.id,
     userId: userData.id,
-    transactionType:
-      data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
+    transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
@@ -162,8 +148,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
   try {
     if (!token || typeof token !== 'string') {
       throw new ValidationError({
-        message:
-          '"token" (Monobank API token) field is required and should be a string',
+        message: '"token" (Monobank API token) field is required and should be a string',
       });
     }
 
@@ -226,12 +211,7 @@ export const getUser = async (req, res: CustomResponse) => {
 
 export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
-  const {
-    apiToken,
-    name,
-    webHookUrl,
-    clientId,
-  }: endpointsTypes.UpdateMonobankUserBody = req.body;
+  const { apiToken, name, webHookUrl, clientId }: endpointsTypes.UpdateMonobankUserBody = req.body;
 
   try {
     const user = await monobankUsersService.updateUser({
@@ -326,8 +306,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
     return res.status(ERROR_CODES.TooManyRequests).json({
       status: API_RESPONSE_STATUS.error,
       response: {
-        message:
-          'Too many requests! Request cannot be called more that once a minute!',
+        message: 'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {
@@ -343,16 +322,12 @@ export const updateWebhook = async (req, res: CustomResponse) => {
 
 export const loadTransactions = async (req, res: CustomResponse) => {
   try {
-    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery =
-      req.query;
+    const { from, to, accountId }: endpointsTypes.LoadMonoTransactionsQuery = req.query;
     const { id: systemUserId } = req.user;
 
-    if (!from || !Number(from))
-      throw new ValidationError({ message: '"from" field is invalid' });
-    if (!to || !Number(to))
-      throw new ValidationError({ message: '"to" field is invalid' });
-    if (!accountId)
-      throw new ValidationError({ message: '"accountId" field is required' });
+    if (!from || !Number(from)) throw new ValidationError({ message: '"from" field is invalid' });
+    if (!to || !Number(to)) throw new ValidationError({ message: '"to" field is invalid' });
+    if (!accountId) throw new ValidationError({ message: '"accountId" field is required' });
 
     const redisToken = `monobank-${systemUserId}-load-transactions`;
     const tempRedisToken = await req.redisClient.get(redisToken);
@@ -431,15 +406,14 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     for (const month of months) {
       queue.add(async () => {
         try {
-          const { data }: { data: ExternalMonobankTransactionResponse[] } =
-            await axios({
-              method: 'GET',
-              url: `${hostname}/personal/statement/${account.externalId}/${month.start}/${month.end}`,
-              responseType: 'json',
-              headers: {
-                'X-Token': monobankUser.apiToken,
-              },
-            });
+          const { data }: { data: ExternalMonobankTransactionResponse[] } = await axios({
+            method: 'GET',
+            url: `${hostname}/personal/statement/${account.externalId}/${month.start}/${month.end}`,
+            responseType: 'json',
+            headers: {
+              'X-Token': monobankUser.apiToken,
+            },
+          });
 
           for (const item of data) {
             await createMonoTransaction({
@@ -535,10 +509,7 @@ export const refreshAccounts = async (req, res) => {
             // Set user token to empty, since it is already invalid. In that way
             // we can let BE/FE know that last token was invalid and now it
             // needs to be updated
-            await monobankUsersService.updateUser(
-              { systemUserId, apiToken: '' },
-              { transaction },
-            );
+            await monobankUsersService.updateUser({ systemUserId, apiToken: '' }, { transaction });
 
             return res.status(403).json({
               status: API_RESPONSE_STATUS.error,
@@ -571,9 +542,7 @@ export const refreshAccounts = async (req, res) => {
       const accountsToUpdate = [];
       const accountsToCreate = [];
       clientInfo.accounts.forEach((account) => {
-        const existingAccount = existingAccounts.find(
-          (acc) => acc.externalId === account.id,
-        );
+        const existingAccount = existingAccounts.find((acc) => acc.externalId === account.id);
 
         if (existingAccount) {
           accountsToUpdate.push(
@@ -627,8 +596,7 @@ export const refreshAccounts = async (req, res) => {
       status: API_RESPONSE_STATUS.error,
       response: {
         code: API_ERROR_CODES.tooManyRequests,
-        message:
-          'Too many requests! Request cannot be called more that once a minute!',
+        message: 'Too many requests! Request cannot be called more that once a minute!',
       },
     });
   } catch (err) {

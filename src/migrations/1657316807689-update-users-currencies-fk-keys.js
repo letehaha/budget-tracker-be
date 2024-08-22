@@ -3,11 +3,9 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeConstraint(
-        'UsersCurrencies',
-        'UsersCurrencies_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['userId'],
         type: 'foreign key',
@@ -21,11 +19,9 @@ module.exports = {
         transaction,
       });
 
-      await queryInterface.removeConstraint(
-        'UsersCurrencies',
-        'UsersCurrencies_currencyId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_currencyId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['currencyId'],
         type: 'foreign key',
@@ -49,11 +45,9 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeConstraint(
-        'UsersCurrencies',
-        'UsersCurrencies_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_userId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('UsersCurrencies', {
         type: 'foreign key',
         fields: ['userId'],
@@ -65,11 +59,9 @@ module.exports = {
         transaction,
       });
 
-      await queryInterface.removeConstraint(
-        'UsersCurrencies',
-        'UsersCurrencies_currencyId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_currencyId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('UsersCurrencies', {
         type: 'foreign key',
         fields: ['currencyId'],

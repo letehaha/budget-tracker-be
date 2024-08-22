@@ -24,8 +24,7 @@ export const getTotalBalance = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<number> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     const balancesForDate = await getBalanceHistory(
@@ -36,10 +35,7 @@ export const getTotalBalance = async (
       },
     );
 
-    const totalBalance = balancesForDate.reduce(
-      (acc, value) => (acc += value.amount),
-      0,
-    );
+    const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount), 0);
 
     if (!isTxPassedFromAbove) {
       await transaction.commit();

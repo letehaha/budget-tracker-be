@@ -65,10 +65,7 @@ app.use(
       ];
 
       if (process.env.NODE_ENV !== 'test') {
-        if (
-          !requestOrigin ||
-          !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))
-        ) {
+        if (!requestOrigin || !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))) {
           return callback(null, false);
         }
       }

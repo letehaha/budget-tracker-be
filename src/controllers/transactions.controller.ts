@@ -1,8 +1,4 @@
-import {
-  API_RESPONSE_STATUS,
-  SORT_DIRECTIONS,
-  endpointsTypes,
-} from 'shared-types';
+import { API_RESPONSE_STATUS, SORT_DIRECTIONS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import { ValidationError } from '@js/errors';
 import * as transactionsService from '@services/transactions';
@@ -57,16 +53,9 @@ export const getTransactionById = async (req, res: CustomResponse) => {
   try {
     const { id } = req.params;
     const { id: userId } = req.user;
-    const {
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-    } = req.query;
+    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
 
-    if (id === undefined)
-      throw new ValidationError({ message: 'id should exist.' });
+    if (id === undefined) throw new ValidationError({ message: 'id should exist.' });
 
     const data = await transactionsService.getTransactionById({
       id,
@@ -91,13 +80,7 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
   try {
     const { transferId } = req.params;
     const { id: userId } = req.user;
-    const {
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
-    } = req.query;
+    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
 
     if (transferId === undefined)
       throw new ValidationError({ message: '"transferId" is required.' });

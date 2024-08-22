@@ -40,16 +40,10 @@ export default class UserExchangeRates extends Model<UserExchangeRatesAttributes
   rate: number;
 }
 
-export type ExchangeRatePair = Pick<
-  UserExchangeRatesAttributes,
-  'baseCode' | 'quoteCode'
->;
+export type ExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode'>;
 
 export async function getRates(
-  {
-    userId,
-    pair,
-  }: { userId: UserExchangeRatesAttributes['userId']; pair: ExchangeRatePair },
+  { userId, pair }: { userId: UserExchangeRatesAttributes['userId']; pair: ExchangeRatePair },
   attributes: GenericSequelizeModelAttributes,
 );
 export async function getRates(
@@ -80,8 +74,7 @@ export async function getRates(
 
   if (pair && pairs) {
     throw new ValidationError({
-      message:
-        'Only a single parameter is allowed. Passed both "pair" and "pairs".',
+      message: 'Only a single parameter is allowed. Passed both "pair" and "pairs".',
     });
   }
   if (!pair && !pairs) {
@@ -180,12 +173,8 @@ export async function updateRates(
       const currencies = await getCurrencies({
         codes: [pairItem.baseCode, pairItem.quoteCode],
       });
-      const baseCurrency = currencies.find(
-        (item) => item.code === pairItem.baseCode,
-      );
-      const quoteCurrency = currencies.find(
-        (item) => item.code === pairItem.quoteCode,
-      );
+      const baseCurrency = currencies.find((item) => item.code === pairItem.baseCode);
+      const quoteCurrency = currencies.find((item) => item.code === pairItem.quoteCode);
 
       const res = await UserExchangeRates.create(
         {

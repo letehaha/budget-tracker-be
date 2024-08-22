@@ -12,15 +12,12 @@ module.exports = {
       let data = {};
 
       if (isTest) {
-        data.data = JSON.parse(
-          fs.readFileSync('./src/tests/test-exchange-rates.json'),
-        );
+        data.data = JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json'));
       }
 
-      const currencies = await queryInterface.sequelize.query(
-        'SELECT * FROM "Currencies"',
-        { type: QueryTypes.SELECT },
-      );
+      const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', {
+        type: QueryTypes.SELECT,
+      });
 
       await queryInterface.createTable(
         'ExchangeRates',
@@ -103,39 +100,35 @@ module.exports = {
         return acc;
       }, {});
 
-      const currenciesWithRates = currencies.reduce(
-        (currenciesList, currency) => {
-          currenciesList.push(
-            ...Object.entries(data.data.rates).reduce((acc, [code, rate]) => {
-              // BASE / QUOTE
-              const calculatedRate =
-                data.data.rates[code] / data.data.rates[currency.code];
+      const currenciesWithRates = currencies.reduce((currenciesList, currency) => {
+        currenciesList.push(
+          ...Object.entries(data.data.rates).reduce((acc, [code, rate]) => {
+            // BASE / QUOTE
+            const calculatedRate = data.data.rates[code] / data.data.rates[currency.code];
 
-              // 3-rd party service might return currencies which are not exist in our DB
-              if (!DBCurrenciesToObject[code]) {
-                return acc;
-              }
-
-              if (Number.isNaN(calculatedRate)) {
-                excludedCurrencies.add(currency.code);
-              } else {
-                acc.push({
-                  baseId: DBCurrenciesToObject[currency.code].id,
-                  baseCode: currency.code,
-                  quoteId: DBCurrenciesToObject[code].id,
-                  quoteCode: code,
-                  rate: code === currency.code ? 1 : calculatedRate,
-                });
-              }
-
+            // 3-rd party service might return currencies which are not exist in our DB
+            if (!DBCurrenciesToObject[code]) {
               return acc;
-            }, []),
-          );
+            }
 
-          return currenciesList;
-        },
-        [],
-      );
+            if (Number.isNaN(calculatedRate)) {
+              excludedCurrencies.add(currency.code);
+            } else {
+              acc.push({
+                baseId: DBCurrenciesToObject[currency.code].id,
+                baseCode: currency.code,
+                quoteId: DBCurrenciesToObject[code].id,
+                quoteCode: code,
+                rate: code === currency.code ? 1 : calculatedRate,
+              });
+            }
+
+            return acc;
+          }, []),
+        );
+
+        return currenciesList;
+      }, []);
 
       await queryInterface.bulkInsert('ExchangeRates', currenciesWithRates, {
         transaction,

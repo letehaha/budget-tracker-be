@@ -71,11 +71,9 @@ module.exports = {
       );
 
       // 2
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'transactionEntityId',
-        { transaction },
-      );
+      await queryInterface.removeColumn('MonobankTransactions', 'transactionEntityId', {
+        transaction,
+      });
       await queryInterface.addColumn(
         'MonobankTransactions',
         'accountType',
@@ -102,11 +100,7 @@ module.exports = {
       await queryInterface.dropTable('TransactionEntities', { transaction });
 
       // 3
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'paymentTypeId',
-        { transaction },
-      );
+      await queryInterface.removeColumn('MonobankTransactions', 'paymentTypeId', { transaction });
       await queryInterface.addColumn(
         'MonobankTransactions',
         'paymentType',
@@ -157,11 +151,9 @@ module.exports = {
         { transaction },
       );
 
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'transactionTypeId',
-        { transaction },
-      );
+      await queryInterface.removeColumn('MonobankTransactions', 'transactionTypeId', {
+        transaction,
+      });
 
       await queryInterface.addColumn(
         'Transactions',
@@ -291,10 +283,9 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(
-        'UPDATE "Transactions" SET "transactionEntityId" = 1',
-        { transaction },
-      );
+      await queryInterface.sequelize.query('UPDATE "Transactions" SET "transactionEntityId" = 1', {
+        transaction,
+      });
 
       // 3
       await queryInterface.createTable(
@@ -368,10 +359,9 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(
-        'UPDATE "Transactions" SET "paymentTypeId" = 6',
-        { transaction },
-      );
+      await queryInterface.sequelize.query('UPDATE "Transactions" SET "paymentTypeId" = 6', {
+        transaction,
+      });
 
       // 4
       await queryInterface.createTable('TransactionTypes', {
@@ -429,11 +419,7 @@ module.exports = {
       `,
         { transaction },
       );
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'transactionType',
-        { transaction },
-      );
+      await queryInterface.removeColumn('MonobankTransactions', 'transactionType', { transaction });
 
       await queryInterface.addColumn(
         'Transactions',

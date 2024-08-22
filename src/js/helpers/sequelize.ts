@@ -1,10 +1,4 @@
-import {
-  Transaction,
-  Model,
-  ModelStatic,
-  WhereOptions,
-  Attributes,
-} from 'sequelize/types';
+import { Transaction, Model, ModelStatic, WhereOptions, Attributes } from 'sequelize/types';
 
 export async function updateOrCreate<T extends Model>(
   model: ModelStatic<T>,

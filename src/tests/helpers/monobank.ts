@@ -52,16 +52,14 @@ const getMockedTransactionData = (
 ): { data: ExternalMonobankTransactionResponse[] } => {
   const currentDate = helpers.randomDate();
   // To make balance change realistic, we store initial one here and the sub below
-  let initialAccountBalance =
-    initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
+  let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
   return {
     data: new Array(amount).fill(0).map((_, index) => {
       const amount = faker.number.int({ min: 1000, max: 99999 });
       // Make expenses and incomes
       const realisticAmount = index % 3 ? amount : amount * -1;
-      const newBalance = (initialAccountBalance =
-        initialAccountBalance + realisticAmount);
+      const newBalance = (initialAccountBalance = initialAccountBalance + realisticAmount);
 
       return {
         id: faker.string.uuid(),
@@ -114,9 +112,7 @@ const getTransactions = async () => {
   );
 };
 
-const addTransactions = async ({
-  amount = 10,
-}: { amount?: number } = {}): Promise<{
+const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promise<{
   account: Accounts;
   transactions: Transactions[];
 }> => {

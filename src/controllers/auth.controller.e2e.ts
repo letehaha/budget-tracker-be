@@ -61,9 +61,7 @@ describe('Auth', () => {
 
       expect(res.statusCode).toEqual(401);
       expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toEqual(
-        API_ERROR_CODES.invalidCredentials,
-      );
+      expect(res.body.response.code).toEqual(API_ERROR_CODES.invalidCredentials);
     });
   });
 

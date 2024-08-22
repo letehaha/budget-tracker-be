@@ -1,8 +1,5 @@
 import { Router } from 'express';
-import {
-  getAccountData,
-  setSettings,
-} from '../../controllers/crypto/binance.controller';
+import { getAccountData, setSettings } from '../../controllers/crypto/binance.controller';
 import { authenticateJwt } from '../../middlewares/passport';
 
 const router = Router({});

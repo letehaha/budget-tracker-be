@@ -1,5 +1,5 @@
-import { endOfDay } from "date-fns";
-import { Op } from "sequelize";
+import { endOfDay } from 'date-fns';
+import { Op } from 'sequelize';
 
 type ColumnName = 'time' | 'date';
 interface DateQuery {

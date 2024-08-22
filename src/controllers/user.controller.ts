@@ -2,10 +2,7 @@ import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as userService from '@services/user.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
-import {
-  UpdateExchangeRatePair,
-  ExchangeRatePair,
-} from '@models/UserExchangeRates.model';
+import { UpdateExchangeRatePair, ExchangeRatePair } from '@models/UserExchangeRates.model';
 import { errorHandler } from './helpers';
 import { ValidationError } from '@js/errors';
 
@@ -252,10 +249,7 @@ export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
   }
 };
 
-export const editUserCurrencyExchangeRate = async (
-  req,
-  res: CustomResponse,
-) => {
+export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
     const { pairs }: { pairs: UpdateExchangeRatePair[] } = req.body;
@@ -270,8 +264,7 @@ export const editUserCurrencyExchangeRate = async (
 
     if (pairs.some((item) => item.baseCode === item.quoteCode)) {
       throw new ValidationError({
-        message:
-          'You cannot edit pair with the same base and quote currency code.',
+        message: 'You cannot edit pair with the same base and quote currency code.',
       });
     }
 
@@ -298,10 +291,7 @@ export const editUserCurrencyExchangeRate = async (
   }
 };
 
-export const removeUserCurrencyExchangeRate = async (
-  req,
-  res: CustomResponse,
-) => {
+export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
     const { pairs }: { pairs: ExchangeRatePair[] } = req.body;
