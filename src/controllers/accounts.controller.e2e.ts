@@ -94,7 +94,7 @@ describe('Accounts controller', () => {
         await helpers.createTransaction({
           payload: {
             ...helpers.buildTransactionPayload({ accountId: account.id }),
-            time: addDays(new Date(), +index + 1),
+            time: addDays(new Date(), +index + 1).toISOString(),
           },
         });
       }
@@ -146,7 +146,7 @@ describe('Accounts controller', () => {
         await helpers.createTransaction({
           payload: {
             ...helpers.buildTransactionPayload({ accountId: account.id }),
-            time: addDays(new Date(), +index + 1),
+            time: addDays(new Date(), +index + 1).toISOString(),
           },
         });
       }

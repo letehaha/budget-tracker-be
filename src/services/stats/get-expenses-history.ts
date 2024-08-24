@@ -8,7 +8,16 @@ import { getWhereConditionForTime } from './utils';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,
-  'accountId' | 'time' | 'amount' | 'refAmount' | 'currencyId' | 'currencyCode' | 'categoryId'
+  | 'id'
+  | 'accountId'
+  | 'time'
+  | 'amount'
+  | 'refAmount'
+  | 'currencyId'
+  | 'currencyCode'
+  | 'categoryId'
+  | 'refundLinked'
+  | 'transactionType'
 >;
 
 /**
@@ -45,6 +54,7 @@ export const getExpensesHistory = async (
 
   try {
     const dataAttributes: (keyof Transactions.default)[] = [
+      'id',
       'accountId',
       'time',
       'amount',
@@ -52,6 +62,8 @@ export const getExpensesHistory = async (
       'currencyId',
       'currencyCode',
       'categoryId',
+      'refundLinked',
+      'transactionType',
     ];
 
     const transactions = await Transactions.default.findAll({

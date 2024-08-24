@@ -22,6 +22,7 @@ const umzug = new Umzug({
 });
 
 global.BASE_CURRENCY = null;
+global.BASE_CURRENCY_CODE = 'USD';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
@@ -92,7 +93,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find((item) => item.code === 'USD');
+      global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
     }
 
     await makeRequest({

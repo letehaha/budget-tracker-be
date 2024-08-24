@@ -132,7 +132,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...expense,
-          time: startOfDay(addDays(new Date(), 1)),
+          time: startOfDay(addDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -146,7 +146,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(subDays(new Date(), 1)),
+          time: startOfDay(subDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -175,7 +175,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...expense,
-          time: startOfDay(addDays(new Date(), 1)),
+          time: startOfDay(addDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -183,7 +183,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(new Date()),
+          time: startOfDay(new Date()).toISOString(),
         },
       });
 
@@ -199,7 +199,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(subDays(new Date(), 1)),
+          time: startOfDay(subDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -231,7 +231,10 @@ describe('Balances service', () => {
       // Send 3 transactions at different days
       for (const tx of transactionsPayloads) {
         const response: Transactions[] = await helpers.createTransaction({
-          payload: tx,
+          payload: {
+            ...tx,
+            time: tx.time.toISOString(),
+          },
           raw: true,
         });
         transactionResults.push(response[0]);
@@ -272,7 +275,10 @@ describe('Balances service', () => {
 
       for (const tx of transactionsPayloads) {
         const response = await helpers.createTransaction({
-          payload: tx,
+          payload: {
+            ...tx,
+            time: tx.time.toISOString(),
+          },
           raw: true,
         });
 
@@ -353,7 +359,7 @@ describe('Balances service', () => {
         id: transactionResults[0].id,
         payload: {
           amount: 150,
-          time: startOfDay(subDays(new Date(), 4)),
+          time: startOfDay(subDays(new Date(), 4)).toISOString(),
           transactionType: TRANSACTION_TYPES.income,
         },
       });
@@ -382,7 +388,7 @@ describe('Balances service', () => {
         id: transactionResults[3].id,
         payload: {
           amount: 150,
-          time: startOfDay(addDays(new Date(), 5)),
+          time: startOfDay(addDays(new Date(), 5)).toISOString(),
           transactionType: TRANSACTION_TYPES.income,
           accountId: oneMoreAccountData.id,
         },
