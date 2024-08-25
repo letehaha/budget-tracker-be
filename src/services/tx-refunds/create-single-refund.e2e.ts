@@ -173,13 +173,16 @@ describe('Refund Transactions service', () => {
         expect(result.refund_tx_id).toEqual(refundTx.id);
       });
 
-      it('successfully creates multiple partial refunds', async () => {
+      it.each([
+        [{ originalAmount: 100, refund1: 40, refund2: 60 }], // full refund
+        [{ originalAmount: 100, refund1: 10, refund2: 20 }], // partial refund
+      ])('successfully creates multiple refunds', async ({ originalAmount, refund1, refund2 }) => {
         const account = await helpers.createAccount({ raw: true });
 
         const [baseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 100,
+            amount: originalAmount,
             transactionType: TRANSACTION_TYPES.expense,
           }),
           raw: true,
@@ -189,7 +192,7 @@ describe('Refund Transactions service', () => {
         const [refundTx1] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 40,
+            amount: refund1,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,
@@ -210,7 +213,7 @@ describe('Refund Transactions service', () => {
         const [refundTx2] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 60,
+            amount: refund2,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,

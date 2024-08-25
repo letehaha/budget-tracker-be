@@ -47,6 +47,7 @@ export interface UpdateTransactionBody {
   destinationAccountId?: TransactionModel['accountId'];
   categoryId?: TransactionModel['categoryId'];
   transferNature?: TransactionModel['transferNature'];
+  refundTransactionsIds?: number[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {

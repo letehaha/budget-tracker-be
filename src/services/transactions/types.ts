@@ -22,6 +22,7 @@ interface UpdateParams {
   accountId?: number;
   categoryId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
+  refundTransactionsIds?: number[];
 }
 
 interface UpdateTransferParams {

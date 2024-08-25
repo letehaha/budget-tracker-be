@@ -13,6 +13,7 @@ import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
 import { GenericSequelizeModelAttributes } from '@common/types';
+import * as refundsService from '@services/tx-refunds';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -93,6 +94,7 @@ const makeBasicBaseTxUpdation = async (
     categoryId: newData.categoryId,
     transferNature: newData.transferNature,
     currencyCode: prevData.currencyCode,
+    refundLinked: prevData.refundLinked,
   };
 
   const isBaseTxAccountChanged = newData.accountId && newData.accountId !== prevData.accountId;
@@ -118,6 +120,61 @@ const makeBasicBaseTxUpdation = async (
       },
       { transaction },
     );
+  }
+
+  const allRefundsShouldBeUnlinked =
+    newData.refundTransactionsIds === null ||
+    (Array.isArray(newData.refundTransactionsIds) && !newData.refundTransactionsIds.length);
+  // If previously refund was linked, but now
+  if (prevData.refundLinked && allRefundsShouldBeUnlinked) {
+    baseTransactionUpdateParams.refundLinked = false;
+    const previousRefunds = await refundsService.getRefundsForTransactionById(
+      { userId: newData.userId, transactionId: newData.id },
+      { transaction },
+    );
+    await Promise.all(
+      previousRefunds.map((r) =>
+        refundsService.removeRefundLink(
+          {
+            userId: newData.userId,
+            originalTxId: r.original_tx_id,
+            refundTxId: r.refund_tx_id,
+          },
+          { transaction },
+        ),
+      ),
+    );
+  } else if (Array.isArray(newData.refundTransactionsIds) && newData.refundTransactionsIds.length) {
+    // If client passed new refunds ids, make sure they were not updated, and process if they did
+    const previousRefunds = await refundsService.getRefundsForTransactionById(
+      { userId: newData.userId, transactionId: newData.id },
+      { transaction },
+    );
+
+    if (previousRefunds.length) {
+      await Promise.all(
+        previousRefunds.map((previousRefund) =>
+          refundsService.removeRefundLink(
+            {
+              originalTxId: previousRefund.original_tx_id,
+              refundTxId: previousRefund.refund_tx_id,
+              userId: newData.userId,
+            },
+            { transaction },
+          ),
+        ),
+      );
+    }
+
+    // Run exactly in fully concurrent mode, so refund creation is able to check that total sum not
+    // exceeds the max allowd value - original tx refAmount. TODO: improve this
+    for (const id of newData.refundTransactionsIds) {
+      await refundsService.createSingleRefund(
+        { originalTxId: newData.id, refundTxId: id, userId: newData.userId },
+        { transaction },
+      );
+    }
+    baseTransactionUpdateParams.refundLinked = true;
   }
 
   const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams, {

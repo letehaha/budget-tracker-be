@@ -4,6 +4,7 @@ import { errorHandler } from '@controllers/helpers';
 import * as transactionsService from '@services/transactions';
 import { removeUndefinedKeys } from '@js/helpers';
 import { validateTransactionAmount } from './helpers';
+import { ValidationError } from '@js/errors';
 
 export const updateTransaction = async (req, res: CustomResponse) => {
   try {
@@ -20,10 +21,17 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationTransactionId,
       categoryId,
       transferNature,
+      refundTransactionsIds,
     }: endpointsTypes.UpdateTransactionBody = req.body;
     const { id: userId } = req.user;
 
     if (amount) validateTransactionAmount(amount);
+
+    if (refundTransactionsIds) {
+      if (!refundTransactionsIds.every((i) => typeof i === 'number')) {
+        throw new ValidationError({ message: "'refundTransactionsIds' is invalid" });
+      }
+    }
 
     const data = await transactionsService.updateTransaction({
       id,
@@ -40,6 +48,7 @@ export const updateTransaction = async (req, res: CustomResponse) => {
         destinationAccountId,
         categoryId,
         transferNature,
+        refundTransactionsIds,
       }),
     });
 

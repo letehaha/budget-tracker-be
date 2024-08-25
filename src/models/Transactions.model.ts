@@ -610,6 +610,7 @@ export interface UpdateTransactionByIdParams {
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
+  refundLinked?: boolean;
 }
 
 export const updateTransactionById = async (
