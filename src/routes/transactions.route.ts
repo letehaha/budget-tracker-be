@@ -13,6 +13,7 @@ import { createRefund } from '@controllers/transactions.controller/refunds/creat
 import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
 import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
 import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
+import { getRefundsForTransactionById } from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
@@ -25,6 +26,7 @@ router.delete('/refund', authenticateJwt, deleteRefund);
 
 router.get('/', authenticateJwt, getTransactions);
 router.get('/:id', authenticateJwt, getTransactionById);
+router.get('/:id/refunds', authenticateJwt, getRefundsForTransactionById);
 router.get('/transfer/:transferId', authenticateJwt, getTransactionsByTransferId);
 router.post('/', authenticateJwt, createTransaction);
 router.put('/unlink', authenticateJwt, unlinkTransferTransactions);
