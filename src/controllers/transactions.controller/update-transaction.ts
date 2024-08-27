@@ -21,16 +21,23 @@ export const updateTransaction = async (req, res: CustomResponse) => {
       destinationTransactionId,
       categoryId,
       transferNature,
-      refundTransactionsIds,
+      refundedByTxIds,
+      refundsTxId,
     }: endpointsTypes.UpdateTransactionBody = req.body;
     const { id: userId } = req.user;
 
     if (amount) validateTransactionAmount(amount);
 
-    if (refundTransactionsIds) {
-      if (!refundTransactionsIds.every((i) => typeof i === 'number')) {
+    if (refundedByTxIds) {
+      if (!refundedByTxIds.every((i) => typeof i === 'number')) {
         throw new ValidationError({ message: "'refundTransactionsIds' is invalid" });
       }
+    }
+
+    if (refundedByTxIds !== undefined && refundsTxId !== undefined) {
+      throw new ValidationError({
+        message: "Not allowed to pass both 'refundedByTxIds' and 'refundsTxId'",
+      });
     }
 
     const data = await transactionsService.updateTransaction({
@@ -48,7 +55,8 @@ export const updateTransaction = async (req, res: CustomResponse) => {
         destinationAccountId,
         categoryId,
         transferNature,
-        refundTransactionsIds,
+        refundedByTxIds,
+        refundsTxId,
       }),
     });
 

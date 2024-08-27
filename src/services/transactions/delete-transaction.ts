@@ -76,12 +76,12 @@ export const deleteTransaction = async ({
 const unlinkRefundTransaction = async (id: number, transaction: Transaction) => {
   const refundTx = await RefundTransactions.findOne({
     where: {
-      [Op.or]: [{ original_tx_id: id }, { refund_tx_id: id }],
+      [Op.or]: [{ originalTxId: id }, { refundTxId: id }],
     },
     transaction,
   });
 
-  const transactionIdsToUpdate = [refundTx.refund_tx_id, refundTx.original_tx_id].filter(
+  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
     (i) => Boolean(i) && i !== id,
   );
 

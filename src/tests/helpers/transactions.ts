@@ -62,7 +62,8 @@ interface UpdateTransactionBasePayload {
     destinationAmount?: number;
     destinationAccountId?: number;
     destinationTransactionId?: number;
-    refundTransactionsIds?: number[] | null;
+    refundsTxId?: number | null;
+    refundedByTxIds?: number[] | null;
   };
 }
 

@@ -152,9 +152,9 @@ describe('removeRefundLink', () => {
     });
   });
 
-  describe('removeRefundLink with optional original_tx_id', () => {
+  describe('removeRefundLink with optional originalTxId', () => {
     describe('success cases', () => {
-      it('successfully removes a refund link with null original_tx_id', async () => {
+      it('successfully removes a refund link with null originalTxId', async () => {
         const account = await helpers.createAccount({ raw: true });
 
         const [refundTx] = await helpers.createTransaction({
@@ -195,7 +195,7 @@ describe('removeRefundLink', () => {
     });
 
     describe('failure cases', () => {
-      it('fails when trying to remove a non-existent refund link with null original_tx_id', async () => {
+      it('fails when trying to remove a non-existent refund link with null originalTxId', async () => {
         const response = await helpers.deleteRefund({
           originalTxId: null,
           refundTxId: 999998,
@@ -204,7 +204,7 @@ describe('removeRefundLink', () => {
         expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
       });
 
-      it('fails when trying to remove a refund link with null original_tx_id that was created with a non-null original_tx_id', async () => {
+      it('fails when trying to remove a refund link with null originalTxId that was created with a non-null originalTxId', async () => {
         const account = await helpers.createAccount({ raw: true });
 
         const [originalTx, refundTx] = await Promise.all([

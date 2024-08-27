@@ -36,8 +36,8 @@ describe('Refund Transactions service', () => {
 
         const transactions = await helpers.getTransactions({ raw: true });
 
-        expect(result.original_tx_id).toEqual(baseTx.id);
-        expect(result.refund_tx_id).toEqual(refundTx.id);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
         expect(transactions.every((tx) => tx.refundLinked)).toBe(true);
       });
 
@@ -84,8 +84,8 @@ describe('Refund Transactions service', () => {
         expect(baseTx.currencyId !== refundTx.currencyId).toBe(true);
         expect(baseTx.amount > refundTx.amount).toBe(true);
         expect(baseTx.refAmount > refundTx.refAmount).toBe(true);
-        expect(result.original_tx_id).toEqual(baseTx.id);
-        expect(result.refund_tx_id).toEqual(refundTx.id);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
       });
 
       it(`successfully creates a refund link between two transactions with different currencies when:
@@ -131,8 +131,8 @@ describe('Refund Transactions service', () => {
         expect(baseTx.currencyId !== refundTx.currencyId).toBe(true);
         expect(refundTx.amount > baseTx.amount).toBe(true);
         expect(baseTx.refAmount > refundTx.refAmount).toBe(true);
-        expect(result.original_tx_id).toEqual(baseTx.id);
-        expect(result.refund_tx_id).toEqual(refundTx.id);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
       });
 
       it('works correctly for cross-account refunds', async () => {
@@ -169,8 +169,8 @@ describe('Refund Transactions service', () => {
         );
 
         expect(baseTx.accountId !== refundTx.accountId).toBe(true);
-        expect(result.original_tx_id).toEqual(baseTx.id);
-        expect(result.refund_tx_id).toEqual(refundTx.id);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
       });
 
       it.each([
@@ -206,8 +206,8 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(result1.original_tx_id).toEqual(baseTx.id);
-        expect(result1.refund_tx_id).toEqual(refundTx1.id);
+        expect(result1.originalTxId).toEqual(baseTx.id);
+        expect(result1.refundTxId).toEqual(refundTx1.id);
 
         // Second partial refund
         const [refundTx2] = await helpers.createTransaction({
@@ -227,8 +227,8 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(result2.original_tx_id).toEqual(baseTx.id);
-        expect(result2.refund_tx_id).toEqual(refundTx2.id);
+        expect(result2.originalTxId).toEqual(baseTx.id);
+        expect(result2.refundTxId).toEqual(refundTx2.id);
       });
 
       it('successfully creates multiple partial refunds with different currencies', async () => {
@@ -284,8 +284,8 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(result.original_tx_id).toEqual(baseTx.id);
-        expect(result.refund_tx_id).toEqual(refundTx2.id);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx2.id);
       });
 
       it('successfully creates refund tx after unlinking', async () => {
@@ -317,8 +317,8 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(creationResponse.original_tx_id).toEqual(baseTx.id);
-        expect(creationResponse.refund_tx_id).toEqual(refundTx.id);
+        expect(creationResponse.originalTxId).toEqual(baseTx.id);
+        expect(creationResponse.refundTxId).toEqual(refundTx.id);
 
         const unlinkResponse = await helpers.deleteRefund({
           originalTxId: baseTx.id,
@@ -335,8 +335,8 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(creationResponse.original_tx_id).toEqual(baseTx.id);
-        expect(creationResponse.refund_tx_id).toEqual(refundTx.id);
+        expect(creationResponse.originalTxId).toEqual(baseTx.id);
+        expect(creationResponse.refundTxId).toEqual(refundTx.id);
       });
     });
 
@@ -710,7 +710,7 @@ describe('Refund Transactions service', () => {
       });
     });
 
-    describe('nullish original_tx_id cases', () => {
+    describe('nullish originalTxId cases', () => {
       describe('success cases', () => {
         it('successfully creates a refund transaction without an original transaction', async () => {
           const account = await helpers.createAccount({ raw: true });
@@ -732,8 +732,8 @@ describe('Refund Transactions service', () => {
             true,
           );
 
-          expect(result.original_tx_id).toBeNull();
-          expect(result.refund_tx_id).toEqual(refundTx.id);
+          expect(result.originalTxId).toBeNull();
+          expect(result.refundTxId).toEqual(refundTx.id);
         });
 
         it('successfully creates multiple refund transactions without original transactions', async () => {
@@ -773,10 +773,10 @@ describe('Refund Transactions service', () => {
             true,
           );
 
-          expect(result1.original_tx_id).toBeNull();
-          expect(result1.refund_tx_id).toEqual(refundTx1.id);
-          expect(result2.original_tx_id).toBeNull();
-          expect(result2.refund_tx_id).toEqual(refundTx2.id);
+          expect(result1.originalTxId).toBeNull();
+          expect(result1.refundTxId).toEqual(refundTx1.id);
+          expect(result2.originalTxId).toBeNull();
+          expect(result2.refundTxId).toEqual(refundTx2.id);
         });
       });
 

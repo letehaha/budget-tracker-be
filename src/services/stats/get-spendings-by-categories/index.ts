@@ -26,7 +26,7 @@ export const getSpendingsByCategories = async (
     const txIds = transactions.filter((i) => i.refundLinked).map((i) => i.id);
     const refunds = await RefundTransactions.findAll({
       where: {
-        [Op.or]: [{ refund_tx_id: { [Op.in]: txIds } }, { original_tx_id: { [Op.in]: txIds } }],
+        [Op.or]: [{ refundTxId: { [Op.in]: txIds } }, { originalTxId: { [Op.in]: txIds } }],
       },
       raw: true,
       transaction: attributes.transaction,
@@ -101,8 +101,8 @@ const groupAndAdjustData = async (
   // describe ref currency
   for (const refund of refunds) {
     const pair = {
-      base: transactions.find((t) => t.id === refund.original_tx_id),
-      refund: transactions.find((t) => t.id === refund.refund_tx_id),
+      base: transactions.find((t) => t.id === refund.originalTxId),
+      refund: transactions.find((t) => t.id === refund.refundTxId),
     };
     const findByPkParams = {
       transaction: attributes.transaction,
@@ -112,9 +112,9 @@ const groupAndAdjustData = async (
 
     // In case not found refund transactions in current time period, fetch them separately regardless
     // of time period.
-    if (!pair.base) pair.base = await Transactions.findByPk(refund.original_tx_id, findByPkParams);
+    if (!pair.base) pair.base = await Transactions.findByPk(refund.originalTxId, findByPkParams);
     if (!pair.refund) {
-      pair.refund = await Transactions.findByPk(refund.refund_tx_id, findByPkParams);
+      pair.refund = await Transactions.findByPk(refund.refundTxId, findByPkParams);
     }
 
     // We always need to adjust spendings exactly for expense transactions

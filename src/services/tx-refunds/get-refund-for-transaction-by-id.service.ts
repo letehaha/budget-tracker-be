@@ -21,10 +21,10 @@ export async function getRefundsForTransactionById(
       where: {
         [Op.or]: [
           {
-            original_tx_id: transactionId,
+            originalTxId: transactionId,
           },
           {
-            refund_tx_id: transactionId,
+            refundTxId: transactionId,
           },
         ],
       },

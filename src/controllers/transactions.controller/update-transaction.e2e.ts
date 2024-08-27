@@ -1,9 +1,8 @@
-import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE, TransactionModel } from 'shared-types';
+import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 import { faker } from '@faker-js/faker';
 import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
-import Accounts from '@models/Accounts.model';
 
 describe('Update transaction controller', () => {
   it('should make basic updation', async () => {
@@ -129,6 +128,7 @@ describe('Update transaction controller', () => {
       expect(transactions[0]).toEqual(tx);
     },
   );
+
   describe('test refAmount is correct when changing transfer transaction accounts to ref account', () => {
     it('EUR->UAH to EUR->USD, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
       const { account: accountEUR } = await helpers.createAccountWithNewCurrency({
@@ -202,6 +202,7 @@ describe('Update transaction controller', () => {
       expect(updatedOppositeTx.refAmount).toEqual(updatedBaseTx.refAmount);
     });
   });
+
   describe('updates external transactions to transfer and vice versa', () => {
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'updates from %s to transfer and back',
@@ -336,6 +337,7 @@ describe('Update transaction controller', () => {
       }
     });
   });
+
   describe('link transactions between each other', () => {
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'update %s to transfer when linking',
@@ -544,296 +546,362 @@ describe('Update transaction controller', () => {
       },
     );
   });
+
   describe('refunds', () => {
-    describe('single refund cases', () => {
-      let account: Accounts;
-      let originalTx: TransactionModel;
-      let refundTx1: TransactionModel;
-      let refundTx2: TransactionModel;
+    const createTransaction = async (txType: TRANSACTION_TYPES, amount: number) => {
+      const account = await helpers.createAccount({ raw: true });
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: account.id }),
+          transactionType: txType,
+          amount,
+        },
+        raw: true,
+      });
+      return tx;
+    };
+    const scenarios = [
+      { originalType: TRANSACTION_TYPES.expense, refundType: TRANSACTION_TYPES.income },
+      { originalType: TRANSACTION_TYPES.income, refundType: TRANSACTION_TYPES.expense },
+    ];
 
-      beforeEach(async () => {
-        account = await helpers.createAccount({
-          raw: true,
-        });
-        [originalTx] = await helpers.createTransaction({
-          payload: {
-            ...helpers.buildTransactionPayload({ accountId: account.id }),
-            transactionType: TRANSACTION_TYPES.expense,
-            amount: 1000,
-          },
-          raw: true,
-        });
-        [refundTx1] = await helpers.createTransaction({
-          payload: {
-            ...helpers.buildTransactionPayload({ accountId: account.id }),
-            transactionType: TRANSACTION_TYPES.income,
-            amount: 500,
-          },
-          raw: true,
-        });
-        [refundTx2] = await helpers.createTransaction({
-          payload: {
-            ...helpers.buildTransactionPayload({ accountId: account.id }),
-            transactionType: TRANSACTION_TYPES.income,
-            amount: 500,
-          },
-          raw: true,
-        });
+    it('fails when trying to update both refundsTxId, and refundedBy', async () => {
+      const originalTx = await createTransaction(TRANSACTION_TYPES.expense, 1000);
+      const refundTx = await createTransaction(TRANSACTION_TYPES.income, 500);
+      const response = await helpers.updateTransaction({
+        id: refundTx.id,
+        payload: {
+          refundsTxId: originalTx.id,
+          refundedByTxIds: [originalTx.id],
+        },
       });
 
-      it('should link refund transaction and update fields as expected', async () => {
-        const [updatedOriginalTx] = await helpers.updateTransaction({
-          id: originalTx.id,
-          payload: {
-            refundTransactionsIds: [refundTx1.id],
-          },
-          raw: true,
-        });
-        const updatedRefundTx = (await helpers.getTransactions({ raw: true })).find(
-          (i) => i.id === refundTx1.id,
-        );
-
-        const refund = await helpers.getSingleRefund({
-          originalTxId: originalTx.id,
-          refundTxId: refundTx1.id,
-        });
-
-        expect(refund.statusCode).toBe(200);
-        expect(updatedOriginalTx.refundLinked).toBe(true);
-        expect(updatedRefundTx.refundLinked).toBe(true);
-      });
-
-      it('should unlink refund transaction when refundTransactionIds is null', async () => {
-        await helpers.updateTransaction({
-          id: originalTx.id,
-          payload: {
-            refundTransactionsIds: [refundTx1.id],
-          },
-          raw: true,
-        });
-
-        let transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
-          [originalTx.id, refundTx1.id].includes(t.id),
-        );
-
-        expect(transactions.every((i) => !!i.refundLinked)).toBe(true);
-
-        await helpers.updateTransaction({
-          id: originalTx.id,
-          payload: {
-            refundTransactionsIds: null,
-          },
-          raw: true,
-        });
-
-        transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
-          [originalTx.id, refundTx1.id].includes(t.id),
-        );
-        const refund = await helpers.getSingleRefund({
-          originalTxId: originalTx.id,
-          refundTxId: refundTx1.id,
-        });
-
-        expect(refund.statusCode).toBe(ERROR_CODES.NotFoundError);
-        expect(transactions.every((i) => !!i.refundLinked)).toBe(false);
-      });
-
-      it('should change refund transactions when new array is provided', async () => {
-        await helpers.updateTransaction({
-          id: originalTx.id,
-          payload: {
-            refundTransactionsIds: [refundTx1.id],
-          },
-          raw: true,
-        });
-
-        await expect(
-          helpers
-            .getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id })
-            .then((r) => r.statusCode === 200),
-        ).resolves.toBe(true);
-
-        await helpers.updateTransaction({
-          id: originalTx.id,
-          payload: {
-            refundTransactionsIds: [refundTx2.id],
-          },
-          raw: true,
-        });
-
-        // Check that previous refund is no longer exists
-        await expect(
-          helpers
-            .getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id })
-            .then((r) => r.statusCode === ERROR_CODES.NotFoundError),
-        ).resolves.toBe(true);
-        // Check that new refund exists
-        await expect(
-          helpers
-            .getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id })
-            .then((r) => r.statusCode === 200),
-        ).resolves.toBe(true);
-      });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
-    describe('multiple refunds for different transaction types', () => {
-      const testScenarios = [
-        { originalType: TRANSACTION_TYPES.expense, refundType: TRANSACTION_TYPES.income },
-        { originalType: TRANSACTION_TYPES.income, refundType: TRANSACTION_TYPES.expense },
-      ];
+    it('change from refundsTxId to refundedByTxIds', async () => {
+      const [original, refund] = await Promise.all([
+        // Use the same amount, so transactions can refund another in both directions
+        createTransaction(TRANSACTION_TYPES.expense, 500),
+        createTransaction(TRANSACTION_TYPES.income, 500),
+      ]);
 
-      testScenarios.forEach(({ originalType, refundType }) => {
-        describe(`for ${originalType} transactions`, () => {
-          let account, originalTx, refundTx1, refundTx2, refundTx3;
-
-          beforeEach(async () => {
-            account = await helpers.createAccount({ raw: true });
-            [originalTx] = await helpers.createTransaction({
-              payload: {
-                ...helpers.buildTransactionPayload({ accountId: account.id }),
-                transactionType: originalType,
-                amount: 1000,
-              },
-              raw: true,
-            });
-            [[refundTx1], [refundTx2], [refundTx3]] = await Promise.all([
-              helpers.createTransaction({
-                payload: {
-                  ...helpers.buildTransactionPayload({ accountId: account.id }),
-                  transactionType: refundType,
-                  amount: 300,
-                },
-                raw: true,
-              }),
-              helpers.createTransaction({
-                payload: {
-                  ...helpers.buildTransactionPayload({ accountId: account.id }),
-                  transactionType: refundType,
-                  amount: 400,
-                },
-                raw: true,
-              }),
-              helpers.createTransaction({
-                payload: {
-                  ...helpers.buildTransactionPayload({ accountId: account.id }),
-                  transactionType: refundType,
-                  amount: 400,
-                },
-                raw: true,
-              }),
-            ]);
-          });
-
-          it('should link multiple refund transactions and update fields as expected', async () => {
-            const [updatedOriginalTx] = await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: [refundTx1.id, refundTx2.id],
-              },
-              raw: true,
-            });
-            const updatedRefundTxs = await helpers.getTransactions({ raw: true });
-
-            const refunds = await Promise.all([
-              helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
-              helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
-            ]);
-
-            expect(refunds.every((r) => r.statusCode === 200)).toBe(true);
-            expect(updatedOriginalTx.refundLinked).toBe(true);
-            expect(
-              updatedRefundTxs
-                .filter((t) => [refundTx1.id, refundTx2.id].includes(t.id))
-                .every((t) => t.refundLinked),
-            ).toBe(true);
-          });
-
-          it('should unlink multiple refund transactions when refundTransactionIds is null', async () => {
-            await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: [refundTx1.id, refundTx2.id],
-              },
-              raw: true,
-            });
-
-            let transactions = await helpers.getTransactions({ raw: true });
-            expect(
-              transactions
-                .filter((t) => [originalTx.id, refundTx1.id, refundTx2.id].includes(t.id))
-                .every((t) => t.refundLinked),
-            ).toBe(true);
-
-            await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: null,
-              },
-              raw: true,
-            });
-
-            transactions = await helpers.getTransactions({ raw: true });
-            const refunds = await Promise.all([
-              helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
-              helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
-            ]);
-
-            expect(refunds.every((r) => r.statusCode === ERROR_CODES.NotFoundError)).toBe(true);
-            expect(
-              transactions
-                .filter((t) => [originalTx.id, refundTx1.id, refundTx2.id].includes(t.id))
-                .every((t) => !t.refundLinked),
-            ).toBe(true);
-          });
-
-          it('should change refund transactions when new array is provided', async () => {
-            await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: [refundTx1.id, refundTx2.id],
-              },
-              raw: true,
-            });
-
-            await expect(
-              Promise.all([
-                helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
-                helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
-              ]).then((results) => results.every((r) => r.statusCode === 200)),
-            ).resolves.toBe(true);
-
-            await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: [refundTx2.id, refundTx3.id],
-              },
-              raw: true,
-            });
-
-            await expect(
-              helpers
-                .getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id })
-                .then((r) => r.statusCode === ERROR_CODES.NotFoundError),
-            ).resolves.toBe(true);
-            await expect(
-              Promise.all([
-                helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
-                helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx3.id }),
-              ]).then((results) => results.every((r) => r.statusCode === 200)),
-            ).resolves.toBe(true);
-          });
-
-          it('should not allow refunds exceeding original transaction amount', async () => {
-            const response = await helpers.updateTransaction({
-              id: originalTx.id,
-              payload: {
-                refundTransactionsIds: [refundTx1.id, refundTx2.id, refundTx3.id],
-              },
-            });
-            expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-          });
-        });
+      // Set up initial refund relationship
+      await helpers.updateTransaction({
+        id: refund.id,
+        payload: {
+          refundsTxId: original.id,
+        },
       });
+
+      const initialRefund = await helpers.getSingleRefund({
+        originalTxId: original.id,
+        refundTxId: refund.id,
+      });
+      expect(initialRefund.statusCode).toBe(200);
+
+      // Change to new refundedByTxIds format
+      const [updatedOriginalTx] = await helpers.updateTransaction({
+        id: refund.id,
+        payload: {
+          refundedByTxIds: [original.id],
+        },
+        raw: true,
+      });
+      expect(updatedOriginalTx.refundLinked).toBe(true);
+
+      const oldRefund = await helpers.getSingleRefund({
+        originalTxId: original.id,
+        refundTxId: refund.id,
+      });
+      expect(oldRefund.statusCode).toBe(ERROR_CODES.NotFoundError);
+      const newRefund = await helpers.getSingleRefund({
+        originalTxId: refund.id,
+        refundTxId: original.id,
+      });
+      expect(newRefund.statusCode).toBe(200);
+    });
+
+    describe('transaction refunds another transaction', () => {
+      it.each(scenarios)(
+        'refunds another transaction in default conditions ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const originalTx = await createTransaction(originalType, 1000);
+          const refundTx = await createTransaction(refundType, 500);
+          const [updatedOriginalTx] = await helpers.updateTransaction({
+            id: refundTx.id,
+            payload: {
+              refundsTxId: originalTx.id,
+            },
+            raw: true,
+          });
+
+          const refund = await helpers.getSingleRefund({
+            originalTxId: originalTx.id,
+            refundTxId: refundTx.id,
+          });
+
+          const transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+            [originalTx.id, refundTx.id].includes(t.id),
+          );
+
+          expect(refund.statusCode).toBe(200);
+          expect(updatedOriginalTx.refundLinked).toBe(true);
+          expect(transactions.every((i) => !!i.refundLinked)).toBe(true);
+        },
+      );
+
+      it.each(scenarios)(
+        'should unlink refund transaction when refundsTxId is null ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const originalTx = await createTransaction(originalType, 1000);
+          const refundTx = await createTransaction(refundType, 500);
+
+          await helpers.updateTransaction({
+            id: refundTx.id,
+            payload: {
+              refundsTxId: originalTx.id,
+            },
+            raw: true,
+          });
+
+          let transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+            [originalTx.id, refundTx.id].includes(t.id),
+          );
+
+          expect(transactions.every((i) => !!i.refundLinked)).toBe(true);
+
+          await helpers.updateTransaction({
+            id: refundTx.id,
+            payload: {
+              refundsTxId: null,
+            },
+            raw: true,
+          });
+
+          transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+            [originalTx.id, refundTx.id].includes(t.id),
+          );
+          const refund = await helpers.getSingleRefund({
+            originalTxId: originalTx.id,
+            refundTxId: refundTx.id,
+          });
+
+          expect(refund.statusCode).toBe(ERROR_CODES.NotFoundError);
+          expect(transactions.every((i) => !!i.refundLinked)).toBe(false);
+        },
+      );
+
+      it.each(scenarios)(
+        'should change refund transaction when a new one is provided ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const originalTx1 = await createTransaction(originalType, 1000);
+          const originalTx2 = await createTransaction(originalType, 500);
+          const refundTx = await createTransaction(refundType, 500);
+
+          await helpers.updateTransaction({
+            id: refundTx.id,
+            payload: {
+              refundsTxId: originalTx1.id,
+            },
+            raw: true,
+          });
+
+          await helpers.updateTransaction({
+            id: refundTx.id,
+            payload: {
+              refundsTxId: originalTx2.id,
+            },
+            raw: true,
+          });
+
+          const oldRefund = await helpers.getSingleRefund({
+            originalTxId: originalTx1.id,
+            refundTxId: refundTx.id,
+          });
+          expect(oldRefund.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          const newRefund = await helpers.getSingleRefund({
+            originalTxId: originalTx2.id,
+            refundTxId: refundTx.id,
+          });
+          expect(newRefund.statusCode).toBe(200);
+
+          const transactions = await helpers.getTransactions({ raw: true });
+
+          // Test that previously refunded tx is now not marked as a refund
+          expect(transactions.find((i) => i.id === originalTx1.id).refundLinked).toBe(false);
+          expect(
+            transactions.find((t) => [refundTx.id, originalTx2.id].includes(t.id)).refundLinked,
+          ).toBe(true);
+        },
+      );
+    });
+
+    describe('transaction refunded by many others', () => {
+      const createTransaction = async (txType, amount) => {
+        const account = await helpers.createAccount({ raw: true });
+        const [tx] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: account.id }),
+            transactionType: txType,
+            amount,
+          },
+          raw: true,
+        });
+        return tx;
+      };
+
+      it.each(scenarios)(
+        'links multiple refund transactions ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const [originalTx, refundTx1, refundTx2] = await Promise.all([
+            createTransaction(originalType, 1000),
+            createTransaction(refundType, 500),
+            createTransaction(refundType, 500),
+          ]);
+
+          const [updatedOriginalTx] = await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx1.id, refundTx2.id],
+            },
+            raw: true,
+          });
+
+          const refunds = await Promise.all([
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
+          ]);
+
+          const transactions = await helpers.getTransactions({ raw: true });
+
+          expect(refunds.every((r) => r.statusCode === 200)).toBe(true);
+          expect(updatedOriginalTx.refundLinked).toBe(true);
+          expect(
+            transactions
+              .filter((t) => [originalTx.id, refundTx1.id, refundTx2.id].includes(t.id))
+              .every((t) => t.refundLinked),
+          ).toBe(true);
+        },
+      );
+
+      it.each(scenarios)(
+        'unlinks multiple refund transactions when refundedByTxIds is null ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const [originalTx, refundTx1, refundTx2] = await Promise.all([
+            createTransaction(originalType, 1000),
+            createTransaction(refundType, 500),
+            createTransaction(refundType, 500),
+          ]);
+
+          await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx1.id, refundTx2.id],
+            },
+          });
+
+          await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: null,
+            },
+            raw: true,
+          });
+
+          const refunds = await Promise.all([
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
+          ]);
+
+          const transactions = await helpers.getTransactions({ raw: true });
+
+          expect(refunds.every((r) => r.statusCode === ERROR_CODES.NotFoundError)).toBe(true);
+          expect(
+            transactions
+              .filter((t) => [originalTx.id, refundTx1.id, refundTx2.id].includes(t.id))
+              .every((t) => !t.refundLinked),
+          ).toBe(true);
+        },
+      );
+
+      it.each(scenarios)(
+        'changes refund transactions when new array is provided ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const [originalTx, refundTx1, refundTx2, refundTx3] = await Promise.all([
+            createTransaction(originalType, 1000),
+            createTransaction(refundType, 300),
+            createTransaction(refundType, 300),
+            createTransaction(refundType, 400),
+          ]);
+
+          await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx1.id, refundTx2.id],
+            },
+          });
+
+          await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx2.id, refundTx3.id],
+            },
+          });
+
+          const refunds = await Promise.all([
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx1.id }),
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx2.id }),
+            helpers.getSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx3.id }),
+          ]);
+
+          expect(refunds[0].statusCode).toBe(ERROR_CODES.NotFoundError);
+          expect(refunds[1].statusCode).toBe(200);
+          expect(refunds[2].statusCode).toBe(200);
+        },
+      );
+
+      it.each(scenarios)(
+        'does not allow refunds exceeding original transaction amount ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const [originalTx, refundTx1, refundTx2, refundTx3] = await Promise.all([
+            createTransaction(originalType, 1000),
+            createTransaction(refundType, 500),
+            createTransaction(refundType, 500),
+            createTransaction(refundType, 100),
+          ]);
+
+          const response = await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx1.id, refundTx2.id, refundTx3.id],
+            },
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        },
+      );
+
+      it.each(scenarios)(
+        'does not allow refunds with incorrect transaction type ($originalType -> $refundType)',
+        async ({ originalType, refundType }) => {
+          const [originalTx, refundTx1, refundTx2] = await Promise.all([
+            createTransaction(originalType, 1000),
+            createTransaction(originalType, 500),
+            createTransaction(refundType, 500),
+          ]);
+
+          const response = await helpers.updateTransaction({
+            id: originalTx.id,
+            payload: {
+              refundedByTxIds: [refundTx1.id, refundTx2.id],
+            },
+          });
+
+          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        },
+      );
     });
   });
 });

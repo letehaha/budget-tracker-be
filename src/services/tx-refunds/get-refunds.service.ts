@@ -7,13 +7,13 @@ import * as Transactions from '@models/Transactions.model';
 import { TRANSACTION_TYPES } from 'shared-types';
 
 export interface FiltersStructure {
-  userId: number;
   categoryId?: number;
   transactionType?: TRANSACTION_TYPES;
   accountId?: number;
 }
 
 export interface GetRefundTransactionsParams extends FiltersStructure {
+  userId: number;
   page?: number;
   limit?: number;
 }
@@ -36,7 +36,7 @@ export async function getRefundTransactions(
   const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    const transactionWhereClause: WhereOptions<FiltersStructure> = { userId };
+    const transactionWhereClause: WhereOptions<FiltersStructure> = {};
 
     if (categoryId) {
       transactionWhereClause.categoryId = categoryId;
@@ -51,6 +51,9 @@ export async function getRefundTransactions(
     }
 
     const { rows, count: total } = await RefundTransactions.default.findAndCountAll({
+      where: {
+        userId,
+      },
       include: [
         {
           model: Transactions.default,
@@ -60,7 +63,6 @@ export async function getRefundTransactions(
         {
           model: Transactions.default,
           as: 'refundTransaction',
-          where: { userId },
         },
       ],
       limit,

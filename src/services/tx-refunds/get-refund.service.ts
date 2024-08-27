@@ -20,19 +20,18 @@ export async function getRefund(
   try {
     const refundLink = await RefundTransactions.default.findOne({
       where: {
-        original_tx_id: originalTxId,
-        refund_tx_id: refundTxId,
+        originalTxId,
+        refundTxId,
+        userId,
       },
       include: [
         {
           model: Transactions.default,
           as: 'originalTransaction',
-          where: { userId },
         },
         {
           model: Transactions.default,
           as: 'refundTransaction',
-          where: { userId },
         },
       ],
       transaction,

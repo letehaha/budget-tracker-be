@@ -1,16 +1,20 @@
 import { Transaction } from 'sequelize/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import Transactions from './Transactions.model';
+import Users from './Users.model';
 
 @Table({
   tableName: 'RefundTransactions',
   timestamps: true,
   indexes: [
     {
-      fields: ['original_tx_id'],
+      fields: ['userId'],
     },
     {
-      fields: ['refund_tx_id'],
+      fields: ['originalTxId'],
+    },
+    {
+      fields: ['refundTxId'],
       unique: true,
     },
   ],
@@ -23,6 +27,13 @@ export default class RefundTransactions extends Model {
   })
   id: number;
 
+  @ForeignKey(() => Users)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  userId: number;
+
   @ForeignKey(() => Transactions)
   @Column({
     // Can be nullish to support cases like when user has account_A in the system, he receives tx_A,
@@ -30,42 +41,49 @@ export default class RefundTransactions extends Model {
     // consider that not all user real-life accounts will be present in the system
     allowNull: true,
   })
-  original_tx_id: number | null;
+  originalTxId: number | null;
 
   @ForeignKey(() => Transactions)
   @Column({
     allowNull: false,
     unique: true,
   })
-  refund_tx_id: number;
+  refundTxId: number;
 
-  @BelongsTo(() => Transactions, 'original_tx_id')
+  @BelongsTo(() => Users)
+  user: Users;
+
+  @BelongsTo(() => Transactions, 'originalTxId')
   originalTransaction: Transactions;
 
-  @BelongsTo(() => Transactions, 'refund_tx_id')
+  @BelongsTo(() => Transactions, 'refundTxId')
   refundTransaction: Transactions;
 }
 
 export const createRefundTransaction = async (
-  { original_tx_id, refund_tx_id }: { original_tx_id: number | null; refund_tx_id: number },
+  {
+    userId,
+    originalTxId,
+    refundTxId,
+  }: { userId: number; originalTxId: number | null; refundTxId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  return RefundTransactions.create({ original_tx_id, refund_tx_id }, { transaction });
+  return RefundTransactions.create({ userId, originalTxId, refundTxId }, { transaction });
 };
 
 export const getRefundsForTransaction = async (
-  originalTxId: number,
+  { originalTxId, userId }: { originalTxId: number; userId: number },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
   return RefundTransactions.findAll({
-    where: { original_tx_id: originalTxId },
+    where: { originalTxId: originalTxId, userId },
     include: [{ model: Transactions, as: 'refundTransaction' }],
     transaction,
   });
 };
 
 export const bulkCreateRefundTransactions = (
-  { data }: { data: Array<{ original_tx_id: number | null; refund_tx_id: number }> },
+  { data }: { data: Array<{ userId: number; originalTxId: number | null; refundTxId: number }> },
   {
     transaction,
     validate = true,

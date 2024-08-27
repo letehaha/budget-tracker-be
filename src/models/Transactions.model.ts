@@ -615,14 +615,19 @@ export interface UpdateTransactionByIdParams {
 
 export const updateTransactionById = async (
   { id, userId, ...payload }: UpdateTransactionByIdParams,
-  { transaction }: { transaction?: Transaction } = {},
+  {
+    transaction,
+    // For refunds we need to have an option to disable them. Otherwise there will be some kind of
+    // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
+    individualHooks = true,
+  }: { transaction?: Transaction; individualHooks?: boolean } = {},
 ) => {
   const where = { id, userId };
 
   await Transactions.update(removeUndefinedKeys(payload), {
     where,
     transaction,
-    individualHooks: true,
+    individualHooks,
   });
 
   return getTransactionById({ id, userId }, { transaction });
@@ -643,12 +648,17 @@ export const updateTransactions = (
     refundLinked?: boolean;
   },
   where: Record<string, unknown> & { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
+  {
+    transaction,
+    // For refunds we need to have an option to disable them. Otherwise there will be some kind of
+    // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
+    individualHooks = true,
+  }: { transaction?: Transaction; individualHooks?: boolean } = {},
 ) => {
   return Transactions.update(removeUndefinedKeys(payload), {
     where,
     transaction,
-    individualHooks: true,
+    individualHooks,
   });
 };
 

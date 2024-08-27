@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { Transaction } from 'sequelize/types';
 import { logger } from '@js/utils/logger';
@@ -6,6 +7,7 @@ import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Accounts from '@models/Accounts.model';
+import RefundTransactions from '@models/RefundTransactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { getTransactionById } from './get-by-id';
 import { createOppositeTransaction, calcTransferTransactionRefAmount } from './create-transaction';
@@ -44,6 +46,13 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
   ) {
     throw new ValidationError({
       message: 'It\'s disallowed to change "transactionType" of the non-system account',
+    });
+  }
+
+  if (newData.refundedByTxIds !== undefined && newData.refundsTxId !== undefined) {
+    throw new ValidationError({
+      message:
+        'You cannot use both "refundedByTxIds" and "refundsTxId" simultaneously. Please choose one or the other.',
     });
   }
 
@@ -122,59 +131,84 @@ const makeBasicBaseTxUpdation = async (
     );
   }
 
-  const allRefundsShouldBeUnlinked =
-    newData.refundTransactionsIds === null ||
-    (Array.isArray(newData.refundTransactionsIds) && !newData.refundTransactionsIds.length);
-  // If previously refund was linked, but now
-  if (prevData.refundLinked && allRefundsShouldBeUnlinked) {
-    baseTransactionUpdateParams.refundLinked = false;
-    const previousRefunds = await refundsService.getRefundsForTransactionById(
-      { userId: newData.userId, transactionId: newData.id },
-      { transaction },
-    );
-    await Promise.all(
-      previousRefunds.map((r) =>
+  const removeRefunds = (refunds: RefundTransactions[]) =>
+    Promise.all(
+      refunds.map((refund) =>
         refundsService.removeRefundLink(
           {
+            originalTxId: refund.originalTxId,
+            refundTxId: refund.refundTxId,
             userId: newData.userId,
-            originalTxId: r.original_tx_id,
-            refundTxId: r.refund_tx_id,
           },
           { transaction },
         ),
       ),
     );
-  } else if (Array.isArray(newData.refundTransactionsIds) && newData.refundTransactionsIds.length) {
-    // If client passed new refunds ids, make sure they were not updated, and process if they did
-    const previousRefunds = await refundsService.getRefundsForTransactionById(
-      { userId: newData.userId, transactionId: newData.id },
-      { transaction },
-    );
 
-    if (previousRefunds.length) {
-      await Promise.all(
-        previousRefunds.map((previousRefund) =>
-          refundsService.removeRefundLink(
-            {
-              originalTxId: previousRefund.original_tx_id,
-              refundTxId: previousRefund.refund_tx_id,
-              userId: newData.userId,
-            },
-            { transaction },
-          ),
-        ),
-      );
-    }
+  if (newData.refundedByTxIds !== undefined) {
+    const refundsShouldBeRemoved = prevData.refundLinked && newData.refundedByTxIds === null;
+    const refundsShouldBeSetOrOverriden =
+      Array.isArray(newData.refundedByTxIds) && newData.refundedByTxIds.length;
 
-    // Run exactly in fully concurrent mode, so refund creation is able to check that total sum not
-    // exceeds the max allowd value - original tx refAmount. TODO: improve this
-    for (const id of newData.refundTransactionsIds) {
-      await refundsService.createSingleRefund(
-        { originalTxId: newData.id, refundTxId: id, userId: newData.userId },
+    if (refundsShouldBeRemoved || refundsShouldBeSetOrOverriden) {
+      const previousRefunds = await refundsService.getRefundsForTransactionById(
+        { userId: newData.userId, transactionId: newData.id },
         { transaction },
       );
+      await removeRefunds(previousRefunds);
+
+      if (refundsShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
+      if (refundsShouldBeSetOrOverriden) {
+        const newTransactions = await Transactions.default.findAll({
+          where: {
+            userId: newData.userId,
+            id: {
+              [Op.in]: newData.refundedByTxIds,
+            },
+          },
+          attributes: ['refAmount'],
+          transaction,
+          raw: true,
+        });
+        const sum = newTransactions.reduce((acc, curr) => (acc += curr.refAmount), 0);
+
+        if (sum > baseTransactionUpdateParams.refAmount) {
+          throw new ValidationError({
+            message: 'Total refund amount cannot be greater than the original transaction amount',
+          });
+        }
+
+        await Promise.all(
+          newData.refundedByTxIds.map((id) =>
+            refundsService.createSingleRefund(
+              { originalTxId: newData.id, refundTxId: id, userId: newData.userId },
+              { transaction },
+            ),
+          ),
+        );
+        baseTransactionUpdateParams.refundLinked = true;
+      }
     }
-    baseTransactionUpdateParams.refundLinked = true;
+  } else if (newData.refundsTxId !== undefined) {
+    const refundShouldBeRemoved = prevData.refundLinked && newData.refundsTxId === null;
+    const refundShouldBeSetOrOverriden = newData.refundsTxId;
+
+    if (refundShouldBeRemoved || refundShouldBeSetOrOverriden) {
+      const previousRefunds = await refundsService.getRefundsForTransactionById(
+        { userId: newData.userId, transactionId: newData.id },
+        { transaction },
+      );
+      await removeRefunds(previousRefunds);
+
+      if (refundShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
+      if (refundShouldBeSetOrOverriden) {
+        await refundsService.createSingleRefund(
+          { originalTxId: newData.refundsTxId, refundTxId: newData.id, userId: newData.userId },
+          { transaction },
+        );
+        baseTransactionUpdateParams.refundLinked = true;
+      }
+    }
   }
 
   const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams, {

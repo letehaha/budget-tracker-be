@@ -4,7 +4,7 @@ import { logger } from '@js/utils/logger';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { NotFoundError } from '@js/errors';
 
 interface RemoveRefundLinkParams {
   userId: number;
@@ -23,8 +23,9 @@ export async function removeRefundLink(
     // Fetch the refund link
     const refundLink = await RefundTransactions.default.findOne({
       where: {
-        original_tx_id: originalTxId,
-        refund_tx_id: refundTxId,
+        originalTxId,
+        refundTxId,
+        userId,
       },
       transaction,
     });
@@ -35,26 +36,13 @@ export async function removeRefundLink(
       });
     }
 
-    // Fetch both involved transactions
-    const [originalTx, refundTx] = await Promise.all([
-      Transactions.getTransactionById({ userId, id: originalTxId }, { transaction }),
-      Transactions.getTransactionById({ userId, id: refundTxId }, { transaction }),
-    ]);
-
-    // Ensure the user has permission to modify these transactions
-    if ((originalTx && originalTx.userId !== userId) || refundTx.userId !== userId) {
-      throw new ValidationError({
-        message: 'You do not have permission to remove this refund link',
-      });
-    }
-
     // Remove the refund link
     await refundLink.destroy({ transaction });
 
     await Transactions.updateTransactions(
       { refundLinked: false },
       { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
-      { transaction },
+      { transaction, individualHooks: false },
     );
 
     if (!isTxPassedFromAbove) {

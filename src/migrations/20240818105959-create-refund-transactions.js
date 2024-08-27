@@ -15,7 +15,16 @@ module.exports = {
             primaryKey: true,
             autoIncrement: true,
           },
-          original_tx_id: {
+          userId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Users',
+              key: 'id',
+            },
+            onDelete: 'CASCADE',
+          },
+          originalTxId: {
             type: Sequelize.INTEGER,
             allowNull: true,
             references: {
@@ -24,7 +33,7 @@ module.exports = {
             },
             onDelete: 'SET NULL',
           },
-          refund_tx_id: {
+          refundTxId: {
             type: Sequelize.INTEGER,
             allowNull: false,
             unique: true,
@@ -48,13 +57,13 @@ module.exports = {
         { transaction },
       );
 
-      await queryInterface.addIndex('RefundTransactions', ['original_tx_id'], { transaction });
-      await queryInterface.addIndex('RefundTransactions', ['refund_tx_id'], {
+      await queryInterface.addIndex('RefundTransactions', ['userId'], { transaction });
+      await queryInterface.addIndex('RefundTransactions', ['originalTxId'], { transaction });
+      await queryInterface.addIndex('RefundTransactions', ['refundTxId'], {
         unique: true,
         transaction,
       });
 
-      // Add has_refund column to Transactions table
       await queryInterface.addColumn(
         'Transactions',
         'refundLinked',
@@ -77,8 +86,9 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeIndex('RefundTransactions', ['original_tx_id'], { transaction });
-      await queryInterface.removeIndex('RefundTransactions', ['refund_tx_id'], { transaction });
+      await queryInterface.removeIndex('RefundTransactions', ['userId'], { transaction });
+      await queryInterface.removeIndex('RefundTransactions', ['originalTxId'], { transaction });
+      await queryInterface.removeIndex('RefundTransactions', ['refundTxId'], { transaction });
       await queryInterface.dropTable('RefundTransactions', { transaction });
 
       await queryInterface.removeColumn('Transactions', 'refundLinked', { transaction });

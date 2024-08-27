@@ -99,7 +99,7 @@ export async function createSingleRefund(
     if (originalTxId) {
       // Prevent "refund" over "refund"
       const isOriginalTxRefund = await RefundTransactions.default.findOne({
-        where: { refund_tx_id: originalTxId },
+        where: { refundTxId: originalTxId, userId },
         transaction,
       });
 
@@ -111,7 +111,7 @@ export async function createSingleRefund(
     }
 
     const existingRefund = await RefundTransactions.default.findOne({
-      where: { refund_tx_id: refundTxId },
+      where: { refundTxId: refundTxId, userId },
       transaction,
     });
 
@@ -124,7 +124,7 @@ export async function createSingleRefund(
     if (originalTxId) {
       // Fetch all existing refunds for the original transaction
       const existingRefunds = await RefundTransactions.default.findAll({
-        where: { original_tx_id: originalTxId },
+        where: { originalTxId, userId },
         include: [{ model: Transactions.default, as: 'refundTransaction' }],
         transaction,
       });
@@ -132,10 +132,10 @@ export async function createSingleRefund(
       // Calculate the total refunded amount
       const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
         return sum + Math.abs(refund.refundTransaction.refAmount);
-      }, 0);
+      }, Math.abs(refundTx.refAmount));
 
       // Check if the new refund would exceed the original transaction amount
-      if (totalRefundedAmount + Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
+      if (totalRefundedAmount > Math.abs(originalTx.refAmount)) {
         throw new ValidationError({
           message: 'Total refund amount cannot be greater than the original transaction amount',
         });
@@ -144,14 +144,14 @@ export async function createSingleRefund(
 
     // Create the refund transaction link
     const refundTransaction = await RefundTransactions.createRefundTransaction(
-      { original_tx_id: originalTxId, refund_tx_id: refundTxId },
+      { originalTxId, refundTxId, userId },
       { transaction },
     );
 
     await Transactions.updateTransactions(
       { refundLinked: true },
       { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
-      { transaction },
+      { transaction, individualHooks: false },
     );
 
     if (!isTxPassedFromAbove) {

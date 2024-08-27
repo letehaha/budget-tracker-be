@@ -1,7 +1,7 @@
 import { API_RESPONSE_STATUS, TRANSACTION_TYPES } from 'shared-types';
 import {
   getRefundTransactions,
-  type FiltersStructure,
+  type GetRefundTransactionsParams,
 } from '@services/tx-refunds/get-refunds.service';
 import { BadRequestError } from '@js/errors';
 import { errorHandler } from '@controllers/helpers';
@@ -11,7 +11,7 @@ export async function getRefunds(req, res: CustomResponse) {
   try {
     const { id: userId } = req.user;
     const { categoryId, transactionType, accountId, page, limit } = req.query;
-    const filters: FiltersStructure & { page?: number; limit?: number } = { userId };
+    const filters: GetRefundTransactionsParams = { userId };
 
     if (page < 0 || limit < 0) {
       throw new BadRequestError({ message: 'Invalid pagination params' });
