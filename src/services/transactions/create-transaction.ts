@@ -183,7 +183,7 @@ export const createTransaction = async (
     accountId,
     transferNature,
     destinationTransactionId,
-    refundForTxId,
+    refundsTxId,
     ...payload
   }: CreateTransactionParams,
   attributes: GenericSequelizeModelAttributes = {},
@@ -193,7 +193,7 @@ export const createTransaction = async (
     attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
-    if (refundForTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+    if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
       throw new ValidationError({
         message:
           'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
@@ -250,11 +250,9 @@ export const createTransaction = async (
       baseTransaction,
     ];
 
-    // TODO: when creating ZOD schema, make sure that `transferNature` and `refundTransactionId`
-    // cannot be passed together
-    if (refundForTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+    if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
       await createSingleRefund(
-        { userId, originalTxId: refundForTxId, refundTxId: baseTransaction.id },
+        { userId, originalTxId: refundsTxId, refundTxId: baseTransaction.id },
         { transaction },
       );
     } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {

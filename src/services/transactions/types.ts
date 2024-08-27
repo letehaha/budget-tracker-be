@@ -8,7 +8,7 @@ export type CreateTransactionParams = Omit<
   destinationAmount?: number;
   destinationAccountId?: number;
   destinationTransactionId?: number;
-  refundForTxId?: number;
+  refundsTxId?: number;
 };
 
 interface UpdateParams {

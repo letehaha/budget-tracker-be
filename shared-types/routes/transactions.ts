@@ -48,9 +48,9 @@ export interface UpdateTransactionBody {
   categoryId?: TransactionModel['categoryId'];
   transferNature?: TransactionModel['transferNature'];
   // Pass tx id if you want to mark which tx it refunds
-  refundsTxId: number | null;
+  refundsTxId?: number | null;
   // Pass tx ids that will refund the source tx
-  refundedByTxIds: number[] | null;
+  refundedByTxIds?: number[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {

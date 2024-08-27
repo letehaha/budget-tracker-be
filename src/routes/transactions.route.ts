@@ -4,7 +4,9 @@ import {
   getTransactionById,
   getTransactionsByTransferId,
   createTransaction,
+  createTransactionSchema,
   updateTransaction,
+  updateTransactionSchema,
   unlinkTransferTransactions,
   linkTransactions,
   deleteTransaction,
@@ -15,6 +17,7 @@ import { getRefund } from '@controllers/transactions.controller/refunds/get-refu
 import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
 import { getRefundsForTransactionById } from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import { authenticateJwt } from '@middlewares/passport';
+import { validateEndpoint } from '@middlewares/validations';
 
 const router = Router({});
 
@@ -28,10 +31,10 @@ router.get('/', authenticateJwt, getTransactions);
 router.get('/:id', authenticateJwt, getTransactionById);
 router.get('/:id/refunds', authenticateJwt, getRefundsForTransactionById);
 router.get('/transfer/:transferId', authenticateJwt, getTransactionsByTransferId);
-router.post('/', authenticateJwt, createTransaction);
+router.post('/', authenticateJwt, validateEndpoint(createTransactionSchema), createTransaction);
 router.put('/unlink', authenticateJwt, unlinkTransferTransactions);
 router.put('/link', authenticateJwt, linkTransactions);
-router.put('/:id', authenticateJwt, updateTransaction);
+router.put('/:id', authenticateJwt, validateEndpoint(updateTransactionSchema), updateTransaction);
 router.delete('/:id', authenticateJwt, deleteTransaction);
 
 export default router;
