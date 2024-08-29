@@ -74,7 +74,7 @@ const recordId = () => z.number().int().positive().finite();
 const bodyZodSchema = z
   .object({
     amount: z.number().int().positive('Amount must be greater than 0').finite(),
-    note: z.string().length(1000, 'The string must not exceed 1000 characters.').nullish(),
+    note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
     time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES),
     paymentType: z.nativeEnum(PAYMENT_TYPES),
