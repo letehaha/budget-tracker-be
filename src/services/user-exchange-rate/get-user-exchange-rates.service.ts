@@ -21,14 +21,8 @@ export async function getUserExchangeRates(
   transaction = transaction ?? (await connection.sequelize.transaction());
 
   try {
-    const userBaseCurrency = await UsersCurrencies.getBaseCurrency(
-      { userId },
-      { transaction },
-    );
-    const userCurrencies = await UsersCurrencies.getCurrencies(
-      { userId },
-      { transaction },
-    );
+    const userBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
+    const userCurrencies = await UsersCurrencies.getCurrencies({ userId }, { transaction });
 
     const exchangeRates = await Promise.all(
       userCurrencies.map((item) =>

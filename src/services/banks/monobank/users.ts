@@ -10,8 +10,7 @@ export const getUserById = async (
 export const getUserByToken = async (
   { token, userId }: { token: string; userId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<MonobankUserModel> =>
-  MonobankUsers.getUserByToken({ token, userId }, attributes);
+): Promise<MonobankUserModel> => MonobankUsers.getUserByToken({ token, userId }, attributes);
 
 export const createUser = async (
   payload: MonobankUsers.MonoUserCreationPayload,
@@ -21,8 +20,7 @@ export const createUser = async (
 export const getUserBySystemId = async (
   { systemUserId }: { systemUserId: number },
   attributes: GenericSequelizeModelAttributes = {},
-): Promise<MonobankUserModel> =>
-  MonobankUsers.getUserBySystemId({ systemUserId }, attributes);
+): Promise<MonobankUserModel> => MonobankUsers.getUserBySystemId({ systemUserId }, attributes);
 
 export const updateUser = async (
   payload: MonobankUsers.MonoUserUpdatePayload,

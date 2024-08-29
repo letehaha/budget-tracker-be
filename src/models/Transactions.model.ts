@@ -94,6 +94,7 @@ export interface TransactionsAttributes {
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
+  refundLinked: boolean;
 }
 
 @Table({
@@ -208,6 +209,16 @@ export default class Transactions extends Model<TransactionsAttributes> {
   })
   cashbackAmount: number;
 
+  // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
+  // optimization purposes. All the related refund information is tored in the "RefundTransactions"
+  // table
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  refundLinked: boolean;
+
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
   @BeforeUpdate
@@ -226,19 +237,9 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(
-    instance: Transactions,
-    { transaction },
-  ) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+  static async updateAccountBalanceAfterCreate(instance: Transactions, { transaction }) {
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
+      instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx(
@@ -258,10 +259,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @AfterUpdate
-  static async updateAccountBalanceAfterUpdate(
-    instance: Transactions,
-    { transaction },
-  ) {
+  static async updateAccountBalanceAfterUpdate(instance: Transactions, { transaction }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -329,19 +327,9 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @BeforeDestroy
-  static async updateAccountBalanceBeforeDestroy(
-    instance: Transactions,
-    { transaction },
-  ) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+  static async updateAccountBalanceBeforeDestroy(instance: Transactions, { transaction }) {
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
+      instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx(
@@ -357,10 +345,7 @@ export default class Transactions extends Model<TransactionsAttributes> {
       );
     }
 
-    await Balances.handleTransactionChange(
-      { data: instance, isDelete: true },
-      { transaction },
-    );
+    await Balances.handleTransactionChange({ data: instance, isDelete: true }, { transaction });
   }
 }
 
@@ -380,6 +365,7 @@ export const getTransactions = async (
     nestedInclude,
     isRaw = false,
     excludeTransfer,
+    excludeRefunds,
   }: {
     from: number;
     limit: number;
@@ -395,6 +381,7 @@ export const getTransactions = async (
     nestedInclude: boolean;
     isRaw: boolean;
     excludeTransfer?: boolean;
+    excludeRefunds?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {},
 ) => {
@@ -414,9 +401,8 @@ export const getTransactions = async (
         accountType,
         accountId,
         transactionType,
-        transferNature: excludeTransfer
-          ? TRANSACTION_TRANSFER_NATURE.not_transfer
-          : undefined,
+        transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
+        refundLinked: excludeRefunds ? false : undefined,
       }),
     },
     transaction,
@@ -467,7 +453,7 @@ export const getTransactionById = (
     nestedInclude?: boolean;
   },
   { transaction }: { transaction?: Transaction } = {},
-) => {
+): Promise<Transactions | null> => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -518,9 +504,7 @@ export const getTransactionsByTransferId = (
   });
 };
 
-export const getTransactionsByArrayOfField = async <
-  T extends keyof TransactionModel,
->(
+export const getTransactionsByArrayOfField = async <T extends keyof TransactionModel>(
   {
     fieldValues,
     fieldName,
@@ -593,17 +577,13 @@ type CreateTxOptionalParams = Partial<
   >
 >;
 
-export type CreateTransactionPayload = CreateTxRequiredParams &
-  CreateTxOptionalParams;
+export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams;
 
 export const createTransaction = async (
   { userId, ...rest }: CreateTransactionPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
-  const response = await Transactions.create(
-    { userId, ...rest },
-    { transaction },
-  );
+  const response = await Transactions.create({ userId, ...rest }, { transaction });
 
   return getTransactionById(
     {
@@ -630,18 +610,24 @@ export interface UpdateTransactionByIdParams {
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
+  refundLinked?: boolean;
 }
 
 export const updateTransactionById = async (
   { id, userId, ...payload }: UpdateTransactionByIdParams,
-  { transaction }: { transaction?: Transaction } = {},
+  {
+    transaction,
+    // For refunds we need to have an option to disable them. Otherwise there will be some kind of
+    // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
+    individualHooks = true,
+  }: { transaction?: Transaction; individualHooks?: boolean } = {},
 ) => {
   const where = { id, userId };
 
   await Transactions.update(removeUndefinedKeys(payload), {
     where,
     transaction,
-    individualHooks: true,
+    individualHooks,
   });
 
   return getTransactionById({ id, userId }, { transaction });
@@ -659,14 +645,20 @@ export const updateTransactions = (
     accountType?: ACCOUNT_TYPES;
     currencyId?: number;
     refCurrencyCode?: string;
+    refundLinked?: boolean;
   },
   where: Record<string, unknown> & { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
+  {
+    transaction,
+    // For refunds we need to have an option to disable them. Otherwise there will be some kind of
+    // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
+    individualHooks = true,
+  }: { transaction?: Transaction; individualHooks?: boolean } = {},
 ) => {
   return Transactions.update(removeUndefinedKeys(payload), {
     where,
     transaction,
-    individualHooks: true,
+    individualHooks,
   });
 };
 

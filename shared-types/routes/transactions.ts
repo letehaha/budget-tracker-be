@@ -1,9 +1,4 @@
-import {
-  TransactionModel,
-  ACCOUNT_TYPES,
-  SORT_DIRECTIONS,
-  TRANSACTION_TYPES,
-} from 'shared-types';
+import { TransactionModel, ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
 import { QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
@@ -19,6 +14,7 @@ export interface GetTransactionsQuery extends QueryPayload {
   accountType?: ACCOUNT_TYPES;
   accountId?: number;
   excludeTransfer?: boolean;
+  excludeRefunds?: boolean;
 }
 
 export type GetTransactionsResponse = TransactionModel[];
@@ -35,6 +31,8 @@ export interface CreateTransactionBody {
   destinationAmount?: TransactionModel['amount'];
   destinationTransactionId?: number;
   transferNature?: TransactionModel['transferNature'];
+  // When transaction is being created, it can be marked as a refund for another transaction
+  refundForTxId?: number;
 }
 
 export interface UpdateTransactionBody {
@@ -49,6 +47,10 @@ export interface UpdateTransactionBody {
   destinationAccountId?: TransactionModel['accountId'];
   categoryId?: TransactionModel['categoryId'];
   transferNature?: TransactionModel['transferNature'];
+  // Pass tx id if you want to mark which tx it refunds
+  refundsTxId?: number | null;
+  // Pass tx ids that will refund the source tx
+  refundedByTxIds?: number[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {

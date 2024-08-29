@@ -1,8 +1,4 @@
-import {
-  ACCOUNT_TYPES,
-  SORT_DIRECTIONS,
-  TRANSACTION_TYPES,
-} from 'shared-types';
+import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from 'shared-types';
 
 export interface GetTransactionsParams {
   userId: number;
@@ -19,4 +15,5 @@ export interface GetTransactionsParams {
   accountId: number;
   isRaw: boolean;
   excludeTransfer?: boolean;
+  excludeRefunds?: boolean;
 }

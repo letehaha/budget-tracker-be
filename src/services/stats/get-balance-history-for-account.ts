@@ -40,8 +40,7 @@ export const getBalanceHistoryForAccount = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<BalanceModel[]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     let data: BalanceModel[] = [];

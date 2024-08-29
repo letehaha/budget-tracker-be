@@ -78,9 +78,7 @@ export default class Users extends Model {
   defaultCategoryId: number;
 }
 
-export const getUsers = async (
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUsers = async (attributes: GenericSequelizeModelAttributes = {}) => {
   const users = await Users.findAll({ transaction: attributes.transaction });
 
   return users;
@@ -241,9 +239,6 @@ export const updateUserById = async (
   return user;
 };
 
-export const deleteUserById = (
-  { id },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const deleteUserById = ({ id }, attributes: GenericSequelizeModelAttributes = {}) => {
   Users.destroy({ where: { id }, transaction: attributes.transaction });
 };

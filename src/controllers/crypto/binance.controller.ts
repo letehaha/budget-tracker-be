@@ -137,9 +137,7 @@ export const getAccountData = async (req, res: CustomResponse) => {
     });
 
     zeroPrice.forEach((value) => {
-      const index = response.data.balances.findIndex(
-        (item) => item.asset === value,
-      );
+      const index = response.data.balances.findIndex((item) => item.asset === value);
 
       response.data.balances[index].usdPrice = 0;
     });

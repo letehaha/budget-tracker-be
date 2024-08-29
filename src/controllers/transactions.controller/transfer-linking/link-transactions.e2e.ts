@@ -57,9 +57,7 @@ describe('link transactions between each other', () => {
         transferId: expect.toBeAnythingOrNull(),
       });
 
-      expect(txAfter.transferNature).toBe(
-        TRANSACTION_TRANSFER_NATURE.common_transfer,
-      );
+      expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
       expect(txAfter.transferId).toEqual(expect.any(String));
     });
 
@@ -74,9 +72,7 @@ describe('link transactions between each other', () => {
         transferId: expect.toBeAnythingOrNull(),
       });
 
-      expect(txAfter.transferNature).toBe(
-        TRANSACTION_TRANSFER_NATURE.common_transfer,
-      );
+      expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
       expect(txAfter.transferId).toEqual(expect.any(String));
     });
 
@@ -88,12 +84,8 @@ describe('link transactions between each other', () => {
     await helpers.monobank.pair();
     const { transactions } = await helpers.monobank.mockTransactions();
 
-    const tx1 = transactions.find(
-      (item) => item.transactionType === TRANSACTION_TYPES.expense,
-    );
-    const tx2 = transactions.find(
-      (item) => item.transactionType === TRANSACTION_TYPES.income,
-    );
+    const tx1 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
+    const tx2 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
 
     const result = await helpers.linkTransactions({
       payload: {
@@ -161,21 +153,12 @@ describe('link transactions between each other', () => {
         raw: true,
       });
 
-      const expenseTx = transactions.find(
-        (t) => t.transactionType === TRANSACTION_TYPES.expense,
-      );
-      const incomeTx = transactions.find(
-        (t) => t.transactionType === TRANSACTION_TYPES.income,
-      );
+      const expenseTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.expense);
+      const incomeTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.income);
 
       const result = await helpers.linkTransactions({
         payload: {
-          ids: [
-            [
-              tx1.id,
-              txType === TRANSACTION_TYPES.income ? expenseTx.id : incomeTx.id,
-            ],
-          ],
+          ids: [[tx1.id, txType === TRANSACTION_TYPES.income ? expenseTx.id : incomeTx.id]],
         },
       });
 

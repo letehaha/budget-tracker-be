@@ -37,8 +37,7 @@ export const getBalanceHistory = async (
   attributes: GenericSequelizeModelAttributes = {},
 ): Promise<BalanceModel[]> => {
   const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
 
   try {
     let data: BalanceModel[] = [];
@@ -75,54 +74,50 @@ export const getBalanceHistory = async (
       attributes: ['id'],
     });
     const allAccountIds = allUserAccounts.map((acc) => acc.id);
-    const accountIdsNotInRange = allAccountIds.filter(
-      (id) => !accountIdsInRange.includes(id),
-    );
+    const accountIdsNotInRange = allAccountIds.filter((id) => !accountIdsInRange.includes(id));
 
     if (accountIdsNotInRange.length) {
-      const latestBalancesPromises = accountIdsNotInRange.map(
-        async (accountId) => {
-          let balanceRecord;
+      const latestBalancesPromises = accountIdsNotInRange.map(async (accountId) => {
+        let balanceRecord;
 
-          if (from) {
-            // Check for records before "from" date
-            balanceRecord = await Balances.default.findOne({
-              where: {
-                date: {
-                  [Op.lt]: new Date(from),
-                },
-                accountId,
+        if (from) {
+          // Check for records before "from" date
+          balanceRecord = await Balances.default.findOne({
+            where: {
+              date: {
+                [Op.lt]: new Date(from),
               },
-              order: [['date', 'DESC']],
-              attributes: dataAttributes,
-              raw: attributes.raw ?? true,
-              transaction,
-            });
-          }
+              accountId,
+            },
+            order: [['date', 'DESC']],
+            attributes: dataAttributes,
+            raw: attributes.raw ?? true,
+            transaction,
+          });
+        }
 
-          if (!balanceRecord && to) {
-            // If no record found before "from" date, check for records after "to"
-            // date with amount > 0
-            balanceRecord = await Balances.default.findOne({
-              where: {
-                accountId,
-                date: {
-                  [Op.gt]: new Date(to),
-                },
-                amount: {
-                  [Op.gt]: 0,
-                },
+        if (!balanceRecord && to) {
+          // If no record found before "from" date, check for records after "to"
+          // date with amount > 0
+          balanceRecord = await Balances.default.findOne({
+            where: {
+              accountId,
+              date: {
+                [Op.gt]: new Date(to),
               },
-              order: [['date', 'ASC']],
-              attributes: dataAttributes,
-              raw: attributes.raw ?? true,
-              transaction,
-            });
-          }
+              amount: {
+                [Op.gt]: 0,
+              },
+            },
+            order: [['date', 'ASC']],
+            attributes: dataAttributes,
+            raw: attributes.raw ?? true,
+            transaction,
+          });
+        }
 
-          return balanceRecord;
-        },
-      );
+        return balanceRecord;
+      });
 
       const latestBalances = await Promise.all(latestBalancesPromises);
 

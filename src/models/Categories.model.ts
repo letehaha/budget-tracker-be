@@ -1,13 +1,6 @@
 import { Transaction } from 'sequelize/types';
 import { API_ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsToMany,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';

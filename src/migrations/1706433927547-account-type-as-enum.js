@@ -5,9 +5,18 @@ module.exports = {
     try {
       // Define the ENUM type for account types
       const ACCOUNT_TYPES = [
-        'general', 'cash', 'current-account', 'credit-card', 'saving',
-        'bonus', 'insurance', 'investment', 'loan', 'mortgage',
-        'overdraft', 'crypto',
+        'general',
+        'cash',
+        'current-account',
+        'credit-card',
+        'saving',
+        'bonus',
+        'insurance',
+        'investment',
+        'loan',
+        'mortgage',
+        'overdraft',
+        'crypto',
       ];
 
       // Add a temporary ENUM column
@@ -19,14 +28,14 @@ module.exports = {
           allowNull: false,
           defaultValue: 'general',
         },
-        { transaction }
+        { transaction },
       );
 
       // Map numeric IDs to ENUM values
       for (let i = 0; i < ACCOUNT_TYPES.length; i++) {
         await queryInterface.sequelize.query(
           `UPDATE "Accounts" SET "accountCategory" = '${ACCOUNT_TYPES[i]}' WHERE "accountTypeId" = ${i + 1}`,
-          { transaction }
+          { transaction },
         );
       }
 
@@ -48,34 +57,38 @@ module.exports = {
     try {
       // Strict data for recovering, do not edit until you sure
       const ACCOUNT_TYPES = {
-        general: "General",
-        cash: "Cash",
-        'current-account': "Current account",
-        'credit-card': "Credit card",
-        saving: "Saving account",
-        bonus: "Bonus",
-        insurance:  "Insurance",
-        investment: "Investment",
-        loan: "Loan",
-        mortgage: "Mortgage",
-        overdraft: "Account with overdraft",
-        crypto: "Crypto",
-      }
+        general: 'General',
+        cash: 'Cash',
+        'current-account': 'Current account',
+        'credit-card': 'Credit card',
+        saving: 'Saving account',
+        bonus: 'Bonus',
+        insurance: 'Insurance',
+        investment: 'Investment',
+        loan: 'Loan',
+        mortgage: 'Mortgage',
+        overdraft: 'Account with overdraft',
+        crypto: 'Crypto',
+      };
 
       // Recreate the AccountTypes table
-      await queryInterface.createTable('AccountTypes', {
-        id: {
-          type: Sequelize.INTEGER,
-          unique: true,
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
+      await queryInterface.createTable(
+        'AccountTypes',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+          },
+          name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
         },
-        name: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-      }, { transaction });
+        { transaction },
+      );
 
       await queryInterface.bulkInsert(
         'AccountTypes',
@@ -106,7 +119,7 @@ module.exports = {
       for (let i = 0; i < Object.values(ACCOUNT_TYPES).length; i++) {
         await queryInterface.sequelize.query(
           `UPDATE "Accounts" SET "accountTypeId" = ${i + 1} WHERE "accountCategory" = '${Object.keys(ACCOUNT_TYPES)[i]}'`,
-          { transaction }
+          { transaction },
         );
       }
 
@@ -130,7 +143,9 @@ module.exports = {
       await queryInterface.removeColumn('Accounts', 'accountCategory', { transaction });
 
       // Drop the ENUM type
-      await queryInterface.sequelize.query('DROP TYPE "enum_Accounts_accountCategory"', { transaction });
+      await queryInterface.sequelize.query('DROP TYPE "enum_Accounts_accountCategory"', {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {

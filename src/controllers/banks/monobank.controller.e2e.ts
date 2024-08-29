@@ -28,9 +28,9 @@ describe('Monobank integration', () => {
       expect(helpers.extractResponse(createdMonoUserRestult).apiToken).toBe(
         helpers.monobank.mockedToken,
       );
-      expect(
-        helpers.extractResponse(createdMonoUserRestult).accounts.length,
-      ).toBe(mockedClientData.data.accounts.length);
+      expect(helpers.extractResponse(createdMonoUserRestult).accounts.length).toBe(
+        mockedClientData.data.accounts.length,
+      );
 
       const accountResult = helpers.extractResponse(
         await helpers.makeRequest({ method: 'get', url: '/accounts' }),
@@ -44,9 +44,7 @@ describe('Monobank integration', () => {
 
       for (const item of mockedClientData.data.accounts) {
         const mockedAccount = item;
-        const resultItem = accountResult.find(
-          (acc) => acc.externalId === item.id,
-        );
+        const resultItem = accountResult.find((acc) => acc.externalId === item.id);
 
         const rates = await helpers.getCurrenciesRates();
         const rate = rates.find(
@@ -54,17 +52,11 @@ describe('Monobank integration', () => {
         ).rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
-        expect(resultItem.refInitialBalance).toBe(
-          Math.floor(mockedAccount.balance * rate),
-        );
+        expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));
         expect(resultItem.currentBalance).toBe(mockedAccount.balance);
-        expect(resultItem.refCurrentBalance).toBe(
-          Math.floor(mockedAccount.balance * rate),
-        );
+        expect(resultItem.refCurrentBalance).toBe(Math.floor(mockedAccount.balance * rate));
         expect(resultItem.creditLimit).toBe(mockedAccount.creditLimit);
-        expect(resultItem.refCreditLimit).toBe(
-          Math.floor(mockedAccount.creditLimit * rate),
-        );
+        expect(resultItem.refCreditLimit).toBe(Math.floor(mockedAccount.creditLimit * rate));
         expect(resultItem.type).toBe(ACCOUNT_TYPES.monobank);
         // By default all Monobank accounts should be disabled so we will load
         // new transactions only to accounts that user choosed
@@ -90,9 +82,7 @@ describe('Monobank integration', () => {
         url: '/banks/monobank/user',
       });
 
-      expect(helpers.extractResponse(result).code).toEqual(
-        API_ERROR_CODES.monobankUserNotPaired,
-      );
+      expect(helpers.extractResponse(result).code).toEqual(API_ERROR_CODES.monobankUserNotPaired);
     });
     it('Returns correct user', async () => {
       await helpers.monobank.pair();
@@ -102,9 +92,7 @@ describe('Monobank integration', () => {
         url: '/banks/monobank/user',
       });
 
-      expect(helpers.extractResponse(result).apiToken).toEqual(
-        helpers.monobank.mockedToken,
-      );
+      expect(helpers.extractResponse(result).apiToken).toEqual(helpers.monobank.mockedToken);
     });
   });
   describe('[loadTransactions]', () => {
@@ -177,16 +165,12 @@ describe('Monobank integration', () => {
 
         // There will always be one record that is associated with acocunt creation date,
         // so we need to ignore it, to check only transactions that were just created
-        balanceHistory = balanceHistory.filter(
-          (item) => item.amount === account.balance,
-        );
+        balanceHistory = balanceHistory.filter((item) => item.amount === account.balance);
 
         expect(transactions.length).toBe(transactionsAmount);
-        expect(
-          transactions.every(
-            (item) => item.accountType === ACCOUNT_TYPES.monobank,
-          ),
-        ).toBe(true);
+        expect(transactions.every((item) => item.accountType === ACCOUNT_TYPES.monobank)).toBe(
+          true,
+        );
 
         balanceHistory.forEach((historyRecord) => {
           const transaction = transactions.find((item) =>

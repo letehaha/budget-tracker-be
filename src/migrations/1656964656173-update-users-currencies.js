@@ -52,11 +52,7 @@ module.exports = {
       await queryInterface.removeColumn('UsersCurrencies', 'liveRateUpdate', {
         transaction,
       });
-      await queryInterface.removeColumn(
-        'UsersCurrencies',
-        'isDefaultCurrency',
-        { transaction },
-      );
+      await queryInterface.removeColumn('UsersCurrencies', 'isDefaultCurrency', { transaction });
 
       await transaction.commit();
     } catch (err) {

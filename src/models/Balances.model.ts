@@ -1,12 +1,5 @@
 import { Op } from 'sequelize';
-import {
-  Model,
-  Column,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Table,
-} from 'sequelize-typescript';
+import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
 import { GenericSequelizeModelAttributes } from '@common/types';
@@ -121,9 +114,7 @@ export default class Balances extends Model<BalanceModel> {
   ) {
     const { accountId, time } = data;
     let amount =
-      data.transactionType === TRANSACTION_TYPES.income
-        ? data.refAmount
-        : data.refAmount * -1;
+      data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
@@ -170,9 +161,7 @@ export default class Balances extends Model<BalanceModel> {
         attributes,
       );
     } else if (data.accountType === ACCOUNT_TYPES.monobank) {
-      const balance = (
-        data.externalData as TransactionsAttributes['externalData']
-      ).balance;
+      const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
 
       // We don't need to calculate Monobank account balance based on tx since
       // Monobank already provides us with the actual balance.
@@ -187,9 +176,7 @@ export default class Balances extends Model<BalanceModel> {
       if (existingRecordForTheDate) {
         // Store the highest amount
         existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > balance
-            ? existingRecordForTheDate.amount
-            : balance;
+          existingRecordForTheDate.amount > balance ? existingRecordForTheDate.amount : balance;
 
         await existingRecordForTheDate.save();
       } else {
@@ -197,9 +184,7 @@ export default class Balances extends Model<BalanceModel> {
           {
             accountId,
             date,
-            amount: (
-              data.externalData as TransactionsAttributes['externalData']
-            ).balance,
+            amount: (data.externalData as TransactionsAttributes['externalData']).balance,
           },
           { transaction: attributes.transaction },
         );
@@ -209,11 +194,7 @@ export default class Balances extends Model<BalanceModel> {
 
   // Update the balance for a specific system account and date
   private static async updateRecord(
-    {
-      accountId,
-      date,
-      amount,
-    }: { accountId: number; date: Date; amount: number },
+    { accountId, date, amount }: { accountId: number; date: Date; amount: number },
     attributes: GenericSequelizeModelAttributes = {},
   ) {
     // Try to find an existing balance for the account and date

@@ -25,16 +25,12 @@ describe('Create transaction controller', () => {
     expect(baseTx.amount).toBe(txPayload.amount);
     expect(baseTx.refAmount).toBe(txPayload.amount);
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(baseTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.not_transfer,
-    );
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions[0]);
   });
   it('should successfully create a transaction for account with currency different from base one', async () => {
     // Create account with non-default currency
-    const currency = global.MODELS_CURRENCIES.find(
-      (item) => item.code === 'UAH',
-    );
+    const currency = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
 
     const account = await helpers.createAccount({
@@ -54,20 +50,14 @@ describe('Create transaction controller', () => {
     });
 
     const transactions = await helpers.getTransactions({ raw: true });
-    const currencyRate = (await helpers.getCurrenciesRates()).find(
-      (c) => c.baseId === currency.id,
-    );
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseId === currency.id);
 
     expect(baseTx.currencyId).toBe(currency.id);
     expect(baseTx.currencyCode).toBe(currency.code);
     expect(baseTx.amount).toBe(txPayload.amount);
-    expect(baseTx.refAmount).toBe(
-      Math.floor(txPayload.amount * currencyRate.rate),
-    );
+    expect(baseTx.refAmount).toBe(Math.floor(txPayload.amount * currencyRate.rate));
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(baseTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.not_transfer,
-    );
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions[0]);
   });
   it('should successfully create a transfer transaction between accounts with same currency', async () => {
@@ -102,12 +92,8 @@ describe('Create transaction controller', () => {
     expect(baseTx.refAmount).toBe(txPayload.amount);
     expect(oppositeTx.refAmount).toBe(txPayload.amount);
 
-    expect(baseTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
-    expect(oppositeTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
@@ -125,9 +111,7 @@ describe('Create transaction controller', () => {
   it('should successfully create a transfer transaction between account with base and non-base currency', async () => {
     const accountA = await helpers.createAccount({ raw: true });
 
-    const currencyB = global.MODELS_CURRENCIES.find(
-      (item) => item.code === 'UAH',
-    );
+    const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
 
     const accountB = await helpers.createAccount({
@@ -168,12 +152,8 @@ describe('Create transaction controller', () => {
     expect(baseTx.refAmount).toBe(baseTx.amount);
     expect(oppositeTx.refAmount).toBe(baseTx.amount);
 
-    expect(baseTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
-    expect(oppositeTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
@@ -191,9 +171,7 @@ describe('Create transaction controller', () => {
     });
   });
   it('should successfully create a transfer transaction between accounts with both non-base currencies', async () => {
-    const currencyA = global.MODELS_CURRENCIES.find(
-      (item) => item.code === 'EUR',
-    );
+    const currencyA = global.MODELS_CURRENCIES.find((item) => item.code === 'EUR');
     await helpers.addUserCurrencies({ currencyCodes: [currencyA.code] });
     const accountA = await helpers.createAccount({
       payload: {
@@ -203,9 +181,7 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyB = global.MODELS_CURRENCIES.find(
-      (item) => item.code === 'UAH',
-    );
+    const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: [currencyB.code] });
     const accountB = await helpers.createAccount({
       payload: {
@@ -249,19 +225,11 @@ describe('Create transaction controller', () => {
     expect(oppositeTx.accountId).toBe(accountB.id);
 
     // Secondary (`to`) transfer tx always same `refAmount` as the general (`from`) tx to keep it consistent
-    expect(baseTx.refAmount).toBe(
-      Math.floor(baseTx.amount * currencyRate.rate),
-    );
-    expect(oppositeTx.refAmount).toBe(
-      Math.floor(oppositeTx.amount * oppositeCurrencyRate.rate),
-    );
+    expect(baseTx.refAmount).toBe(Math.floor(baseTx.amount * currencyRate.rate));
+    expect(oppositeTx.refAmount).toBe(Math.floor(oppositeTx.amount * oppositeCurrencyRate.rate));
 
-    expect(baseTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
-    expect(oppositeTx.transferNature).toBe(
-      TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
+    expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
@@ -328,9 +296,7 @@ describe('Create transaction controller', () => {
       async (txType) => {
         await helpers.monobank.pair();
         const { transactions } = await helpers.monobank.mockTransactions();
-        const externalTransaction = transactions.find(
-          (item) => item.transactionType === txType,
-        );
+        const externalTransaction = transactions.find((item) => item.transactionType === txType);
         const accountA = await helpers.createAccount({ raw: true });
         const expectedValues = {
           accountId: accountA.id,
@@ -436,6 +402,118 @@ describe('Create transaction controller', () => {
 
       const result = await helpers.createTransaction({
         payload: transferTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+  describe('Create refund transaction', () => {
+    it('should successfully create a refund transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const [originalTx] = await helpers.createTransaction({
+        payload: originalTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundsTxId: originalTx.id,
+      };
+      const [refundTx] = await helpers.createTransaction({
+        payload: refundTxPayload,
+        raw: true,
+      });
+
+      const refundResponse = await helpers.getSingleRefund({
+        originalTxId: originalTx.id,
+        refundTxId: refundTx.id,
+      });
+
+      expect(refundTx.amount).toBe(refundTxPayload.amount);
+      expect(refundTx.transactionType).toBe(TRANSACTION_TYPES.income);
+      // Check that refund was successfully created
+      expect(refundResponse.statusCode).toBe(200);
+    });
+
+    it('should throw an error when trying to create a refund for non-existent transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundsTxId: 99999, // Non-existent ID
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('should not allow creating a refund for a transaction that is already a transfer', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
+
+      const transferTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 100,
+        destinationAccountId: accountB.id,
+      };
+      const [transferTx] = await helpers.createTransaction({
+        payload: transferTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundsTxId: transferTx.id,
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should not allow creating a refund with transferNature', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const [originalTx] = await helpers.createTransaction({
+        payload: originalTxPayload,
+        raw: true,
+      });
+
+      const refundTxPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        refundsTxId: originalTx.id,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      };
+
+      const result = await helpers.createTransaction({
+        payload: refundTxPayload,
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);

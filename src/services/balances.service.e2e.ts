@@ -38,20 +38,14 @@ describe('Balances service', () => {
   });
 
   describe('the balances history table correctly updated when:', () => {
-    const buildAccount = async ({
-      accountInitialBalance = 0,
-      currencyCode = null,
-    } = {}) => {
+    const buildAccount = async ({ accountInitialBalance = 0, currencyCode = null } = {}) => {
       let newCurrency: Currencies = undefined;
       let currencyRate = 1;
 
       if (currencyCode) {
-        newCurrency = global.MODELS_CURRENCIES.find(
-          (item) => item.code === currencyCode,
-        );
+        newCurrency = global.MODELS_CURRENCIES.find((item) => item.code === currencyCode);
         await helpers.addUserCurrencies({ currencyCodes: [currencyCode] });
-        currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0]
-          .rate;
+        currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0].rate;
       }
 
       const account = await helpers.createAccount({
@@ -64,9 +58,7 @@ describe('Balances service', () => {
       });
 
       expect(account.initialBalance).toBe(accountInitialBalance);
-      expect(account.refInitialBalance).toBe(
-        Math.floor(accountInitialBalance * currencyRate),
-      );
+      expect(account.refInitialBalance).toBe(Math.floor(accountInitialBalance * currencyRate));
 
       const expense = helpers.buildTransactionPayload({
         accountId: account.id,
@@ -140,7 +132,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...expense,
-          time: startOfDay(addDays(new Date(), 1)),
+          time: startOfDay(addDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -148,15 +140,13 @@ describe('Balances service', () => {
 
       expect(afterBalance.length).toBe(2);
       expect(afterBalance.at(0).amount).toBe(accountData.initialBalance);
-      expect(afterBalance.at(1).amount).toBe(
-        accountData.initialBalance - expense.amount,
-      );
+      expect(afterBalance.at(1).amount).toBe(accountData.initialBalance - expense.amount);
 
       // Then create a transaction BEFORE account creation date
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(subDays(new Date(), 1)),
+          time: startOfDay(subDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -164,12 +154,8 @@ describe('Balances service', () => {
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
-      expect(beforeBalance.at(1).amount).toBe(
-        accountData.initialBalance + income.amount,
-      );
-      expect(beforeBalance.at(2).amount).toBe(
-        accountData.initialBalance + income.amount,
-      );
+      expect(beforeBalance.at(1).amount).toBe(accountData.initialBalance + income.amount);
+      expect(beforeBalance.at(2).amount).toBe(accountData.initialBalance + income.amount);
       expect(beforeBalance.at(3).amount).toBe(
         accountData.initialBalance - expense.amount + income.amount,
       );
@@ -189,7 +175,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...expense,
-          time: startOfDay(addDays(new Date(), 1)),
+          time: startOfDay(addDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -197,16 +183,14 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(new Date()),
+          time: startOfDay(new Date()).toISOString(),
         },
       });
 
       const afterBalance = await callGetBalanceHistory(accountData.id, true);
 
       expect(afterBalance.length).toBe(2);
-      expect(afterBalance.at(0).amount).toBe(
-        accountData.initialBalance + income.amount,
-      );
+      expect(afterBalance.at(0).amount).toBe(accountData.initialBalance + income.amount);
       expect(afterBalance.at(1).amount).toBe(
         accountData.initialBalance - expense.amount + income.amount,
       );
@@ -215,7 +199,7 @@ describe('Balances service', () => {
       await helpers.createTransaction({
         payload: {
           ...income,
-          time: startOfDay(subDays(new Date(), 1)),
+          time: startOfDay(subDays(new Date(), 1)).toISOString(),
         },
       });
 
@@ -223,17 +207,12 @@ describe('Balances service', () => {
 
       expect(beforeBalance.length).toBe(4);
       expect(beforeBalance.at(0).amount).toBe(accountData.initialBalance);
-      expect(beforeBalance.at(1).amount).toBe(
-        accountData.initialBalance + income.amount,
-      );
+      expect(beforeBalance.at(1).amount).toBe(accountData.initialBalance + income.amount);
       expect(beforeBalance.at(2).amount).toBe(
         accountData.initialBalance + income.amount + income.amount,
       );
       expect(beforeBalance.at(3).amount).toBe(
-        accountData.initialBalance -
-          expense.amount +
-          income.amount +
-          income.amount,
+        accountData.initialBalance - expense.amount + income.amount + income.amount,
       );
     });
 
@@ -252,7 +231,10 @@ describe('Balances service', () => {
       // Send 3 transactions at different days
       for (const tx of transactionsPayloads) {
         const response: Transactions[] = await helpers.createTransaction({
-          payload: tx,
+          payload: {
+            ...tx,
+            time: tx.time.toISOString(),
+          },
           raw: true,
         });
         transactionResults.push(response[0]);
@@ -266,18 +248,13 @@ describe('Balances service', () => {
         });
       }
 
-      const finalBalanceHistory: Balances[] = await callGetBalanceHistory(
-        accountData.id,
-        true,
-      );
+      const finalBalanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, true);
 
       // Since we added transaction prior account creation, we will have +1 transaction
       expect(finalBalanceHistory.length).toBe(4);
       // Check that after removing all the transactions, the initial balance is set to correct
       expect(
-        finalBalanceHistory.every(
-          (record) => record.amount === accountData.initialBalance,
-        ),
+        finalBalanceHistory.every((record) => record.amount === accountData.initialBalance),
       ).toBe(true);
     });
 
@@ -298,17 +275,17 @@ describe('Balances service', () => {
 
       for (const tx of transactionsPayloads) {
         const response = await helpers.createTransaction({
-          payload: tx,
+          payload: {
+            ...tx,
+            time: tx.time.toISOString(),
+          },
           raw: true,
         });
 
         transactionResults.push(...response);
       }
 
-      const balanceHistory: Balances[] = await callGetBalanceHistory(
-        accountData.id,
-        true,
-      );
+      const balanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, true);
 
       expect(balanceHistory).toStrictEqual([
         // Since we added transaction BEFORE account creation, we will always
@@ -340,10 +317,7 @@ describe('Balances service', () => {
         payload: { amount: 150 },
       });
 
-      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(
-        accountData.id,
-        true,
-      );
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, true);
 
       expect(newBalanceHistory1).toStrictEqual([
         {
@@ -363,10 +337,7 @@ describe('Balances service', () => {
         payload: { amount: 350 },
       });
 
-      const newBalanceHistory2: Balances[] = await callGetBalanceHistory(
-        accountData.id,
-        true,
-      );
+      const newBalanceHistory2: Balances[] = await callGetBalanceHistory(accountData.id, true);
 
       expect(newBalanceHistory2).toStrictEqual([
         {
@@ -388,15 +359,12 @@ describe('Balances service', () => {
         id: transactionResults[0].id,
         payload: {
           amount: 150,
-          time: startOfDay(subDays(new Date(), 4)),
+          time: startOfDay(subDays(new Date(), 4)).toISOString(),
           transactionType: TRANSACTION_TYPES.income,
         },
       });
 
-      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(
-        accountData.id,
-        true,
-      );
+      const newBalanceHistory1: Balances[] = await callGetBalanceHistory(accountData.id, true);
 
       expect(newBalanceHistory1).toStrictEqual([
         {
@@ -420,14 +388,13 @@ describe('Balances service', () => {
         id: transactionResults[3].id,
         payload: {
           amount: 150,
-          time: startOfDay(addDays(new Date(), 5)),
+          time: startOfDay(addDays(new Date(), 5)).toISOString(),
           transactionType: TRANSACTION_TYPES.income,
           accountId: oneMoreAccountData.id,
         },
       });
 
-      const newBalanceHistory2: Balances[] =
-        await callGelFullBalanceHistory(true);
+      const newBalanceHistory2: Balances[] = await callGelFullBalanceHistory(true);
 
       // Yeah it looks really hard, but that's the way to verify everything is okay
       expect(newBalanceHistory2).toStrictEqual([
@@ -491,13 +458,9 @@ describe('Balances service', () => {
         currencyCode: 'UAH',
       });
 
-      const initialHistory = helpers.extractResponse(
-        await callGetBalanceHistory(accountData.id),
-      );
+      const initialHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
-      expect(initialHistory[0].amount).toBe(
-        Math.floor(initialBalance * currencyRate),
-      );
+      expect(initialHistory[0].amount).toBe(Math.floor(initialBalance * currencyRate));
 
       // Firstly test that balance increase works well
       await helpers.updateAccount({
@@ -512,9 +475,7 @@ describe('Balances service', () => {
       );
 
       historyIncreaseChange.forEach((item) => {
-        expect(item.amount).toBe(
-          Math.floor((initialBalance + 5000) * currencyRate) - 1,
-        );
+        expect(item.amount).toBe(Math.floor((initialBalance + 5000) * currencyRate) - 1);
       });
 
       // Then test that balance decreate works well
@@ -555,9 +516,7 @@ describe('Balances service', () => {
       });
       const transactionId = transactionResponse[0].id;
 
-      const initialHistory = helpers.extractResponse(
-        await callGetBalanceHistory(accountData.id),
-      );
+      const initialHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
       expect(initialHistory[0].amount).toBe(initialBalance - expenseAmount);
 
       // Update the transaction with the same amount
@@ -567,9 +526,7 @@ describe('Balances service', () => {
       });
 
       // Verify the balance is unchanged
-      const updatedHistory = helpers.extractResponse(
-        await callGetBalanceHistory(accountData.id),
-      );
+      const updatedHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
       expect(updatedHistory[0].amount).toBe(initialBalance - expenseAmount);
     });
     it.todo('creation transfer transactions');

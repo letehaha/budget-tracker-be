@@ -13,10 +13,7 @@ import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
 
-export const getUser = async (
-  id: number,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUser = async (id: number, attributes: GenericSequelizeModelAttributes = {}) => {
   try {
     const user = await Users.getUserById({ id }, attributes);
 
@@ -175,10 +172,7 @@ export const setBaseUserCurrency = async ({
       throw new ValidationError({ message: 'Base currency already exists!' });
     }
 
-    const [currency] = await Currencies.getCurrencies(
-      { ids: [currencyId] },
-      { transaction },
-    );
+    const [currency] = await Currencies.getCurrencies({ ids: [currencyId] }, { transaction });
 
     if (!currency) {
       throw new ValidationError({
@@ -202,10 +196,7 @@ export const setBaseUserCurrency = async ({
       { transaction },
     );
 
-    const result = await setDefaultUserCurrency(
-      { userId, currencyId },
-      { transaction },
-    );
+    const result = await setDefaultUserCurrency({ userId, currencyId }, { transaction });
 
     await transaction.commit();
 
@@ -240,17 +231,13 @@ export const addUserCurrencies = async (
     });
 
     existingCurrencies.forEach((item) => {
-      const index = currencies.findIndex(
-        (currency) => currency.currencyId === item.currencyId,
-      );
+      const index = currencies.findIndex((currency) => currency.currencyId === item.currencyId);
 
       if (index >= 0) currencies.splice(index, 1);
     });
 
     const result = await Promise.all(
-      currencies.map((item) =>
-        UsersCurrencies.addCurrency(item, { transaction }),
-      ),
+      currencies.map((item) => UsersCurrencies.addCurrency(item, { transaction })),
     );
 
     if (!isTxPassedFromAbove) {
@@ -355,10 +342,7 @@ export const setDefaultUserCurrency = async (
       { transaction },
     );
 
-    const currency = await Currencies.getCurrency(
-      { id: currencyId },
-      { transaction },
-    );
+    const currency = await Currencies.getCurrency({ id: currencyId }, { transaction });
 
     await Transactions.updateTransactions(
       {
@@ -405,15 +389,11 @@ export const deleteUserCurrency = async ({
 
     if (passedCurrency.isDefaultCurrency) {
       throw new ValidationError({
-        message:
-          'It is not allowed to delete default currency. Unmake it default first.',
+        message: 'It is not allowed to delete default currency. Unmake it default first.',
       });
     }
 
-    const accounts = await Accounts.getAccountsByCurrency(
-      { userId, currencyId },
-      { transaction },
-    );
+    const accounts = await Accounts.getAccountsByCurrency({ userId, currencyId }, { transaction });
 
     if (accounts.length) {
       throw new ValidationError({

@@ -78,7 +78,8 @@
     "ts-node": "10.9.2",
     "typescript": "5.4.5",
     "uuid": "9.0.1",
-    "winston": "3.13.0"
+    "winston": "3.13.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@faker-js/faker": "8.4.1",

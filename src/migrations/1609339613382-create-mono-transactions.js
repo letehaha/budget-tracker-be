@@ -130,21 +130,11 @@ module.exports = {
       await queryInterface.removeColumn('MonobankTransactions', 'userId', {
         transaction,
       });
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'transactionTypeId',
-        { transaction },
-      );
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'paymentTypeId',
-        { transaction },
-      );
-      await queryInterface.removeColumn(
-        'MonobankTransactions',
-        'monoAccountId',
-        { transaction },
-      );
+      await queryInterface.removeColumn('MonobankTransactions', 'transactionTypeId', {
+        transaction,
+      });
+      await queryInterface.removeColumn('MonobankTransactions', 'paymentTypeId', { transaction });
+      await queryInterface.removeColumn('MonobankTransactions', 'monoAccountId', { transaction });
       await queryInterface.removeColumn('MonobankTransactions', 'categoryId', {
         transaction,
       });

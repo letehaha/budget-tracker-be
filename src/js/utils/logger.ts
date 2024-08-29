@@ -7,9 +7,7 @@ const createWinstonLogger = () => {
       format.errors({ stack: true }),
       format.timestamp(),
       format.colorize(),
-      format.printf(
-        (mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`,
-      ),
+      format.printf((mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`),
     ),
     transports: [
       //
@@ -46,14 +44,8 @@ const formatErrorToString = (error: string | Error) => {
   return message;
 };
 
-function loggerErrorHandler(
-  message: string,
-  ...extra: Record<string, unknown>[]
-): void;
-function loggerErrorHandler(
-  error: Error,
-  ...extra: Record<string, unknown>[]
-): void;
+function loggerErrorHandler(message: string, ...extra: Record<string, unknown>[]): void;
+function loggerErrorHandler(error: Error, ...extra: Record<string, unknown>[]): void;
 function loggerErrorHandler(
   messageParam: { message: string; error?: Error },
   ...extra: Record<string, unknown>[]
@@ -70,10 +62,7 @@ function loggerErrorHandler(
 
   if (typeof messageParam === 'string') {
     messageReult = messageParam;
-  } else if (
-    typeof messageParam === 'string' ||
-    messageParam instanceof Error
-  ) {
+  } else if (typeof messageParam === 'string' || messageParam instanceof Error) {
     messageReult = formatErrorToString(messageParam);
   } else {
     const { message, error } = messageParam;

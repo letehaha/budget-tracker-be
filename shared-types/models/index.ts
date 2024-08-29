@@ -96,6 +96,7 @@ export interface TransactionModel {
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
+  refundLinked: boolean;
 }
 
 export interface CurrencyModel {

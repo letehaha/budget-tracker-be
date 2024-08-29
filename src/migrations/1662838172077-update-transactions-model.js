@@ -15,11 +15,9 @@ module.exports = {
       );
 
       // rename column from userId to authorId
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_userId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_userId_fkey', {
+        transaction,
+      });
       await queryInterface.renameColumn('Transactions', 'userId', 'authorId', {
         transaction,
       });
@@ -137,11 +135,9 @@ module.exports = {
       });
 
       // rename column from userId to authorId
-      await queryInterface.removeConstraint(
-        'Transactions',
-        'Transactions_authorId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('Transactions', 'Transactions_authorId_fkey', {
+        transaction,
+      });
       await queryInterface.renameColumn('Transactions', 'authorId', 'userId', {
         transaction,
       });

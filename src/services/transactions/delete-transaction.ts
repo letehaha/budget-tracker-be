@@ -1,9 +1,11 @@
-import { Transaction } from 'sequelize/types';
+import { Op } from 'sequelize';
+import type { Transaction } from 'sequelize/types';
 
 import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
 
 import * as Transactions from '@models/Transactions.model';
+import RefundTransactions from '@models/RefundTransactions.model';
 
 import { getTransactionById } from './get-by-id';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
@@ -19,8 +21,10 @@ export const deleteTransaction = async ({
   const transaction: Transaction = await connection.sequelize.transaction();
 
   try {
-    const { accountType, transferNature, transferId } =
-      await getTransactionById({ id, userId }, { transaction });
+    const { accountType, transferNature, transferId, refundLinked } = await getTransactionById(
+      { id, userId },
+      { transaction },
+    );
 
     if (accountType !== ACCOUNT_TYPES.system) {
       throw new ValidationError({
@@ -28,18 +32,18 @@ export const deleteTransaction = async ({
       });
     }
 
+    if (refundLinked) {
+      await unlinkRefundTransaction(id, transaction);
+    }
+
     if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
       await Transactions.deleteTransactionById({ id, userId }, { transaction });
-    } else if (
-      transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-      transferId
-    ) {
-      const transferTransactions =
-        await Transactions.getTransactionsByArrayOfField({
-          fieldValues: [transferId],
-          fieldName: 'transferId',
-          userId,
-        });
+    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
+      const transferTransactions = await Transactions.getTransactionsByArrayOfField({
+        fieldValues: [transferId],
+        fieldName: 'transferId',
+        userId,
+      });
 
       await Promise.all(
         // For the each transaction with the same "transferId" delete transaction
@@ -66,5 +70,32 @@ export const deleteTransaction = async ({
     }
     await transaction.rollback();
     throw e;
+  }
+};
+
+const unlinkRefundTransaction = async (id: number, transaction: Transaction) => {
+  const refundTx = await RefundTransactions.findOne({
+    where: {
+      [Op.or]: [{ originalTxId: id }, { refundTxId: id }],
+    },
+    transaction,
+  });
+
+  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
+    (i) => Boolean(i) && i !== id,
+  );
+
+  if (transactionIdsToUpdate.length) {
+    await Transactions.default.update(
+      { refundLinked: false },
+      {
+        where: {
+          id: {
+            [Op.in]: transactionIdsToUpdate,
+          },
+        },
+        transaction,
+      },
+    );
   }
 };

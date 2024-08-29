@@ -54,10 +54,7 @@ export const createAccount = async (req, res) => {
   const { id: userId } = req.user;
 
   try {
-    if (
-      type !== ACCOUNT_TYPES.system &&
-      process.env.NODE_ENV === 'production'
-    ) {
+    if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
       throw new Unauthorized({
         message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.`,
       });

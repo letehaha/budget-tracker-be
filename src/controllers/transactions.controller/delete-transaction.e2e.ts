@@ -26,9 +26,7 @@ describe('Delete transaction controller', () => {
     let transactions = [];
 
     beforeEach(async () => {
-      const currencyA = global.MODELS_CURRENCIES.find(
-        (item) => item.code === 'EUR',
-      );
+      const currencyA = global.MODELS_CURRENCIES.find((item) => item.code === 'EUR');
       await helpers.addUserCurrencies({ currencyCodes: [currencyA.code] });
       const accountA = await helpers.createAccount({
         payload: {
@@ -38,9 +36,7 @@ describe('Delete transaction controller', () => {
         raw: true,
       });
 
-      const currencyB = global.MODELS_CURRENCIES.find(
-        (item) => item.code === 'UAH',
-      );
+      const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
       await helpers.addUserCurrencies({ currencyCodes: [currencyB.code] });
       const accountB = await helpers.createAccount({
         payload: {

@@ -151,10 +151,7 @@ export default class Accounts extends Model<AccountsAttributes> {
   isEnabled: boolean;
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(
-    instance: Accounts,
-    { transaction },
-  ) {
+  static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
     await Balances.handleAccountChange({ account: instance }, { transaction });
   }
 
@@ -191,10 +188,7 @@ export const getAccounts = async (
 };
 
 export const getAccountById = async (
-  {
-    userId,
-    id,
-  }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
+  { userId, id }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const account = await Accounts.findOne({
@@ -242,12 +236,7 @@ export interface CreateAccountPayload {
 }
 
 export const createAccount = async (
-  {
-    userId,
-    type = ACCOUNT_TYPES.system,
-    isEnabled = true,
-    ...rest
-  }: CreateAccountPayload,
+  { userId, type = ACCOUNT_TYPES.system, isEnabled = true, ...rest }: CreateAccountPayload,
   attributes: GenericSequelizeModelAttributes = {},
 ) => {
   const response = await Accounts.create(

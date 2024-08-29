@@ -1,12 +1,6 @@
 import { Transaction } from 'sequelize/types';
 import { Op } from 'sequelize';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { UserCurrencyModel } from 'shared-types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Users from './Users.model';
@@ -94,10 +88,7 @@ type getCurrencyOverload = {
     { transaction }: { transaction?: Transaction },
   ): Promise<UsersCurrencies & { currency: Currencies }>;
   (
-    {
-      userId,
-      isDefaultCurrency,
-    }: { userId: number; isDefaultCurrency: boolean },
+    { userId, isDefaultCurrency }: { userId: number; isDefaultCurrency: boolean },
     { transaction }: { transaction?: Transaction },
   ): Promise<UsersCurrencies & { currency: Currencies }>;
 };
