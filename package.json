@@ -51,7 +51,7 @@
   },
   "homepage": "https://github.com/letehaha/budget-tracker-be#readme",
   "dependencies": {
-    "axios": "1.6.8",
+    "axios": "1.7.4",
     "bcryptjs": "2.4.3",
     "config": "3.3.11",
     "connect-redis": "5.0.0",
