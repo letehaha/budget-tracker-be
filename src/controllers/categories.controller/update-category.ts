@@ -6,12 +6,12 @@ import { errorHandler } from '../helpers';
 
 export const editCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { id: categoryId } = req.params;
+  const { id: categoryId }: UpdateCategoryParams = req.params;
   const { name, imageUrl, color }: UpdateCategoryPayload = req.validated.body;
 
   try {
     const data = await categoriesService.editCategory({
-      categoryId,
+      categoryId: Number(categoryId),
       userId,
       name,
       imageUrl,
@@ -27,7 +27,7 @@ export const editCategory = async (req, res: CustomResponse) => {
   }
 };
 
-export const UpdateCategoryPayloadSchema = z
+export const bodyZodSchema = z
   .object({
     name: z.string().min(1).max(200, 'The name must not exceed 200 characters').optional(),
     imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
@@ -47,8 +47,9 @@ const paramsZodSchema = z.object({
 });
 
 export const updateCategorySchema = z.object({
-  body: UpdateCategoryPayloadSchema,
+  body: bodyZodSchema,
   params: paramsZodSchema,
 });
 
-export type UpdateCategoryPayload = z.infer<typeof UpdateCategoryPayloadSchema>;
+export type UpdateCategoryPayload = z.infer<typeof bodyZodSchema>;
+export type UpdateCategoryParams = z.infer<typeof paramsZodSchema>;

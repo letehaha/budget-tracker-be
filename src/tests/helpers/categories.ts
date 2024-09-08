@@ -71,3 +71,33 @@ export const getCategoriesList = async (): Promise<CategoryModel[]> => {
 
   return result;
 };
+
+export async function deleteCustomCategory({
+  raw,
+  ...params
+}: {
+  categoryId?: number | string;
+  raw?: false;
+}): Promise<Response>;
+export async function deleteCustomCategory({
+  raw,
+  ...params
+}: {
+  categoryId?: number | string;
+  raw?: true;
+}): Promise<CategoryModel[]>;
+export async function deleteCustomCategory({
+  categoryId,
+  raw = true,
+}: {
+  categoryId?: number | string;
+  raw?: boolean;
+}): Promise<Response | CategoryModel[]> {
+  const result = await helpers.makeRequest({
+    method: 'delete',
+    url: `/categories/${categoryId}`,
+    raw,
+  });
+
+  return result;
+}

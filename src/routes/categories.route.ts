@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import * as categoriesController from '@controllers/categories.controller';
+import { getCategories } from '@controllers/categories.controller/get-categories';
+import {
+  deleteCategory,
+  deleteCategorySchema,
+} from '@controllers/categories.controller/delete-category';
 import {
   createCategory,
   createCategorySchema,
@@ -13,9 +17,9 @@ import { validateEndpoint } from '@middlewares/validations';
 
 const router = Router({});
 
-router.get('/', authenticateJwt, categoriesController.getCategories);
+router.get('/', authenticateJwt, getCategories);
 router.post('/', authenticateJwt, validateEndpoint(createCategorySchema), createCategory);
 router.put('/:id', authenticateJwt, validateEndpoint(updateCategorySchema), editCategory);
-router.delete('/:id', authenticateJwt, categoriesController.deleteCategory);
+router.delete('/:id', authenticateJwt, validateEndpoint(deleteCategorySchema), deleteCategory);
 
 export default router;
