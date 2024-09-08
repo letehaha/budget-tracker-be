@@ -44,30 +44,6 @@ export const getCategories = async (
   }
 };
 
-export const createCategory = async (
-  payload: Categories.CreateCategoryPayload,
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
-
-  try {
-    const result = await Categories.createCategory(payload);
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
-    return result;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw err;
-  }
-};
-
 export const editCategory = async (
   payload: Categories.EditCategoryPayload,
   { transaction }: GenericSequelizeModelAttributes = {},

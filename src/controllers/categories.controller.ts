@@ -18,28 +18,6 @@ export const getCategories = async (req, res: CustomResponse) => {
   }
 };
 
-export const createCategory = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { name, imageUrl, color, parentId }: endpointsTypes.CreateCategoryBody = req.body;
-
-  try {
-    const data = await categoriesService.createCategory({
-      name,
-      imageUrl,
-      color,
-      parentId,
-      userId,
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err);
-  }
-};
-
 export const editCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const { id: categoryId } = req.params;

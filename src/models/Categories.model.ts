@@ -1,10 +1,11 @@
 import { Transaction } from 'sequelize/types';
-import { API_ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
+import { CATEGORY_TYPES } from 'shared-types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
+import { ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -81,10 +82,7 @@ export const createCategory = async (
     });
 
     if (!parent) {
-      throw {
-        code: API_ERROR_CODES.validationError,
-        message: "Category with such parentId doesn't exist.",
-      };
+      throw new ValidationError({ message: "Category with such parentId doesn't exist." });
     }
 
     if (!color) color = parent.get('color');
