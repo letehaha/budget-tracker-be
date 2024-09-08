@@ -5,7 +5,7 @@ import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -113,6 +113,10 @@ export const editCategory = async (
   { userId, categoryId, ...params }: EditCategoryPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
+  const existingCategory = await Categories.findByPk(categoryId);
+  if (!existingCategory) {
+    throw new NotFoundError({ message: 'Category with provided id does not exist!' });
+  }
   const [, categories] = await Categories.update(params, {
     where: {
       id: categoryId,

@@ -28,8 +28,8 @@ export const createCategory = async (req, res: CustomResponse) => {
 
 export const CreateCategoryPayloadSchema = z
   .object({
-    name: z.string().min(1),
-    imageUrl: z.string().url().optional(),
+    name: z.string().min(1).max(200, 'The name must not exceed 200 characters'),
+    imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
     type: z
       .enum(Object.values(CATEGORY_TYPES) as [string, ...string[]])
       .default(CATEGORY_TYPES.custom),

@@ -65,7 +65,7 @@ describe('[Stats] Spendings by categories', () => {
     // Prepare nested 2-level categories
     const [customCategory1, customCategory2] = await Promise.all(
       firstLevelNestedCategories.map((i) =>
-        helpers.addCustomCategory({ parentId: i.id, name: `test-${i.id}` }),
+        helpers.addCustomCategory({ parentId: i.id, name: `test-${i.id}`, raw: true }),
       ),
     );
 

@@ -16,21 +16,46 @@ export async function addCustomCategory({
   ...params
 }: BaseCreationPayload & { raw?: true }): Promise<CategoryModel>;
 export async function addCustomCategory({
-  parentId,
-  name,
-  color,
   raw = true,
+  ...params
 }: BaseCreationPayload & {
   raw?: boolean;
 } = {}): Promise<Response | CategoryModel> {
   const result = await helpers.makeRequest({
     method: 'post',
     url: '/categories',
-    payload: {
-      parentId,
-      name,
-      color,
-    },
+    payload: params,
+    raw,
+  });
+
+  return result;
+}
+
+interface BaseUpdationPayload {
+  categoryId: number;
+  name?: string;
+  color?: string;
+  imageUrl?: string;
+}
+export async function editCustomCategory({
+  raw,
+  ...params
+}: BaseUpdationPayload & { raw?: false }): Promise<Response>;
+export async function editCustomCategory({
+  raw,
+  ...params
+}: BaseUpdationPayload & { raw?: true }): Promise<CategoryModel[]>;
+export async function editCustomCategory({
+  categoryId,
+  raw = true,
+  ...params
+}: BaseUpdationPayload & {
+  raw?: boolean;
+}): Promise<Response | CategoryModel[]> {
+  const result = await helpers.makeRequest({
+    method: 'put',
+    url: `/categories/${categoryId}`,
+    payload: params,
     raw,
   });
 
