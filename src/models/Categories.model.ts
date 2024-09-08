@@ -1,10 +1,11 @@
 import { Transaction } from 'sequelize/types';
-import { API_ERROR_CODES, CATEGORY_TYPES } from 'shared-types';
+import { CATEGORY_TYPES } from 'shared-types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
+import { NotFoundError, ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -81,10 +82,7 @@ export const createCategory = async (
     });
 
     if (!parent) {
-      throw {
-        code: API_ERROR_CODES.validationError,
-        message: "Category with such parentId doesn't exist.",
-      };
+      throw new ValidationError({ message: "Category with such parentId doesn't exist." });
     }
 
     if (!color) color = parent.get('color');
@@ -115,6 +113,10 @@ export const editCategory = async (
   { userId, categoryId, ...params }: EditCategoryPayload,
   { transaction }: { transaction?: Transaction } = {},
 ) => {
+  const existingCategory = await Categories.findByPk(categoryId);
+  if (!existingCategory) {
+    throw new NotFoundError({ message: 'Category with provided id does not exist!' });
+  }
   const [, categories] = await Categories.update(params, {
     where: {
       id: categoryId,
