@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
@@ -529,7 +529,109 @@ describe('Balances service', () => {
       const updatedHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
       expect(updatedHistory[0].amount).toBe(initialBalance - expenseAmount);
     });
-    it.todo('creation transfer transactions');
-    it.todo('updating expense/income => transfer => expense/income');
+
+    it('creating transfer transaction', async () => {
+      const { accountData: sourceAccount } = await buildAccount({ accountInitialBalance: 1000 });
+      const { accountData: destinationAccount } = await buildAccount({
+        accountInitialBalance: 500,
+      });
+
+      const transferAmount = 300;
+      const transferPayload = {
+        ...helpers.buildTransactionPayload({
+          accountId: sourceAccount.id,
+          amount: transferAmount,
+          destinationAccountId: destinationAccount.id,
+          destinationAmount: transferAmount,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      };
+
+      // Create outgoing transfer transaction
+      await helpers.createTransaction({ payload: transferPayload });
+
+      const sourceBalance = helpers.extractResponse(await callGetBalanceHistory(sourceAccount.id));
+      const destBalance = helpers.extractResponse(
+        await callGetBalanceHistory(destinationAccount.id),
+      );
+
+      expect(sourceBalance[0].amount).toBe(700); // 1000 - 300
+      expect(destBalance[0].amount).toBe(800); // 500 + 300
+    });
+
+    it.only.each([
+      [TRANSACTION_TYPES.expense, { a: 500, b: 800 }],
+      [TRANSACTION_TYPES.income, { a: 1500, b: 400 }],
+    ])(
+      'updating %s => transfer => %s should keep consistent balance',
+      async (txType, expectedBalances) => {
+        console.log('#####');
+        const { accountData: accountA } = await buildAccount({ accountInitialBalance: 1000 });
+        const { accountData: accountB } = await buildAccount({ accountInitialBalance: 600 });
+
+        const oppositeTxType =
+          txType === TRANSACTION_TYPES.income
+            ? TRANSACTION_TYPES.expense
+            : TRANSACTION_TYPES.income;
+
+        const [tx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            transactionType: txType,
+            amount: 500,
+          }),
+          raw: true,
+        });
+        const [tx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountB.id,
+            transactionType: oppositeTxType,
+            amount: 200,
+          }),
+          raw: true,
+        });
+
+        let balance1 = await callGetBalanceHistory(accountA.id, true);
+        let balance2 = await callGetBalanceHistory(accountB.id, true);
+
+        console.log({ balance1, balance2 });
+
+        // Balances changed on 500 in each direction
+        expect(balance1[0].amount).toBe(expectedBalances.a);
+        expect(balance2[0].amount).toBe(expectedBalances.b);
+
+        await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationTransactionId: tx2.id,
+          },
+        });
+
+        balance1 = await callGetBalanceHistory(accountA.id, true);
+        balance2 = await callGetBalanceHistory(accountB.id, true);
+
+        console.log({ balance1, balance2 });
+
+        expect(balance1[0].amount).toBe(expectedBalances.a);
+        expect(balance2[0].amount).toBe(expectedBalances.b);
+
+        await helpers.updateTransaction({
+          id: tx1.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          },
+        });
+
+        balance1 = await callGetBalanceHistory(accountA.id, true);
+        balance2 = await callGetBalanceHistory(accountB.id, true);
+
+        console.log({ balance1, balance2 });
+
+        expect(balance1[0].amount).toBe(expectedBalances.a);
+        expect(balance2[0].amount).toBe(expectedBalances.b);
+      },
+    );
   });
 });

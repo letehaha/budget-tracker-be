@@ -435,6 +435,8 @@ export const updateTransaction = async (
         updatedTransactions = [baseTx, oppositeTx];
       }
     } else if (isDiscardingTransfer(payload, prevData)) {
+      // TODO: it's probably wrong to delete it, since user might just want to unlink transfer, but
+      // not delete opposite transaction. Probably need one more param like "delete opposite"
       await deleteOppositeTransaction(helperFunctionsArgs);
     }
 
