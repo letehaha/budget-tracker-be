@@ -1,11 +1,10 @@
 import { TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as Transactions from '@models/Transactions.model';
 import { v4 as uuidv4 } from 'uuid';
-import { connection } from '@models/index';
 import { ValidationError } from '@js/errors';
-import { Op, Transaction } from 'sequelize';
+import { Op } from 'sequelize';
+import { withTransaction } from '@root/services/common';
 
 const validateTransactionLinking = ({
   base,
@@ -44,8 +43,8 @@ const validateTransactionLinking = ({
   }
 };
 
-export const linkTransactions = async (
-  {
+export const linkTransactions = withTransaction(
+  async ({
     userId,
     ids,
     ignoreBaseTxTypeValidation,
@@ -53,77 +52,58 @@ export const linkTransactions = async (
     userId: number;
     ids: [baseTxId: number, oppositeTxId: number][];
     ignoreBaseTxTypeValidation?: boolean;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction: Transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+  }): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
+    try {
+      const result: [baseTx: Transactions.default, oppositeTx: Transactions.default][] = [];
 
-  try {
-    const result: [baseTx: Transactions.default, oppositeTx: Transactions.default][] = [];
-
-    for (const [baseTxId, oppositeTxId] of ids) {
-      let transactions = await Transactions.getTransactionsByArrayOfField(
-        {
+      for (const [baseTxId, oppositeTxId] of ids) {
+        let transactions = await Transactions.getTransactionsByArrayOfField({
           userId,
           fieldName: 'id',
           fieldValues: [baseTxId, oppositeTxId],
-        },
-        { transaction },
-      );
-
-      if (transactions.length !== 2) {
-        throw new ValidationError({
-          message: 'Unexpected error. Cannot link asked transactions.',
         });
+
+        if (transactions.length !== 2) {
+          throw new ValidationError({
+            message: 'Unexpected error. Cannot link asked transactions.',
+          });
+        }
+
+        validateTransactionLinking({
+          base: transactions.find((tx) => tx.id === baseTxId),
+          opposite: transactions.find((tx) => tx.id === oppositeTxId),
+          ignoreBaseTxTypeValidation,
+        });
+
+        await Transactions.default.update(
+          {
+            transferId: uuidv4(),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          },
+          {
+            where: {
+              userId,
+              id: { [Op.in]: [baseTxId, oppositeTxId] },
+            },
+          },
+        );
+
+        transactions = await Transactions.getTransactionsByArrayOfField({
+          userId,
+          fieldName: 'id',
+          fieldValues: [baseTxId, oppositeTxId],
+        });
+
+        result.push([
+          transactions.find((tx) => tx.id === baseTxId),
+          transactions.find((tx) => tx.id === oppositeTxId),
+        ]);
       }
 
-      validateTransactionLinking({
-        base: transactions.find((tx) => tx.id === baseTxId),
-        opposite: transactions.find((tx) => tx.id === oppositeTxId),
-        ignoreBaseTxTypeValidation,
-      });
-
-      await Transactions.default.update(
-        {
-          transferId: uuidv4(),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        },
-        {
-          where: {
-            userId,
-            id: { [Op.in]: [baseTxId, oppositeTxId] },
-          },
-          transaction,
-        },
-      );
-
-      transactions = await Transactions.getTransactionsByArrayOfField(
-        {
-          userId,
-          fieldName: 'id',
-          fieldValues: [baseTxId, oppositeTxId],
-        },
-        { transaction },
-      );
-
-      result.push([
-        transactions.find((tx) => tx.id === baseTxId),
-        transactions.find((tx) => tx.id === oppositeTxId),
-      ]);
+      return result;
+    } catch (err) {
+      logger.error(err);
+      throw err;
     }
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
-    return result;
-  } catch (err) {
-    logger.error(err);
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-    throw err;
-  }
-};
+  },
+);

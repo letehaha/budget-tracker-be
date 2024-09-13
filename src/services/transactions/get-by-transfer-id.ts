@@ -1,9 +1,8 @@
-import { Transaction } from 'sequelize/types';
-
 import * as Transactions from '@models/Transactions.model';
+import { withTransaction } from '../common';
 
-export const getTransactionsByTransferId = async (
-  {
+export const getTransactionsByTransferId = withTransaction(
+  async ({
     transferId,
     userId,
     includeUser,
@@ -19,25 +18,17 @@ export const getTransactionsByTransferId = async (
     includeCategory?: boolean;
     includeAll?: boolean;
     nestedInclude?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
-  try {
-    const data = await Transactions.getTransactionsByTransferId(
-      {
-        transferId,
-        userId,
-        includeUser,
-        includeAccount,
-        includeCategory,
-        includeAll,
-        nestedInclude,
-      },
-      { transaction },
-    );
+  }) => {
+    const data = await Transactions.getTransactionsByTransferId({
+      transferId,
+      userId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
     return data;
-  } catch (err) {
-    throw new err();
-  }
-};
+  },
+);

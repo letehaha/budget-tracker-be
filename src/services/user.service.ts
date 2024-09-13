@@ -1,10 +1,5 @@
-/* eslint-disable no-useless-catch */
-import { Transaction } from 'sequelize/types';
 import { ACCOUNT_TYPES } from 'shared-types';
 
-import { GenericSequelizeModelAttributes } from '@common/types';
-
-import { connection } from '@models/index';
 import { ValidationError } from '@js/errors';
 import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
@@ -12,19 +7,16 @@ import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
+import { withTransaction } from './common';
 
-export const getUser = async (id: number, attributes: GenericSequelizeModelAttributes = {}) => {
-  try {
-    const user = await Users.getUserById({ id }, attributes);
+export const getUser = withTransaction(async (id: number) => {
+  const user = await Users.getUserById({ id });
 
-    return user;
-  } catch (err) {
-    throw err;
-  }
-};
+  return user;
+});
 
-export const createUser = async (
-  {
+export const createUser = withTransaction(
+  async ({
     username,
     email,
     firstName,
@@ -42,48 +34,32 @@ export const createUser = async (
     password: string;
     avatar?: string;
     totalBalance?: number;
-  },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  try {
-    const user = await Users.createUser(
-      {
-        username,
-        email,
-        firstName,
-        lastName,
-        middleName,
-        password,
-        avatar,
-        totalBalance,
-      },
-      { transaction },
-    );
+  }) => {
+    const user = await Users.createUser({
+      username,
+      email,
+      firstName,
+      lastName,
+      middleName,
+      password,
+      avatar,
+      totalBalance,
+    });
 
     return user;
-  } catch (err) {
-    throw err;
-  }
-};
+  },
+);
 
-export const getUserByCredentials = async ({
-  username,
-  email,
-}: {
-  username?: string;
-  email?: string;
-}) => {
-  try {
+export const getUserByCredentials = withTransaction(
+  async ({ username, email }: { username?: string; email?: string }) => {
     const user = await Users.getUserByCredentials({ username, email });
 
     return user;
-  } catch (err) {
-    throw err;
-  }
-};
+  },
+);
 
-export const updateUser = async (
-  {
+export const updateUser = withTransaction(
+  async ({
     id,
     username,
     email,
@@ -105,74 +81,47 @@ export const updateUser = async (
     avatar?: string;
     totalBalance?: number;
     defaultCategoryId?: number;
-  },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  try {
-    const user = await Users.updateUserById(
-      {
-        id,
-        username,
-        email,
-        firstName,
-        lastName,
-        middleName,
-        password,
-        avatar,
-        totalBalance,
-        defaultCategoryId,
-      },
-      { transaction },
-    );
+  }) => {
+    const user = await Users.updateUserById({
+      id,
+      username,
+      email,
+      firstName,
+      lastName,
+      middleName,
+      password,
+      avatar,
+      totalBalance,
+      defaultCategoryId,
+    });
 
     return user;
-  } catch (err) {
-    throw err;
-  }
-};
+  },
+);
 
-export const deleteUser = async (id: number) => {
-  try {
-    await Users.deleteUserById({ id });
-  } catch (err) {
-    throw err;
-  }
-};
+export const deleteUser = withTransaction(async (id: number) => {
+  await Users.deleteUserById({ id });
+});
 
-export const getUserCurrencies = async ({ userId }: { userId: number }) => {
-  try {
-    const list = await UsersCurrencies.getCurrencies({ userId });
+export const getUserCurrencies = withTransaction(async ({ userId }: { userId: number }) => {
+  const list = await UsersCurrencies.getCurrencies({ userId });
 
-    return list;
-  } catch (err) {
-    throw err;
-  }
-};
+  return list;
+});
 
-export const getUserBaseCurrency = (
-  { userId }: { userId: number },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  return UsersCurrencies.getBaseCurrency({ userId }, { transaction });
-};
+export const getUserBaseCurrency = withTransaction(({ userId }: { userId: number }) => {
+  return UsersCurrencies.getBaseCurrency({ userId });
+});
 
-export const setBaseUserCurrency = async ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
-
-  try {
+export const setBaseUserCurrency = withTransaction(
+  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
     const existingBaseCurrency = await getUserBaseCurrency({ userId });
 
     if (existingBaseCurrency) {
       throw new ValidationError({ message: 'Base currency already exists!' });
     }
 
-    const [currency] = await Currencies.getCurrencies({ ids: [currencyId] }, { transaction });
+    const [currency] = await Currencies.getCurrencies({ ids: [currencyId] });
 
     if (!currency) {
       throw new ValidationError({
@@ -180,48 +129,33 @@ export const setBaseUserCurrency = async ({
       });
     }
 
-    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs(
-      [{ baseCode: currency.code, quoteCode: currency.code }],
-      { transaction },
-    );
+    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs([
+      { baseCode: currency.code, quoteCode: currency.code },
+    ]);
 
-    await addUserCurrencies(
-      [
-        {
-          userId,
-          currencyId,
-          exchangeRate: exchangeRate.rate,
-        },
-      ],
-      { transaction },
-    );
+    await addUserCurrencies([
+      {
+        userId,
+        currencyId,
+        exchangeRate: exchangeRate.rate,
+      },
+    ]);
 
-    const result = await setDefaultUserCurrency({ userId, currencyId }, { transaction });
-
-    await transaction.commit();
+    const result = await setDefaultUserCurrency({ userId, currencyId });
 
     return result;
-  } catch (err) {
-    await transaction.rollback();
+  },
+);
 
-    throw err;
-  }
-};
-
-export const addUserCurrencies = async (
-  currencies: {
-    userId: number;
-    currencyId: number;
-    exchangeRate?: number;
-    liveRateUpdate?: boolean;
-  }[],
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  const isTxPassedFromAbove = transaction !== undefined;
-
-  transaction = transaction ?? (await connection.sequelize.transaction());
-
-  try {
+export const addUserCurrencies = withTransaction(
+  async (
+    currencies: {
+      userId: number;
+      currencyId: number;
+      exchangeRate?: number;
+      liveRateUpdate?: boolean;
+    }[],
+  ) => {
     if (!currencies.length) {
       throw new ValidationError({ message: 'Currencies list is empty' });
     }
@@ -236,42 +170,25 @@ export const addUserCurrencies = async (
       if (index >= 0) currencies.splice(index, 1);
     });
 
-    const result = await Promise.all(
-      currencies.map((item) => UsersCurrencies.addCurrency(item, { transaction })),
-    );
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
+    const result = await Promise.all(currencies.map((item) => UsersCurrencies.addCurrency(item)));
 
     return result;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
+  },
+);
 
-    throw err;
-  }
-};
-
-export const editUserCurrency = async ({
-  userId,
-  currencyId,
-  exchangeRate,
-  liveRateUpdate,
-}: {
-  userId: number;
-  currencyId: number;
-  exchangeRate?: number;
-  liveRateUpdate?: boolean;
-}) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
-
-  try {
-    const passedCurrency = await UsersCurrencies.getCurrency(
-      { userId, currencyId },
-      { transaction },
-    );
+export const editUserCurrency = withTransaction(
+  async ({
+    userId,
+    currencyId,
+    exchangeRate,
+    liveRateUpdate,
+  }: {
+    userId: number;
+    currencyId: number;
+    exchangeRate?: number;
+    liveRateUpdate?: boolean;
+  }) => {
+    const passedCurrency = await UsersCurrencies.getCurrency({ userId, currencyId });
 
     if (!passedCurrency) {
       throw new ValidationError({
@@ -279,44 +196,20 @@ export const editUserCurrency = async ({
       });
     }
 
-    const result = await UsersCurrencies.updateCurrency(
-      {
-        userId,
-        currencyId,
-        exchangeRate,
-        liveRateUpdate,
-      },
-      { transaction },
-    );
-
-    await transaction.commit();
+    const result = await UsersCurrencies.updateCurrency({
+      userId,
+      currencyId,
+      exchangeRate,
+      liveRateUpdate,
+    });
 
     return result;
-  } catch (err) {
-    await transaction.rollback();
-
-    throw err;
-  }
-};
-
-export const setDefaultUserCurrency = async (
-  {
-    userId,
-    currencyId,
-  }: {
-    userId: number;
-    currencyId: number;
   },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) => {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
+);
 
-  try {
-    const passedCurrency = await UsersCurrencies.getCurrency(
-      { userId, currencyId },
-      { transaction },
-    );
+export const setDefaultUserCurrency = withTransaction(
+  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
+    const passedCurrency = await UsersCurrencies.getCurrency({ userId, currencyId });
 
     if (!passedCurrency) {
       throw new ValidationError({
@@ -325,61 +218,33 @@ export const setDefaultUserCurrency = async (
     }
 
     // Make all curerncies not default
-    await UsersCurrencies.updateCurrencies(
-      {
-        userId,
-        isDefaultCurrency: false,
-      },
-      { transaction },
-    );
+    await UsersCurrencies.updateCurrencies({
+      userId,
+      isDefaultCurrency: false,
+    });
 
-    const result = await UsersCurrencies.updateCurrency(
-      {
-        userId,
-        currencyId,
-        isDefaultCurrency: true,
-      },
-      { transaction },
-    );
+    const result = await UsersCurrencies.updateCurrency({
+      userId,
+      currencyId,
+      isDefaultCurrency: true,
+    });
 
-    const currency = await Currencies.getCurrency({ id: currencyId }, { transaction });
+    const currency = await Currencies.getCurrency({ id: currencyId });
 
     await Transactions.updateTransactions(
       {
         refCurrencyCode: currency.code,
       },
       { userId, accountType: ACCOUNT_TYPES.system },
-      { transaction },
     );
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
 
     return result;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
+  },
+);
 
-    throw err;
-  }
-};
-
-export const deleteUserCurrency = async ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
-  const transaction: Transaction = await connection.sequelize.transaction();
-
-  try {
-    const passedCurrency = await UsersCurrencies.getCurrency(
-      { userId, currencyId },
-      { transaction },
-    );
+export const deleteUserCurrency = withTransaction(
+  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
+    const passedCurrency = await UsersCurrencies.getCurrency({ userId, currencyId });
 
     if (!passedCurrency) {
       throw new ValidationError({
@@ -393,7 +258,7 @@ export const deleteUserCurrency = async ({
       });
     }
 
-    const accounts = await Accounts.getAccountsByCurrency({ userId, currencyId }, { transaction });
+    const accounts = await Accounts.getAccountsByCurrency({ userId, currencyId });
 
     if (accounts.length) {
       throw new ValidationError({
@@ -407,31 +272,18 @@ export const deleteUserCurrency = async ({
       });
     }
 
-    const defaultCurrency = await UsersCurrencies.getCurrency(
-      { userId, isDefaultCurrency: true },
-      { transaction },
-    );
+    const defaultCurrency = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
 
     await Transactions.updateTransactions(
       {
         currencyId: defaultCurrency.currencyId,
       },
       { userId, currencyId: passedCurrency.currencyId },
-      { transaction },
     );
 
-    await UsersCurrencies.deleteCurrency(
-      {
-        userId,
-        currencyId,
-      },
-      { transaction },
-    );
-
-    await transaction.commit();
-  } catch (err) {
-    await transaction.rollback();
-
-    throw err;
-  }
-};
+    await UsersCurrencies.deleteCurrency({
+      userId,
+      currencyId,
+    });
+  },
+);

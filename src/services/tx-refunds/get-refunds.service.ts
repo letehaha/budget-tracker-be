@@ -1,7 +1,5 @@
 import type { WhereOptions } from 'sequelize';
-import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { TRANSACTION_TYPES } from 'shared-types';
@@ -18,23 +16,17 @@ export interface GetRefundTransactionsParams extends FiltersStructure {
   limit?: number;
 }
 
-export async function getRefundTransactions(
-  {
-    userId,
-    categoryId,
-    transactionType,
-    accountId,
-    page = 1,
-    limit = 2,
-  }: GetRefundTransactionsParams,
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<{
+export const getRefundTransactions = async ({
+  userId,
+  categoryId,
+  transactionType,
+  accountId,
+  page = 1,
+  limit = 2,
+}: GetRefundTransactionsParams): Promise<{
   rows: RefundTransactions.default[];
   meta: { total: number; page: number; limit: number };
-}> {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
+}> => {
   try {
     const transactionWhereClause: WhereOptions<FiltersStructure> = {};
 
@@ -67,19 +59,11 @@ export async function getRefundTransactions(
       ],
       limit,
       offset: (page - 1) * limit,
-      transaction,
     });
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
 
     return { rows, meta: { total, page, limit } };
   } catch (e) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
     logger.error('Error retrieving refund transactions:', e);
     throw e;
   }
-}
+};

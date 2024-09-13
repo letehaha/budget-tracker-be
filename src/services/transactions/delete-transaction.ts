@@ -1,84 +1,69 @@
 import { Op } from 'sequelize';
-import type { Transaction } from 'sequelize/types';
-
-import { connection } from '@models/index';
-import { logger } from '@js/utils/logger';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 
 import * as Transactions from '@models/Transactions.model';
 import RefundTransactions from '@models/RefundTransactions.model';
 
-import { getTransactionById } from './get-by-id';
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import { logger } from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
+import { getTransactionById } from './get-by-id';
+import { withTransaction } from '../common';
 
-export const deleteTransaction = async ({
-  id,
-  userId,
-}: {
-  id: number;
-  userId: number;
-}): Promise<void> => {
-  const transaction: Transaction = await connection.sequelize.transaction();
-
-  try {
-    const { accountType, transferNature, transferId, refundLinked } = await getTransactionById(
-      { id, userId },
-      { transaction },
-    );
-
-    if (accountType !== ACCOUNT_TYPES.system) {
-      throw new ValidationError({
-        message: "It's not allowed to manually delete external transactions",
-      });
-    }
-
-    if (refundLinked) {
-      await unlinkRefundTransaction(id, transaction);
-    }
-
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
-      await Transactions.deleteTransactionById({ id, userId }, { transaction });
-    } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
-      const transferTransactions = await Transactions.getTransactionsByArrayOfField({
-        fieldValues: [transferId],
-        fieldName: 'transferId',
+export const deleteTransaction = withTransaction(
+  async ({ id, userId }: { id: number; userId: number }): Promise<void> => {
+    try {
+      const { accountType, transferNature, transferId, refundLinked } = await getTransactionById({
+        id,
         userId,
       });
 
-      await Promise.all(
-        // For the each transaction with the same "transferId" delete transaction
-        transferTransactions.map((tx) =>
-          Promise.all([
-            Transactions.deleteTransactionById(
-              {
+      if (accountType !== ACCOUNT_TYPES.system) {
+        throw new ValidationError({
+          message: "It's not allowed to manually delete external transactions",
+        });
+      }
+
+      if (refundLinked) {
+        await unlinkRefundTransaction(id);
+      }
+
+      if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
+        await Transactions.deleteTransactionById({ id, userId });
+      } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
+        const transferTransactions = await Transactions.getTransactionsByArrayOfField({
+          fieldValues: [transferId],
+          fieldName: 'transferId',
+          userId,
+        });
+
+        await Promise.all(
+          // For the each transaction with the same "transferId" delete transaction
+          transferTransactions.map((tx) =>
+            Promise.all([
+              Transactions.deleteTransactionById({
                 id: tx.id,
                 userId: tx.userId,
-              },
-              { transaction },
-            ),
-          ]),
-        ),
-      );
-    } else {
-      logger.info('No "transferId" exists for the transfer transaction type.');
+              }),
+            ]),
+          ),
+        );
+      } else {
+        logger.info('No "transferId" exists for the transfer transaction type.');
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'test') {
+        logger.error(e);
+      }
+      throw e;
     }
+  },
+);
 
-    await transaction.commit();
-  } catch (e) {
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(e);
-    }
-    await transaction.rollback();
-    throw e;
-  }
-};
-
-const unlinkRefundTransaction = async (id: number, transaction: Transaction) => {
+const unlinkRefundTransaction = withTransaction(async (id: number) => {
   const refundTx = await RefundTransactions.findOne({
     where: {
       [Op.or]: [{ originalTxId: id }, { refundTxId: id }],
     },
-    transaction,
   });
 
   const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
@@ -94,8 +79,7 @@ const unlinkRefundTransaction = async (id: number, transaction: Transaction) => 
             [Op.in]: transactionIdsToUpdate,
           },
         },
-        transaction,
       },
     );
   }
-};
+});

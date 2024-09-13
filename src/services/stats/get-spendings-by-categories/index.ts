@@ -1,6 +1,5 @@
 import { Op } from 'sequelize';
-import { GenericSequelizeModelAttributes, UnwrapPromise } from '@common/types';
-import { connection } from '@models/index';
+import { UnwrapPromise } from '@common/types';
 import * as Categories from '@models/Categories.model';
 import RefundTransactions from '@models/RefundTransactions.model';
 
@@ -8,20 +7,10 @@ import { getExpensesHistory } from '../get-expenses-history';
 import Transactions from '@models/Transactions.model';
 import { TRANSACTION_TYPES } from 'shared-types';
 import { GetSpendingsByCategoriesReturnType } from '../../../../shared-types/routes';
+import { withTransaction } from '@root/services/common';
 
-export const getSpendingsByCategories = async (
-  params: {
-    userId: number;
-    accountId?: number;
-    from?: string;
-    to?: string;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
-  try {
+export const getSpendingsByCategories = withTransaction(
+  async (params: { userId: number; accountId?: number; from?: string; to?: string }) => {
     const transactions = await getExpensesHistory(params);
     const txIds = transactions.filter((i) => i.refundLinked).map((i) => i.id);
     const refunds = await RefundTransactions.findAll({
@@ -29,46 +18,29 @@ export const getSpendingsByCategories = async (
         [Op.or]: [{ refundTxId: { [Op.in]: txIds } }, { originalTxId: { [Op.in]: txIds } }],
       },
       raw: true,
-      transaction: attributes.transaction,
     });
 
     const categories = await Categories.default.findAll({
       where: { userId: params.userId },
       attributes: ['id', 'parentId', 'name', 'color'],
       raw: true,
-      transaction: attributes.transaction,
     });
 
-    const groupedByCategories = await groupAndAdjustData(
-      { categories, transactions, refunds },
-      { transaction },
-    );
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
+    const groupedByCategories = await groupAndAdjustData({ categories, transactions, refunds });
 
     return groupedByCategories;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-    throw err;
-  }
-};
+  },
+);
 
 type TransactionsParam = UnwrapPromise<ReturnType<typeof getExpensesHistory>>;
 /**
  * Groups transactions refAmounts per category, and adjusts them based on existing refunds
  */
-const groupAndAdjustData = async (
-  params: {
-    categories: Categories.default[];
-    transactions: TransactionsParam;
-    refunds: RefundTransactions[];
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+const groupAndAdjustData = async (params: {
+  categories: Categories.default[];
+  transactions: TransactionsParam;
+  refunds: RefundTransactions[];
+}) => {
   const { categories, transactions, refunds } = params;
   const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
   const result: GetSpendingsByCategoriesReturnType = {};
@@ -105,7 +77,6 @@ const groupAndAdjustData = async (
       refund: transactions.find((t) => t.id === refund.refundTxId),
     };
     const findByPkParams = {
-      transaction: attributes.transaction,
       raw: true,
       attributes: ['refAmount', 'categoryId', 'transactionType'],
     };

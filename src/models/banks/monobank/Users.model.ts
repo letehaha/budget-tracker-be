@@ -1,6 +1,5 @@
 import { Table, Column, Model, ForeignKey, Length } from 'sequelize-typescript';
 import { endpointsTypes } from 'shared-types';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '../../Users.model';
 
 @Table({
@@ -33,26 +32,19 @@ export default class MonobankUsers extends Model {
   systemUserId: number;
 }
 
-export const getUserByToken = async (
-  { token, userId }: { token: string; userId: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUserByToken = async ({ token, userId }: { token: string; userId: number }) => {
   const user = await MonobankUsers.findOne({
-    ...attributes,
     where: { apiToken: token, systemUserId: userId },
+    raw: true,
   });
 
   return user;
 };
 
-export const getUserBySystemId = async (
-  { systemUserId }: { systemUserId: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUserBySystemId = async ({ systemUserId }: { systemUserId: number }) => {
   const user = await MonobankUsers.findOne({
     where: { systemUserId },
     attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId', 'apiToken'],
-    ...attributes,
   });
 
   return user;
@@ -61,10 +53,7 @@ export const getUserBySystemId = async (
 export interface MonoUserUpdatePayload extends endpointsTypes.UpdateMonobankUserBody {
   systemUserId: number;
 }
-export const updateUser = async (
-  { systemUserId, clientId, ...payload }: MonoUserUpdatePayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const updateUser = async ({ systemUserId, clientId, ...payload }: MonoUserUpdatePayload) => {
   const where: {
     systemUserId: MonoUserUpdatePayload['systemUserId'];
     clientId?: MonoUserUpdatePayload['clientId'];
@@ -74,18 +63,15 @@ export const updateUser = async (
     where.clientId = clientId;
   }
 
-  await MonobankUsers.update(payload, { where, ...attributes });
+  await MonobankUsers.update(payload, { where });
 
   const user = await getUserBySystemId(where);
 
   return user;
 };
 
-export const getById = async (
-  { id }: { id: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  const users = await MonobankUsers.findOne({ where: { id }, ...attributes });
+export const getById = async ({ id }: { id: number }) => {
+  const users = await MonobankUsers.findOne({ where: { id } });
 
   return users;
 };
@@ -97,20 +83,14 @@ export interface MonoUserCreationPayload {
   clientId: string;
   webHookUrl?: string;
 }
-export const createUser = async (
-  { userId, token, ...payload }: MonoUserCreationPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  await MonobankUsers.create(
-    {
-      apiToken: token,
-      systemUserId: userId,
-      ...payload,
-    },
-    attributes,
-  );
+export const createUser = async ({ userId, token, ...payload }: MonoUserCreationPayload) => {
+  await MonobankUsers.create({
+    apiToken: token,
+    systemUserId: userId,
+    ...payload,
+  });
 
-  const user = await getUserByToken({ token, userId }, attributes);
+  const user = await getUserByToken({ token, userId });
 
   return user;
 };

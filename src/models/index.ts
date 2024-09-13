@@ -1,5 +1,9 @@
 import { Sequelize } from 'sequelize-typescript';
 import config from 'config';
+import cls from 'cls-hooked';
+
+export const namespace = cls.createNamespace('budget-tracker-namespace');
+Sequelize.useCLS(namespace);
 
 const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

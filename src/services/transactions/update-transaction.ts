@@ -1,9 +1,7 @@
 import { Op } from 'sequelize';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
-import { Transaction } from 'sequelize/types';
 import { logger } from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
-import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Accounts from '@models/Accounts.model';
@@ -14,8 +12,8 @@ import { createOppositeTransaction, calcTransferTransactionRefAmount } from './c
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as refundsService from '@services/tx-refunds';
+import { withTransaction } from '../common';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -77,12 +75,11 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
 const makeBasicBaseTxUpdation = async (
   newData: UpdateTransactionParams,
   prevData: Transactions.default,
-  transaction: Transaction,
 ) => {
-  const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency(
-    { userId: newData.userId, isDefaultCurrency: true },
-    { transaction },
-  );
+  const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
+    userId: newData.userId,
+    isDefaultCurrency: true,
+  });
 
   // Never update "transactionType" of non-system transactions. Just an additional guard
   const transactionType =
@@ -120,28 +117,22 @@ const makeBasicBaseTxUpdation = async (
   }
 
   if (defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode) {
-    baseTransactionUpdateParams.refAmount = await calculateRefAmount(
-      {
-        userId: newData.userId,
-        amount: baseTransactionUpdateParams.amount,
-        baseCode: baseTransactionUpdateParams.currencyCode,
-        quoteCode: defaultUserCurrency.code,
-      },
-      { transaction },
-    );
+    baseTransactionUpdateParams.refAmount = await calculateRefAmount({
+      userId: newData.userId,
+      amount: baseTransactionUpdateParams.amount,
+      baseCode: baseTransactionUpdateParams.currencyCode,
+      quoteCode: defaultUserCurrency.code,
+    });
   }
 
   const removeRefunds = (refunds: RefundTransactions[]) =>
     Promise.all(
       refunds.map((refund) =>
-        refundsService.removeRefundLink(
-          {
-            originalTxId: refund.originalTxId,
-            refundTxId: refund.refundTxId,
-            userId: newData.userId,
-          },
-          { transaction },
-        ),
+        refundsService.removeRefundLink({
+          originalTxId: refund.originalTxId,
+          refundTxId: refund.refundTxId,
+          userId: newData.userId,
+        }),
       ),
     );
 
@@ -151,10 +142,10 @@ const makeBasicBaseTxUpdation = async (
       Array.isArray(newData.refundedByTxIds) && newData.refundedByTxIds.length;
 
     if (refundsShouldBeRemoved || refundsShouldBeSetOrOverriden) {
-      const previousRefunds = await refundsService.getRefundsForTransactionById(
-        { userId: newData.userId, transactionId: newData.id },
-        { transaction },
-      );
+      const previousRefunds = await refundsService.getRefundsForTransactionById({
+        userId: newData.userId,
+        transactionId: newData.id,
+      });
       await removeRefunds(previousRefunds);
 
       if (refundsShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
@@ -167,7 +158,6 @@ const makeBasicBaseTxUpdation = async (
             },
           },
           attributes: ['refAmount'],
-          transaction,
           raw: true,
         });
         const sum = newTransactions.reduce((acc, curr) => (acc += curr.refAmount), 0);
@@ -180,10 +170,11 @@ const makeBasicBaseTxUpdation = async (
 
         await Promise.all(
           newData.refundedByTxIds.map((id) =>
-            refundsService.createSingleRefund(
-              { originalTxId: newData.id, refundTxId: id, userId: newData.userId },
-              { transaction },
-            ),
+            refundsService.createSingleRefund({
+              originalTxId: newData.id,
+              refundTxId: id,
+              userId: newData.userId,
+            }),
           ),
         );
         baseTransactionUpdateParams.refundLinked = true;
@@ -194,36 +185,30 @@ const makeBasicBaseTxUpdation = async (
     const refundShouldBeSetOrOverriden = newData.refundsTxId;
 
     if (refundShouldBeRemoved || refundShouldBeSetOrOverriden) {
-      const previousRefunds = await refundsService.getRefundsForTransactionById(
-        { userId: newData.userId, transactionId: newData.id },
-        { transaction },
-      );
+      const previousRefunds = await refundsService.getRefundsForTransactionById({
+        userId: newData.userId,
+        transactionId: newData.id,
+      });
       await removeRefunds(previousRefunds);
 
       if (refundShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
       if (refundShouldBeSetOrOverriden) {
-        await refundsService.createSingleRefund(
-          { originalTxId: newData.refundsTxId, refundTxId: newData.id, userId: newData.userId },
-          { transaction },
-        );
+        await refundsService.createSingleRefund({
+          originalTxId: newData.refundsTxId,
+          refundTxId: newData.id,
+          userId: newData.userId,
+        });
         baseTransactionUpdateParams.refundLinked = true;
       }
     }
   }
 
-  const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams, {
-    transaction,
-  });
+  const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams);
 
   return baseTransaction;
 };
 
-type HelperFunctionsArgs = [
-  UpdateTransactionParams,
-  Transactions.default,
-  Transactions.default,
-  Transaction,
-];
+type HelperFunctionsArgs = [UpdateTransactionParams, Transactions.default, Transactions.default];
 
 /**
  * If previously the base tx was transfer, we need to:
@@ -232,7 +217,7 @@ type HelperFunctionsArgs = [
  * 2. Update opposite tx data
  */
 const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
-  const [newData, prevData, , transaction] = params;
+  const [newData, prevData] = params;
   let [, , baseTransaction] = params;
 
   const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } =
@@ -277,22 +262,17 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   }
 
   const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } =
-    await calcTransferTransactionRefAmount(
-      {
-        userId,
-        baseTransaction,
-        destinationAmount: updateOppositeTxParams.amount,
-        oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
-      },
-      { transaction },
-    );
+    await calcTransferTransactionRefAmount({
+      userId,
+      baseTransaction,
+      destinationAmount: updateOppositeTxParams.amount,
+      oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
+    });
 
   updateOppositeTxParams.refAmount = oppositeRefAmount;
   baseTransaction = updatedBaseTransaction;
 
-  const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams, {
-    transaction,
-  });
+  const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams);
 
   return { baseTx: baseTransaction, oppositeTx: destinationTransaction };
 };
@@ -304,7 +284,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
  * 2. remove "trasferId" from base tx
  */
 const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
-  const [newData, prevData, baseTransaction, transaction] = params;
+  const [newData, prevData, baseTransaction] = params;
 
   const notBaseTransaction = (
     await Transactions.getTransactionsByArrayOfField({
@@ -315,24 +295,18 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
   ).find((item) => Number(item.id) !== Number(newData.id));
 
   if (notBaseTransaction) {
-    await Transactions.deleteTransactionById(
-      {
-        id: notBaseTransaction.id,
-        userId: notBaseTransaction.userId,
-      },
-      { transaction },
-    );
+    await Transactions.deleteTransactionById({
+      id: notBaseTransaction.id,
+      userId: notBaseTransaction.userId,
+    });
   }
 
-  await Transactions.updateTransactionById(
-    {
-      id: baseTransaction.id,
-      userId: baseTransaction.userId,
-      transferId: null,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    },
-    { transaction },
-  );
+  await Transactions.updateTransactionById({
+    id: baseTransaction.id,
+    userId: baseTransaction.userId,
+    transferId: null,
+    transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+  });
 };
 
 const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
@@ -366,88 +340,66 @@ const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transa
 /**
  * Updates transaction and updates account balance.
  */
-export const updateTransaction = async (
-  payload: UpdateTransactionParams,
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<[baseTx: Transactions.default, oppositeTx?: Transactions.default]> => {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction: Transaction =
-    attributes.transaction ?? (await connection.sequelize.transaction());
+export const updateTransaction = withTransaction(
+  async (
+    payload: UpdateTransactionParams,
+  ): Promise<[baseTx: Transactions.default, oppositeTx?: Transactions.default]> => {
+    try {
+      const prevData = await getTransactionById({ id: payload.id, userId: payload.userId });
 
-  try {
-    const prevData = await getTransactionById(
-      { id: payload.id, userId: payload.userId },
-      { transaction },
-    );
+      // Validate that passed parameters are not breaking anything
+      validateTransaction(payload, prevData);
 
-    // Validate that passed parameters are not breaking anything
-    validateTransaction(payload, prevData);
+      // Make basic updation to the base transaction. "Transfer" transactions
+      // handled down in the code
+      const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData);
 
-    // Make basic updation to the base transaction. "Transfer" transactions
-    // handled down in the code
-    const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, transaction);
+      let updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
 
-    let updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
+      const helperFunctionsArgs: HelperFunctionsArgs = [payload, prevData, baseTransaction];
 
-    const helperFunctionsArgs: HelperFunctionsArgs = [
-      payload,
-      prevData,
-      baseTransaction,
-      transaction,
-    ];
+      if (isUpdatingTransferTx(payload, prevData)) {
+        // Handle the case when initially tx was "expense", became "transfer",
+        // but now user wants to unmark it from transfer and make "income"
+        if (
+          payload.transactionType !== undefined &&
+          payload.transactionType !== prevData.transactionType
+        ) {
+          await deleteOppositeTransaction(helperFunctionsArgs);
+        }
 
-    if (isUpdatingTransferTx(payload, prevData)) {
-      // Handle the case when initially tx was "expense", became "transfer",
-      // but now user wants to unmark it from transfer and make "income"
-      if (
-        payload.transactionType !== undefined &&
-        payload.transactionType !== prevData.transactionType
-      ) {
-        await deleteOppositeTransaction(helperFunctionsArgs);
-      }
+        const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
 
-      const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
-
-      updatedTransactions = [baseTx, oppositeTx];
-    } else if (isCreatingTransfer(payload, prevData)) {
-      if (payload.destinationTransactionId) {
-        const [[baseTx, oppositeTx]] = await linkTransactions(
-          {
+        updatedTransactions = [baseTx, oppositeTx];
+      } else if (isCreatingTransfer(payload, prevData)) {
+        if (payload.destinationTransactionId) {
+          const [[baseTx, oppositeTx]] = await linkTransactions({
             userId: payload.userId,
             ids: [[updatedTransactions[0].id, payload.destinationTransactionId]],
             ignoreBaseTxTypeValidation: true,
-          },
-          { transaction },
-        );
+          });
 
-        updatedTransactions = [baseTx, oppositeTx];
-      } else {
-        const { baseTx, oppositeTx } = await createOppositeTransaction([
-          // When updating existing tx we usually don't pass transactionType, so
-          // it will be `undefined`, that's why we derive it from prevData
-          {
-            ...payload,
-            transactionType: payload.transactionType ?? prevData.transactionType,
-          },
-          baseTransaction,
-          transaction,
-        ]);
-        updatedTransactions = [baseTx, oppositeTx];
+          updatedTransactions = [baseTx, oppositeTx];
+        } else {
+          const { baseTx, oppositeTx } = await createOppositeTransaction([
+            // When updating existing tx we usually don't pass transactionType, so
+            // it will be `undefined`, that's why we derive it from prevData
+            {
+              ...payload,
+              transactionType: payload.transactionType ?? prevData.transactionType,
+            },
+            baseTransaction,
+          ]);
+          updatedTransactions = [baseTx, oppositeTx];
+        }
+      } else if (isDiscardingTransfer(payload, prevData)) {
+        await deleteOppositeTransaction(helperFunctionsArgs);
       }
-    } else if (isDiscardingTransfer(payload, prevData)) {
-      await deleteOppositeTransaction(helperFunctionsArgs);
-    }
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
+      return updatedTransactions;
+    } catch (e) {
+      logger.error(e);
+      throw e;
     }
-
-    return updatedTransactions;
-  } catch (e) {
-    logger.error(e);
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-    throw e;
-  }
-};
+  },
+);

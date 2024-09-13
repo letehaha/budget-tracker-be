@@ -1,8 +1,6 @@
 import { Op } from 'sequelize';
 import { BalanceModel } from 'shared-types';
-import { GenericSequelizeModelAttributes } from '@common/types';
 
-import { connection } from '@models/index';
 import * as Balances from '@models/Balances.model';
 import * as Accounts from '@models/Accounts.model';
 import { getWhereConditionForTime } from './utils';
@@ -18,30 +16,23 @@ import { getWhereConditionForTime } from './utils';
  * @param {number} params.accountId - The ID of the account for which balances are to be fetched.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
- * @param {GenericSequelizeModelAttributes} [attributes={}] - Additional Sequelize model attributes for the query.
  * @returns {Promise<BalanceModel[]>} - A promise that resolves to an array of balance records.
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
  * const balances = await getBalanceHistoryForAccount({ userId: 1, accountId: 1 from: '2023-01-01', to: '2023-12-31' });
  */
-export const getBalanceHistoryForAccount = async (
-  {
-    userId,
-    from,
-    to,
-    accountId,
-  }: {
-    userId: number;
-    accountId: number;
-    from?: string;
-    to?: string;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<BalanceModel[]> => {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
+export const getBalanceHistoryForAccount = async ({
+  userId,
+  from,
+  to,
+  accountId,
+}: {
+  userId: number;
+  accountId: number;
+  from?: string;
+  to?: string;
+}): Promise<BalanceModel[]> => {
   try {
     let data: BalanceModel[] = [];
 
@@ -56,9 +47,8 @@ export const getBalanceHistoryForAccount = async (
           attributes: [],
         },
       ],
-      raw: attributes.raw || true,
+      raw: true,
       attributes: dataAttributes,
-      transaction,
     });
 
     data = balancesInRange;
@@ -77,8 +67,7 @@ export const getBalanceHistoryForAccount = async (
           },
           order: [['date', 'DESC']],
           attributes: dataAttributes,
-          raw: attributes.raw ?? true,
-          transaction,
+          raw: true,
         });
       }
 
@@ -97,8 +86,7 @@ export const getBalanceHistoryForAccount = async (
           },
           order: [['date', 'ASC']],
           attributes: dataAttributes,
-          raw: attributes.raw ?? true,
-          transaction,
+          raw: true,
         });
       }
 
@@ -113,16 +101,9 @@ export const getBalanceHistoryForAccount = async (
       ];
     }
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
     return data;
   } catch (err) {
     console.log(err);
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
     throw err;
   }
 };

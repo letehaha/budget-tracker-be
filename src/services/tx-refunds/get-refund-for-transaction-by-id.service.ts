@@ -1,58 +1,46 @@
 import { Op } from 'sequelize';
-import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
+import { withTransaction } from '../common';
 
 interface GetRefundParams {
   userId: number;
   transactionId: number;
 }
 
-export async function getRefundsForTransactionById(
-  { userId, transactionId }: GetRefundParams,
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<RefundTransactions.default[]> {
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
-  try {
-    const refunds = await RefundTransactions.default.findAll({
-      where: {
-        [Op.or]: [
+export const getRefundsForTransactionById = withTransaction(
+  async ({ userId, transactionId }: GetRefundParams): Promise<RefundTransactions.default[]> => {
+    try {
+      const refunds = await RefundTransactions.default.findAll({
+        where: {
+          [Op.or]: [
+            {
+              originalTxId: transactionId,
+            },
+            {
+              refundTxId: transactionId,
+            },
+          ],
+        },
+        include: [
           {
-            originalTxId: transactionId,
+            model: Transactions.default,
+            as: 'originalTransaction',
+            where: { userId },
           },
           {
-            refundTxId: transactionId,
+            model: Transactions.default,
+            as: 'refundTransaction',
+            where: { userId },
           },
         ],
-      },
-      include: [
-        {
-          model: Transactions.default,
-          as: 'originalTransaction',
-          where: { userId },
-        },
-        {
-          model: Transactions.default,
-          as: 'refundTransaction',
-          where: { userId },
-        },
-      ],
-      transaction,
-    });
+      });
 
-    if (!attributes.transaction) {
-      await transaction.commit();
+      return refunds;
+    } catch (e) {
+      logger.error('Error retrieving refunds for transaction:', e);
+      throw e;
     }
-
-    return refunds;
-  } catch (e) {
-    if (!attributes.transaction) {
-      await transaction.rollback();
-    }
-    logger.error('Error retrieving refunds for transaction:', e);
-    throw e;
-  }
-}
+  },
+);

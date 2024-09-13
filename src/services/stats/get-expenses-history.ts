@@ -1,10 +1,9 @@
 import { TransactionModel, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { removeUndefinedKeys } from '@js/helpers';
-import { GenericSequelizeModelAttributes } from '@common/types';
 
-import { connection } from '@models/index';
 import * as Transactions from '@models/Transactions.model';
 import { getWhereConditionForTime } from './utils';
+import { withTransaction } from '../common';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,
@@ -28,15 +27,14 @@ export type GetExpensesHistoryResponseSchema = Pick<
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.accountId] - Load history for asked account.
- * @param {GenericSequelizeModelAttributes} [attributes={}] - Additional Sequelize model attributes for the query.
  * @returns {Promise<BalanceModel[]>} - A promise that resolves to an array of expenses records.
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
  * const balances = await getExpensesHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
  */
-export const getExpensesHistory = async (
-  {
+export const getExpensesHistory = withTransaction(
+  async ({
     userId,
     from,
     to,
@@ -46,13 +44,7 @@ export const getExpensesHistory = async (
     accountId?: number;
     from?: string;
     to?: string;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<GetExpensesHistoryResponseSchema[]> => {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
-  try {
+  }): Promise<GetExpensesHistoryResponseSchema[]> => {
     const dataAttributes: (keyof Transactions.default)[] = [
       'id',
       'accountId',
@@ -75,20 +67,9 @@ export const getExpensesHistory = async (
         ...getWhereConditionForTime({ from, to, columnName: 'time' }),
       }),
       order: [['time', 'ASC']],
-      raw: attributes.raw || true,
       attributes: dataAttributes,
-      transaction,
     });
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
     return transactions;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-    throw err;
-  }
-};
+  },
+);

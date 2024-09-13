@@ -53,6 +53,7 @@
   "dependencies": {
     "axios": "1.7.4",
     "bcryptjs": "2.4.3",
+    "cls-hooked": "^4.2.2",
     "config": "3.3.11",
     "connect-redis": "5.0.0",
     "cors": "2.8.5",

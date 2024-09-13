@@ -1,6 +1,5 @@
 import * as Express from 'express';
 import { ZodIssue, z } from 'zod';
-import { Transaction } from 'sequelize/types';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import Users from '@models/Users.model';
 
@@ -19,11 +18,6 @@ export interface CustomRequest<T extends z.ZodType> extends Express.Request {
 }
 export interface CustomResponse extends Express.Response {
   json: Send<this>;
-}
-
-export interface GenericSequelizeModelAttributes {
-  transaction?: Transaction;
-  raw?: boolean;
 }
 
 export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;

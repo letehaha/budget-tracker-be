@@ -15,7 +15,6 @@ import { CurrencyModel } from 'shared-types';
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import { removeUndefinedKeys } from '@js/helpers';
 
 interface CurrenciesAttributes extends CurrencyModel {}
@@ -65,40 +64,24 @@ export const getAllCurrencies = async () => {
   return currencies;
 };
 
-export async function getCurrency(
-  { id }: { id: number },
-  { transaction }: { transaction: Transaction },
-): Promise<Currencies>;
-export async function getCurrency(
-  { currency }: { currency: string },
-  { transaction }: { transaction: Transaction },
-): Promise<Currencies>;
-export async function getCurrency(
-  { number }: { number: number },
-  { transaction }: { transaction: Transaction },
-): Promise<Currencies>;
-export async function getCurrency(
-  { code }: { code: string },
-  { transaction }: { transaction: Transaction },
-): Promise<Currencies>;
-export async function getCurrency(
-  {
-    id,
-    currency,
-    number,
-    code,
-  }: {
-    id?: number;
-    currency?: string;
-    number?: number;
-    code?: string;
-  },
-  { transaction }: { transaction: Transaction },
-): Promise<Currencies> {
+export async function getCurrency({ id }: { id: number }): Promise<Currencies>;
+export async function getCurrency({ currency }: { currency: string }): Promise<Currencies>;
+export async function getCurrency({ number }: { number: number }): Promise<Currencies>;
+export async function getCurrency({ code }: { code: string }): Promise<Currencies>;
+export async function getCurrency({
+  id,
+  currency,
+  number,
+  code,
+}: {
+  id?: number;
+  currency?: string;
+  number?: number;
+  code?: string;
+}): Promise<Currencies> {
   return Currencies.findOne({
     where: removeUndefinedKeys({ id, currency, number, code }),
     include: [{ model: Users }],
-    transaction,
   });
 }
 
@@ -138,10 +121,7 @@ export async function getCurrencies(
   return Currencies.findAll({ where, transaction });
 }
 
-export const createCurrency = async (
-  { code },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const createCurrency = async ({ code }) => {
   const currency = cc.number(code);
 
   const currencyData = {
@@ -153,7 +133,6 @@ export const createCurrency = async (
   const [result] = await Currencies.findOrCreate({
     where: { number: code },
     defaults: currencyData,
-    transaction: attributes.transaction,
   });
 
   return result;

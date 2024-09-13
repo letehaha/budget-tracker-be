@@ -1,22 +1,17 @@
-import { Transaction } from 'sequelize/types';
-
 import * as UserExchangeRates from '@models/UserExchangeRates.model';
+import { withTransaction } from '../common';
 
-export async function editUserExchangeRates(
-  {
+export const editUserExchangeRates = withTransaction(
+  async ({
     userId,
     pairs,
   }: {
     userId: number;
     pairs: UserExchangeRates.UpdateExchangeRatePair[];
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) {
-  return UserExchangeRates.updateRates(
-    {
+  }) => {
+    return UserExchangeRates.updateRates({
       userId,
       pairs,
-    },
-    { transaction },
-  );
-}
+    });
+  },
+);

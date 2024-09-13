@@ -67,18 +67,15 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
   });
 }
 
-async function createMonoTransaction(
-  {
-    data,
-    account,
-    userId,
-  }: {
-    data: ExternalMonobankTransactionResponse;
-    account: AccountModel;
-    userId: number;
-  },
-  // attributes: GenericSequelizeModelAttributes = {},
-) {
+async function createMonoTransaction({
+  data,
+  account,
+  userId,
+}: {
+  data: ExternalMonobankTransactionResponse;
+  account: AccountModel;
+  userId: number;
+}) {
   const isTransactionExists = await transactionsService.getTransactionBySomeId({
     originalId: data.id,
     userId,
@@ -465,89 +462,77 @@ export const loadTransactions = async (req, res: CustomResponse) => {
 export const refreshAccounts = async (req, res) => {
   const { id: systemUserId } = req.user;
 
-  const transaction = await connection.sequelize.transaction();
+  return connection.sequelize.transaction(async () => {
+    try {
+      const monoUser = await monobankUsersService.getUserBySystemId({ systemUserId });
 
-  try {
-    const monoUser = await monobankUsersService.getUserBySystemId(
-      { systemUserId },
-      { transaction },
-    );
-
-    if (!monoUser) {
-      await transaction.commit();
-
-      return res.status(ERROR_CODES.NotFoundError).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: 'Current user does not have any paired monobank user.',
-          code: API_ERROR_CODES.monobankUserNotPaired,
-        },
-      });
-    }
-
-    const token = `monobank-${systemUserId}-client-info`;
-    const tempToken = await req.redisClient.get(token);
-
-    if (!tempToken) {
-      let clientInfo: ExternalMonobankClientInfoResponse;
-      try {
-        clientInfo = (
-          await axios({
-            method: 'GET',
-            url: `${hostname}/personal/client-info`,
-            responseType: 'json',
-            headers: {
-              'X-Token': monoUser.apiToken,
-            },
-          })
-        ).data;
-      } catch (e) {
-        await transaction.rollback();
-
-        if (e.response) {
-          if (e.response.data.errorDescription === "Unknown 'X-Token'") {
-            // Set user token to empty, since it is already invalid. In that way
-            // we can let BE/FE know that last token was invalid and now it
-            // needs to be updated
-            await monobankUsersService.updateUser({ systemUserId, apiToken: '' }, { transaction });
-
-            return res.status(403).json({
-              status: API_RESPONSE_STATUS.error,
-              response: {
-                code: API_ERROR_CODES.monobankTokenInvalid,
-                message: "User's token is invalid!",
-              },
-            });
-          }
-        }
-        return res.status(500).json({
+      if (!monoUser) {
+        return res.status(ERROR_CODES.NotFoundError).json({
           status: API_RESPONSE_STATUS.error,
           response: {
-            message: 'Something bad happened while trying to contact Monobank!',
+            message: 'Current user does not have any paired monobank user.',
+            code: API_ERROR_CODES.monobankUserNotPaired,
           },
         });
       }
 
-      await req.redisClient.set(token, true);
-      await req.redisClient.expire(token, 60);
+      const token = `monobank-${systemUserId}-client-info`;
+      const tempToken = await req.redisClient.get(token);
 
-      const existingAccounts = await accountsService.getAccountsByExternalIds(
-        {
+      if (!tempToken) {
+        let clientInfo: ExternalMonobankClientInfoResponse;
+        try {
+          clientInfo = (
+            await axios({
+              method: 'GET',
+              url: `${hostname}/personal/client-info`,
+              responseType: 'json',
+              headers: {
+                'X-Token': monoUser.apiToken,
+              },
+            })
+          ).data;
+        } catch (e) {
+          if (e.response) {
+            if (e.response.data.errorDescription === "Unknown 'X-Token'") {
+              // Set user token to empty, since it is already invalid. In that way
+              // we can let BE/FE know that last token was invalid and now it
+              // needs to be updated
+              await monobankUsersService.updateUser({ systemUserId, apiToken: '' });
+
+              return res.status(403).json({
+                status: API_RESPONSE_STATUS.error,
+                response: {
+                  code: API_ERROR_CODES.monobankTokenInvalid,
+                  message: "User's token is invalid!",
+                },
+              });
+            }
+          }
+          return res.status(500).json({
+            status: API_RESPONSE_STATUS.error,
+            response: {
+              message: 'Something bad happened while trying to contact Monobank!',
+            },
+          });
+        }
+
+        await req.redisClient.set(token, true);
+        await req.redisClient.expire(token, 60);
+
+        const existingAccounts = await accountsService.getAccountsByExternalIds({
           userId: monoUser.systemUserId,
           externalIds: clientInfo.accounts.map((item) => item.id),
-        },
-        { transaction, raw: true },
-      );
+        });
 
-      const accountsToUpdate = [];
-      const accountsToCreate = [];
-      clientInfo.accounts.forEach((account) => {
-        const existingAccount = existingAccounts.find((acc) => acc.externalId === account.id);
+        const accountsToUpdate = [];
+        const accountsToCreate = [];
+        clientInfo.accounts.forEach((account) => {
+          const existingAccount = existingAccounts.find((acc) => acc.externalId === account.id);
 
-        if (existingAccount) {
-          accountsToUpdate.push(
-            accountsService.updateAccount(
-              {
+          if (existingAccount) {
+            accountsToUpdate.push(
+              accountsService.updateAccount({
                 id: existingAccount.id,
                 currentBalance: account.balance,
                 creditLimit: account.creditLimit,
@@ -557,51 +542,41 @@ export const refreshAccounts = async (req, res) => {
                 // cashbackType: item.cashbackType,
                 // type: item.type,
                 // iban: item.iban,
-              },
-              { transaction },
-            ),
-          );
-        } else {
-          accountsToCreate.push(
-            accountsService.createSystemAccountsFromMonobankAccounts({
-              userId: systemUserId,
-              monoAccounts: [account],
-            }),
-          );
-        }
-      });
+              }),
+            );
+          } else {
+            accountsToCreate.push(
+              accountsService.createSystemAccountsFromMonobankAccounts({
+                userId: systemUserId,
+                monoAccounts: [account],
+              }),
+            );
+          }
+        });
 
-      await Promise.all(accountsToUpdate);
-      await Promise.all(accountsToCreate);
+        await Promise.all(accountsToUpdate);
+        await Promise.all(accountsToCreate);
 
-      const accounts = await accountsService.getAccounts(
-        {
+        const accounts = await accountsService.getAccounts({
           userId: monoUser.systemUserId,
           type: ACCOUNT_TYPES.monobank,
+        });
+
+        return res.status(200).json({
+          status: API_RESPONSE_STATUS.success,
+          response: accounts,
+        });
+      }
+
+      return res.status(ERROR_CODES.TooManyRequests).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          code: API_ERROR_CODES.tooManyRequests,
+          message: 'Too many requests! Request cannot be called more that once a minute!',
         },
-        { transaction },
-      );
-
-      await transaction.commit();
-
-      return res.status(200).json({
-        status: API_RESPONSE_STATUS.success,
-        response: accounts,
       });
+    } catch (err) {
+      errorHandler(res, err);
     }
-
-    await transaction.commit();
-
-    return res.status(ERROR_CODES.TooManyRequests).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        code: API_ERROR_CODES.tooManyRequests,
-        message: 'Too many requests! Request cannot be called more that once a minute!',
-      },
-    });
-  } catch (err) {
-    await transaction.rollback();
-
-    errorHandler(res, err);
-  }
+  });
 };

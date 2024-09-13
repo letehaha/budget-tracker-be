@@ -1,6 +1,5 @@
 import { Table, Column, Model, Length, BelongsToMany } from 'sequelize-typescript';
 
-import { GenericSequelizeModelAttributes } from '@common/types';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import Categories from './Categories.model';
 
@@ -33,35 +32,28 @@ export default class MerchantCategoryCodes extends Model {
   mccId: number;
 }
 
-export const getByCode = async ({ code }, attributes: GenericSequelizeModelAttributes = {}) => {
+export const getByCode = async ({ code }) => {
   const mcc = await MerchantCategoryCodes.findOne({
     where: { code },
-    transaction: attributes.transaction,
   });
 
   return mcc;
 };
 
-export const addCode = async (
-  {
+export const addCode = async ({
+  code,
+  name = 'Unknown',
+  description,
+}: {
+  code: MerchantCategoryCodes['code'];
+  name?: MerchantCategoryCodes['name'];
+  description?: MerchantCategoryCodes['description'];
+}) => {
+  const mcc = await MerchantCategoryCodes.create({
     code,
-    name = 'Unknown',
+    name,
     description,
-  }: {
-    code: MerchantCategoryCodes['code'];
-    name?: MerchantCategoryCodes['name'];
-    description?: MerchantCategoryCodes['description'];
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  const mcc = await MerchantCategoryCodes.create(
-    {
-      code,
-      name,
-      description,
-    },
-    { transaction: attributes.transaction },
-  );
+  });
 
   return mcc;
 };

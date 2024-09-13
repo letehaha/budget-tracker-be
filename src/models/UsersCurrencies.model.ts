@@ -83,33 +83,35 @@ export const getBaseCurrency = async (
 };
 
 type getCurrencyOverload = {
-  (
-    { userId, currencyId }: { userId: number; currencyId: number },
-    { transaction }: { transaction?: Transaction },
-  ): Promise<UsersCurrencies & { currency: Currencies }>;
-  (
-    { userId, isDefaultCurrency }: { userId: number; isDefaultCurrency: boolean },
-    { transaction }: { transaction?: Transaction },
-  ): Promise<UsersCurrencies & { currency: Currencies }>;
-};
-export const getCurrency: getCurrencyOverload = (
-  {
+  ({
     userId,
     currencyId,
+  }: {
+    userId: number;
+    currencyId: number;
+  }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({
+    userId,
     isDefaultCurrency,
   }: {
     userId: number;
-    currencyId?: number;
-    isDefaultCurrency?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+    isDefaultCurrency: boolean;
+  }): Promise<UsersCurrencies & { currency: Currencies }>;
+};
+export const getCurrency: getCurrencyOverload = ({
+  userId,
+  currencyId,
+  isDefaultCurrency,
+}: {
+  userId: number;
+  currencyId?: number;
+  isDefaultCurrency?: boolean;
+}) => {
   return UsersCurrencies.findOne({
     where: removeUndefinedKeys({ userId, currencyId, isDefaultCurrency }),
     include: {
       model: Currencies,
     },
-    transaction,
   }) as Promise<UsersCurrencies & { currency: Currencies }>;
 };
 
@@ -174,7 +176,7 @@ export const updateCurrency = async (
     },
   );
 
-  const currency = await getCurrency(where, { transaction });
+  const currency = await getCurrency(where);
 
   return currency;
 };

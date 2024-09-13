@@ -1,14 +1,8 @@
-import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Currencies from '@models/Currencies.model';
-
-interface BaseParams {
-  amount: number;
-  userId: number;
-}
+import { withTransaction } from './common';
 
 /**
  * Calculates the reference amount for the provided currencies and parameters.
@@ -25,7 +19,6 @@ interface BaseParams {
  * @param {string} [params.quoteCode] - The quote currency code (optional if `quoteId` provided or if using user's default currency).
  * @param {number} [params.baseId] - The base currency ID (optional if `baseCode` provided).
  * @param {number} [params.quoteId] - The quote currency ID (optional if `quoteCode` provided or if using user's default currency).
- * @param {GenericSequelizeModelAttributes} [attributes={}] - Additional attributes, such as a transaction object.
  * @returns {Promise<number>} The reference amount after conversion, or the original amount if the base currency is the user's default or the same as the quote currency.
  * @throws {Error} Throws an error if the exchange rate cannot be fetched or the transaction fails.
  * @example
@@ -33,85 +26,66 @@ interface BaseParams {
  * const refAmountByIds = await calculateRefAmount({ amount: 100, userId: 42, baseId: 1, quoteId: 2 });
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
-export async function calculateRefAmount(
-  { amount, userId, baseCode, quoteCode }: BaseParams & { baseCode: string; quoteCode?: string },
-  attributes: GenericSequelizeModelAttributes,
-);
-export async function calculateRefAmount(
-  { amount, userId, baseId, quoteId }: BaseParams & { baseId: number; quoteId?: number },
-  attributes: GenericSequelizeModelAttributes,
-);
-export async function calculateRefAmount(
-  {
-    amount,
-    userId,
-    baseCode,
-    quoteCode,
-    baseId,
-    quoteId,
-  }: BaseParams & {
-    baseId?: number;
-    quoteId?: number;
-    baseCode?: string;
-    quoteCode?: string;
-  },
-  attributes: GenericSequelizeModelAttributes,
-): Promise<number> {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
+async function calculateRefAmountImpl(params: Params): Promise<number> {
+  let { baseCode, quoteCode } = params;
+  const { baseId, quoteId, userId, amount } = params;
 
   try {
     let defaultUserCurrency: Currencies.default;
 
     if (!baseCode && baseId) {
-      baseCode = (await Currencies.getCurrency({ id: baseId }, { transaction }))?.code;
+      baseCode = (await Currencies.getCurrency({ id: baseId }))?.code;
     }
 
     if (!quoteCode && quoteId) {
-      quoteCode = (await Currencies.getCurrency({ id: quoteId }, { transaction }))?.code;
+      quoteCode = (await Currencies.getCurrency({ id: quoteId }))?.code;
     }
 
     if (!quoteCode) {
-      const { currency } = await UsersCurrencies.getCurrency(
-        { userId, isDefaultCurrency: true },
-        { transaction },
-      );
+      const { currency } = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
       defaultUserCurrency = currency;
     }
 
     // If baseCade same as default currency code no need to calculate anything
     if (defaultUserCurrency?.code === baseCode || quoteCode === baseCode) {
-      if (!isTxPassedFromAbove) {
-        await transaction.commit();
-      }
       return amount;
     }
 
-    const result = await userExchangeRateService.getExchangeRate(
-      {
-        userId,
-        baseCode,
-        quoteCode: quoteCode || defaultUserCurrency.code,
-      },
-      { transaction },
-    );
+    const result = await userExchangeRateService.getExchangeRate({
+      userId,
+      baseCode,
+      quoteCode: quoteCode || defaultUserCurrency.code,
+    });
     const rate = result.rate;
 
     const isNegative = amount < 0;
     const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate);
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
 
     return isNegative ? refAmount * -1 : refAmount;
   } catch (e) {
     if (process.env.NODE_ENV !== 'test') {
       logger.error(e);
     }
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
     throw e;
   }
 }
+
+type Params = {
+  amount: number;
+  userId: number;
+} & (
+  | {
+      baseCode: string;
+      quoteCode?: string;
+      baseId?: never;
+      quoteId?: never;
+    }
+  | {
+      baseCode?: never;
+      quoteCode?: never;
+      baseId: number;
+      quoteId?: number;
+    }
+);
+
+export const calculateRefAmount = withTransaction(calculateRefAmountImpl);
