@@ -1,11 +1,10 @@
 import { Op } from 'sequelize';
-import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import { withTransaction } from '../common';
 
 interface CreateSingleRefundParams {
   userId: number;
@@ -31,141 +30,131 @@ interface CreateSingleRefundParams {
  * @param {number} params.userId - The ID of the user creating the refund.
  * @param {number} params.originalTxId - The ID of the original transaction.
  * @param {number} params.refundTxId - The ID of the refund transaction.
- * @param {GenericSequelizeModelAttributes} [attributes={}] - Additional attributes, such as a transaction object.
  * @returns {Promise<RefundTransactions>} The created refund transaction.
  * @throws {Error} Throws an error if validation fails or if the operation fails.
  */
-export async function createSingleRefund(
-  { userId, originalTxId, refundTxId }: CreateSingleRefundParams,
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<RefundTransactions.default> {
-  const isTxPassedFromAbove = attributes.transaction !== undefined;
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
+export const createSingleRefund = withTransaction(
+  async ({
+    userId,
+    originalTxId,
+    refundTxId,
+  }: CreateSingleRefundParams): Promise<RefundTransactions.default> => {
+    try {
+      // Fetch original and refund transactions
+      const [originalTx, refundTx] = await Promise.all([
+        Transactions.getTransactionById({ userId, id: originalTxId }),
+        Transactions.getTransactionById({ userId, id: refundTxId }),
+      ]);
 
-  try {
-    // Fetch original and refund transactions
-    const [originalTx, refundTx] = await Promise.all([
-      Transactions.getTransactionById({ userId, id: originalTxId }, { transaction }),
-      Transactions.getTransactionById({ userId, id: refundTxId }, { transaction }),
-    ]);
-
-    if (originalTxId && !originalTx) {
-      throw new NotFoundError({
-        message: 'Original transaction not found',
-      });
-    }
-
-    if (!refundTx) {
-      throw new NotFoundError({
-        message: 'Refund transaction not found',
-      });
-    }
-
-    if (originalTx) {
-      if (originalTx.id === refundTx.id) {
-        throw new ValidationError({
-          message: 'Attempt to link a single transaction to itself.',
+      if (originalTxId && !originalTx) {
+        throw new NotFoundError({
+          message: 'Original transaction not found',
         });
       }
 
-      if (originalTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
-        throw new ValidationError({
-          message: 'Original (non-refund) transaction cannot be transfer one.',
+      if (!refundTx) {
+        throw new NotFoundError({
+          message: 'Refund transaction not found',
         });
       }
 
-      // Check if transaction types are opposite
-      if (originalTx.transactionType === refundTx.transactionType) {
+      if (originalTx) {
+        if (originalTx.id === refundTx.id) {
+          throw new ValidationError({
+            message: 'Attempt to link a single transaction to itself.',
+          });
+        }
+
+        if (originalTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+          throw new ValidationError({
+            message: 'Original (non-refund) transaction cannot be transfer one.',
+          });
+        }
+
+        // Check if transaction types are opposite
+        if (originalTx.transactionType === refundTx.transactionType) {
+          throw new ValidationError({
+            message: 'Refund transaction must have the opposite transaction type to the original',
+          });
+        }
+
+        // Check if refund amount is not greater than original amount. Check exactly for
+        // refAmount, since transactions might have different currencies
+        if (Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
+          throw new ValidationError({
+            message: 'Refund amount cannot be greater than the original transaction amount',
+          });
+        }
+      }
+
+      if (refundTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
-          message: 'Refund transaction must have the opposite transaction type to the original',
+          message: 'Refund transaction cannot be a transfer one.',
         });
       }
 
-      // Check if refund amount is not greater than original amount. Check exactly for
-      // refAmount, since transactions might have different currencies
-      if (Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
-        throw new ValidationError({
-          message: 'Refund amount cannot be greater than the original transaction amount',
+      if (originalTxId) {
+        // Prevent "refund" over "refund"
+        const isOriginalTxRefund = await RefundTransactions.default.findOne({
+          where: { refundTxId: originalTxId, userId },
         });
+
+        if (isOriginalTxRefund) {
+          throw new ValidationError({
+            message: 'Cannot refund a "refund" transaction',
+          });
+        }
       }
-    }
 
-    if (refundTx.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
-      throw new ValidationError({
-        message: 'Refund transaction cannot be a transfer one.',
-      });
-    }
-
-    if (originalTxId) {
-      // Prevent "refund" over "refund"
-      const isOriginalTxRefund = await RefundTransactions.default.findOne({
-        where: { refundTxId: originalTxId, userId },
-        transaction,
-      });
-
-      if (isOriginalTxRefund) {
-        throw new ValidationError({
-          message: 'Cannot refund a "refund" transaction',
-        });
-      }
-    }
-
-    const existingRefund = await RefundTransactions.default.findOne({
-      where: { refundTxId: refundTxId, userId },
-      transaction,
-    });
-
-    if (existingRefund) {
-      throw new ValidationError({
-        message: '"refundTxId" already marked as a refund.',
-      });
-    }
-
-    if (originalTxId) {
-      // Fetch all existing refunds for the original transaction
-      const existingRefunds = await RefundTransactions.default.findAll({
-        where: { originalTxId, userId },
-        include: [{ model: Transactions.default, as: 'refundTransaction' }],
-        transaction,
+      const existingRefund = await RefundTransactions.default.findOne({
+        where: { refundTxId: refundTxId, userId },
       });
 
-      // Calculate the total refunded amount
-      const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
-        return sum + Math.abs(refund.refundTransaction.refAmount);
-      }, Math.abs(refundTx.refAmount));
-
-      // Check if the new refund would exceed the original transaction amount
-      if (totalRefundedAmount > Math.abs(originalTx.refAmount)) {
+      if (existingRefund) {
         throw new ValidationError({
-          message: 'Total refund amount cannot be greater than the original transaction amount',
+          message: '"refundTxId" already marked as a refund.',
         });
       }
-    }
 
-    // Create the refund transaction link
-    const refundTransaction = await RefundTransactions.createRefundTransaction(
-      { originalTxId, refundTxId, userId },
-      { transaction },
-    );
+      if (originalTxId) {
+        // Fetch all existing refunds for the original transaction
+        const existingRefunds = await RefundTransactions.default.findAll({
+          where: { originalTxId, userId },
+          include: [{ model: Transactions.default, as: 'refundTransaction' }],
+        });
 
-    await Transactions.updateTransactions(
-      { refundLinked: true },
-      { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
-      { transaction, individualHooks: false },
-    );
+        // Calculate the total refunded amount
+        const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
+          return sum + Math.abs(refund.refundTransaction.refAmount);
+        }, Math.abs(refundTx.refAmount));
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
+        // Check if the new refund would exceed the original transaction amount
+        if (totalRefundedAmount > Math.abs(originalTx.refAmount)) {
+          throw new ValidationError({
+            message: 'Total refund amount cannot be greater than the original transaction amount',
+          });
+        }
+      }
 
-    return refundTransaction;
-  } catch (e) {
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(e);
+      // Create the refund transaction link
+      const refundTransaction = await RefundTransactions.createRefundTransaction({
+        originalTxId,
+        refundTxId,
+        userId,
+      });
+
+      await Transactions.updateTransactions(
+        { refundLinked: true },
+        { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
+        { individualHooks: false },
+      );
+
+      return refundTransaction;
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'test') {
+        logger.error(e);
+      }
+      throw e;
     }
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-    throw e;
-  }
-}
+  },
+);

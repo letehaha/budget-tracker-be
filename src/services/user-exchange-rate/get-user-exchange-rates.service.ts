@@ -26,14 +26,11 @@ export async function getUserExchangeRates(
 
     const exchangeRates = await Promise.all(
       userCurrencies.map((item) =>
-        getExchangeRate(
-          {
-            userId,
-            baseId: item.currencyId,
-            quoteId: userBaseCurrency.currencyId,
-          },
-          { transaction },
-        ),
+        getExchangeRate({
+          userId,
+          baseId: item.currencyId,
+          quoteId: userBaseCurrency.currencyId,
+        }),
       ),
     );
 

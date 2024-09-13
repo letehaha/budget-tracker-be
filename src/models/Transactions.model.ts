@@ -30,7 +30,6 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
-import { GenericSequelizeModelAttributes } from '@common/types';
 
 // TODO: replace with scopes
 const prepareTXInclude = ({
@@ -237,29 +236,26 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(instance: Transactions, { transaction }) {
+  static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
       instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx(
-        {
-          userId,
-          accountId,
-          amount,
-          refAmount,
-          transactionType,
-          currencyId,
-        },
-        { transaction },
-      );
+      await updateAccountBalanceForChangedTx({
+        userId,
+        accountId,
+        amount,
+        refAmount,
+        transactionType,
+        currencyId,
+      });
     }
 
-    await Balances.handleTransactionChange({ data: instance }, { transaction });
+    await Balances.handleTransactionChange({ data: instance });
   }
 
   @AfterUpdate
-  static async updateAccountBalanceAfterUpdate(instance: Transactions, { transaction }) {
+  static async updateAccountBalanceAfterUpdate(instance: Transactions) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,45 +265,36 @@ export default class Transactions extends Model<TransactionsAttributes> {
     if (newData.accountType === ACCOUNT_TYPES.system) {
       if (isAccountChanged) {
         // Update old tx
-        await updateAccountBalanceForChangedTx(
-          {
-            userId: prevData.userId,
-            accountId: prevData.accountId,
-            prevAmount: prevData.amount,
-            prevRefAmount: prevData.refAmount,
-            transactionType: prevData.transactionType,
-            currencyId: prevData.currencyId,
-          },
-          { transaction },
-        );
+        await updateAccountBalanceForChangedTx({
+          userId: prevData.userId,
+          accountId: prevData.accountId,
+          prevAmount: prevData.amount,
+          prevRefAmount: prevData.refAmount,
+          transactionType: prevData.transactionType,
+          currencyId: prevData.currencyId,
+        });
 
         // Update new tx
-        await updateAccountBalanceForChangedTx(
-          {
-            userId: newData.userId,
-            accountId: newData.accountId,
-            amount: newData.amount,
-            refAmount: newData.refAmount,
-            transactionType: newData.transactionType,
-            currencyId: newData.currencyId,
-          },
-          { transaction },
-        );
+        await updateAccountBalanceForChangedTx({
+          userId: newData.userId,
+          accountId: newData.accountId,
+          amount: newData.amount,
+          refAmount: newData.refAmount,
+          transactionType: newData.transactionType,
+          currencyId: newData.currencyId,
+        });
       } else {
-        await updateAccountBalanceForChangedTx(
-          {
-            userId: newData.userId,
-            accountId: newData.accountId,
-            amount: newData.amount,
-            prevAmount: prevData.amount,
-            refAmount: newData.refAmount,
-            prevRefAmount: prevData.refAmount,
-            transactionType: newData.transactionType,
-            prevTransactionType: prevData.transactionType,
-            currencyId: newData.currencyId,
-          },
-          { transaction },
-        );
+        await updateAccountBalanceForChangedTx({
+          userId: newData.userId,
+          accountId: newData.accountId,
+          amount: newData.amount,
+          prevAmount: prevData.amount,
+          refAmount: newData.refAmount,
+          prevRefAmount: prevData.refAmount,
+          transactionType: newData.transactionType,
+          prevTransactionType: prevData.transactionType,
+          currencyId: newData.currencyId,
+        });
       }
     }
 
@@ -320,32 +307,26 @@ export default class Transactions extends Model<TransactionsAttributes> {
       currencyId: prevData.currencyId,
     } as Transactions;
 
-    await Balances.handleTransactionChange(
-      { data: newData, prevData: originalData },
-      { transaction },
-    );
+    await Balances.handleTransactionChange({ data: newData, prevData: originalData });
   }
 
   @BeforeDestroy
-  static async updateAccountBalanceBeforeDestroy(instance: Transactions, { transaction }) {
+  static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
     const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
       instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx(
-        {
-          userId,
-          accountId,
-          prevAmount: amount,
-          prevRefAmount: refAmount,
-          transactionType,
-          currencyId,
-        },
-        { transaction },
-      );
+      await updateAccountBalanceForChangedTx({
+        userId,
+        accountId,
+        prevAmount: amount,
+        prevRefAmount: refAmount,
+        transactionType,
+        currencyId,
+      });
     }
 
-    await Balances.handleTransactionChange({ data: instance, isDelete: true }, { transaction });
+    await Balances.handleTransactionChange({ data: instance, isDelete: true });
   }
 }
 
@@ -421,16 +402,17 @@ export interface GetTransactionBySomeIdPayload {
   transferId?: TransactionsAttributes['transferId'];
   originalId?: TransactionsAttributes['originalId'];
 }
-export const getTransactionBySomeId = (
-  { userId, id, transferId, originalId }: GetTransactionBySomeIdPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getTransactionBySomeId = ({
+  userId,
+  id,
+  transferId,
+  originalId,
+}: GetTransactionBySomeIdPayload) => {
   return Transactions.findOne({
     where: {
       userId,
       ...removeUndefinedKeys({ id, transferId, originalId }),
     },
-    transaction: attributes.transaction,
   });
 };
 

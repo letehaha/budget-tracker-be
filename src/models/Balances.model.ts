@@ -2,7 +2,6 @@ import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
 
@@ -41,16 +40,12 @@ export default class Balances extends Model<BalanceModel> {
   account: Accounts;
 
   // Method to calculate the total balance across all accounts
-  static async getTotalBalance(
-    { userId }: { userId: number },
-    attributes: GenericSequelizeModelAttributes = {},
-  ): Promise<number> {
+  static async getTotalBalance({ userId }: { userId: number }): Promise<number> {
     const userAccounts = await Accounts.findAll({ where: { userId: userId } });
     const accountIds = userAccounts.map((account) => account.id);
 
     const result = await Balances.sum('amount', {
       where: { accountId: accountIds },
-      transaction: attributes.transaction,
     });
 
     return result || 0;
@@ -59,7 +54,6 @@ export default class Balances extends Model<BalanceModel> {
   // Method to retrieve total balance history for specified dates and accounts
   static async getTotalBalanceHistory(
     payload: GetTotalBalanceHistoryPayload,
-    attributes: GenericSequelizeModelAttributes = {},
   ): Promise<BalanceModel[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
@@ -71,7 +65,6 @@ export default class Balances extends Model<BalanceModel> {
       },
       order: [['date', 'ASC']],
       include: [Accounts],
-      ...attributes,
     });
   }
 
@@ -104,14 +97,15 @@ export default class Balances extends Model<BalanceModel> {
 
   // ### Monobank account deletion, keep DB's cascade deletion
 
-  static async handleTransactionChange(
-    {
-      data,
-      prevData,
-      isDelete = false,
-    }: { data: Transactions; prevData?: Transactions; isDelete?: boolean },
-    attributes: GenericSequelizeModelAttributes = {},
-  ) {
+  static async handleTransactionChange({
+    data,
+    prevData,
+    isDelete = false,
+  }: {
+    data: Transactions;
+    prevData?: Transactions;
+    isDelete?: boolean;
+  }) {
     const { accountId, time } = data;
     let amount =
       data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
@@ -140,26 +134,20 @@ export default class Balances extends Model<BalanceModel> {
           amount
           // THEN remove the original transaction
         ) {
-          await this.updateRecord(
-            {
-              accountId: prevData.accountId,
-              date: originalDate,
-              amount: -originalAmount,
-            },
-            attributes,
-          );
+          await this.updateRecord({
+            accountId: prevData.accountId,
+            date: originalDate,
+            amount: -originalAmount,
+          });
         }
       }
 
       // Update the balance for the current account and date
-      await this.updateRecord(
-        {
-          accountId,
-          date,
-          amount,
-        },
-        attributes,
-      );
+      await this.updateRecord({
+        accountId,
+        date,
+        amount,
+      });
     } else if (data.accountType === ACCOUNT_TYPES.monobank) {
       const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
 
@@ -170,7 +158,6 @@ export default class Balances extends Model<BalanceModel> {
           accountId,
           date,
         },
-        transaction: attributes.transaction,
       });
 
       if (existingRecordForTheDate) {
@@ -180,30 +167,31 @@ export default class Balances extends Model<BalanceModel> {
 
         await existingRecordForTheDate.save();
       } else {
-        await this.create(
-          {
-            accountId,
-            date,
-            amount: (data.externalData as TransactionsAttributes['externalData']).balance,
-          },
-          { transaction: attributes.transaction },
-        );
+        await this.create({
+          accountId,
+          date,
+          amount: (data.externalData as TransactionsAttributes['externalData']).balance,
+        });
       }
     }
   }
 
   // Update the balance for a specific system account and date
-  private static async updateRecord(
-    { accountId, date, amount }: { accountId: number; date: Date; amount: number },
-    attributes: GenericSequelizeModelAttributes = {},
-  ) {
+  private static async updateRecord({
+    accountId,
+    date,
+    amount,
+  }: {
+    accountId: number;
+    date: Date;
+    amount: number;
+  }) {
     // Try to find an existing balance for the account and date
     let balanceForTxDate = await this.findOne({
       where: {
         accountId,
         date,
       },
-      transaction: attributes.transaction,
     });
 
     // If history record has previous amount, it means it's updating,
@@ -238,34 +226,25 @@ export default class Balances extends Model<BalanceModel> {
 
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
-        await this.create(
-          {
-            accountId,
-            date: subDays(new Date(date), 1),
-            amount: account.initialBalance,
-          },
-          { transaction: attributes.transaction },
-        );
+        await this.create({
+          accountId,
+          date: subDays(new Date(date), 1),
+          amount: account.initialBalance,
+        });
 
         // (2) Then we create a record for that transaction
-        await this.create(
-          {
-            accountId,
-            date,
-            amount: account.initialBalance + amount,
-          },
-          { transaction: attributes.transaction },
-        );
+        await this.create({
+          accountId,
+          date,
+          amount: account.initialBalance + amount,
+        });
       } else {
         // And then create a new record with the amount + latestBalance
-        balanceForTxDate = await this.create(
-          {
-            accountId,
-            date,
-            amount: latestBalancePrior.amount + amount,
-          },
-          { transaction: attributes.transaction },
-        );
+        balanceForTxDate = await this.create({
+          accountId,
+          date,
+          amount: latestBalancePrior.amount + amount,
+        });
       }
     } else {
       // If a balance already exists, update its amount
@@ -284,15 +263,17 @@ export default class Balances extends Model<BalanceModel> {
             [Op.gt]: date,
           },
         },
-        transaction: attributes.transaction,
       },
     );
   }
 
-  static async handleAccountChange(
-    { account, prevAccount }: { account: Accounts; prevAccount?: Accounts },
-    attributes: GenericSequelizeModelAttributes = {},
-  ) {
+  static async handleAccountChange({
+    account,
+    prevAccount,
+  }: {
+    account: Accounts;
+    prevAccount?: Accounts;
+  }) {
     const { id: accountId, refInitialBalance } = account;
 
     // Try to find an existing balance for the account
@@ -300,7 +281,6 @@ export default class Balances extends Model<BalanceModel> {
       where: {
         accountId,
       },
-      transaction: attributes.transaction,
     });
 
     // If record exists, then it's account updating, otherwise account creation
@@ -312,7 +292,6 @@ export default class Balances extends Model<BalanceModel> {
         { amount: Balances.sequelize.literal(`amount + ${diff}`) },
         {
           where: { accountId },
-          transaction: attributes.transaction,
         },
       );
     } else {
@@ -320,14 +299,11 @@ export default class Balances extends Model<BalanceModel> {
       date.setHours(0, 0, 0, 0);
 
       // If no balance exists yet, create one with the account's current balance
-      await this.create(
-        {
-          accountId,
-          date,
-          amount: refInitialBalance,
-        },
-        { transaction: attributes.transaction },
-      );
+      await this.create({
+        accountId,
+        date,
+        amount: refInitialBalance,
+      });
     }
   }
 }

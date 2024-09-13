@@ -9,8 +9,6 @@ import {
   Length,
 } from 'sequelize-typescript';
 
-import { GenericSequelizeModelAttributes } from '@common/types';
-
 import UsersCurrencies from './UsersCurrencies.model';
 import Currencies from './Currencies.model';
 
@@ -78,41 +76,30 @@ export default class Users extends Model {
   defaultCategoryId: number;
 }
 
-export const getUsers = async (attributes: GenericSequelizeModelAttributes = {}) => {
-  const users = await Users.findAll({ transaction: attributes.transaction });
+export const getUsers = async () => {
+  const users = await Users.findAll();
 
   return users;
 };
 
-export const getUserById = async (
-  { id }: { id: number },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<UserModel> => {
+export const getUserById = async ({ id }: { id: number }): Promise<UserModel> => {
   const user = await Users.findOne({
     where: { id },
-    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const getUserDefaultCategory = async (
-  { id }: { id: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   const user = await Users.findOne({
     where: { id },
     attributes: ['defaultCategoryId'],
-    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const getUserCurrencies = async (
-  { userId },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getUserCurrencies = async ({ userId }) => {
   const user = await Users.findOne({
     where: { id: userId },
     include: [
@@ -123,16 +110,18 @@ export const getUserCurrencies = async (
         through: { attributes: [] },
       },
     ],
-    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const getUserByCredentials = async (
-  { username, email }: { username?: string; email?: string },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<UserModel> => {
+export const getUserByCredentials = async ({
+  username,
+  email,
+}: {
+  username?: string;
+  email?: string;
+}): Promise<UserModel> => {
   const where: Record<string, unknown> = {};
 
   if (username) where.username = username;
@@ -140,56 +129,31 @@ export const getUserByCredentials = async (
 
   const user = await Users.scope('withPassword').findOne({
     where,
-    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const createUser = async (
-  {
-    username,
-    email,
-    firstName,
-    lastName,
-    middleName,
-    password,
-    avatar,
-    totalBalance = DETAULT_TOTAL_BALANCE,
-  }: {
-    username: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    middleName?: string;
-    password: string;
-    avatar?: string;
-    totalBalance?: number;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<UserModel> => {
-  const user = await Users.create(
-    {
-      username,
-      email,
-      firstName,
-      lastName,
-      middleName,
-      password,
-      avatar,
-      totalBalance,
-    },
-    {
-      transaction: attributes.transaction,
-    },
-  );
-
-  return user;
-};
-
-export const updateUserById = async (
-  {
-    id,
+export const createUser = async ({
+  username,
+  email,
+  firstName,
+  lastName,
+  middleName,
+  password,
+  avatar,
+  totalBalance = DETAULT_TOTAL_BALANCE,
+}: {
+  username: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  password: string;
+  avatar?: string;
+  totalBalance?: number;
+}): Promise<UserModel> => {
+  const user = await Users.create({
     username,
     email,
     firstName,
@@ -198,21 +162,34 @@ export const updateUserById = async (
     password,
     avatar,
     totalBalance,
-    defaultCategoryId,
-  }: {
-    id: number;
-    username?: string;
-    email?: string;
-    password?: string;
-    firstName?: string;
-    lastName?: string;
-    middleName?: string;
-    avatar?: string;
-    totalBalance?: number;
-    defaultCategoryId?: number;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<UserModel> => {
+  });
+
+  return user;
+};
+
+export const updateUserById = async ({
+  id,
+  username,
+  email,
+  firstName,
+  lastName,
+  middleName,
+  password,
+  avatar,
+  totalBalance,
+  defaultCategoryId,
+}: {
+  id: number;
+  username?: string;
+  email?: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  avatar?: string;
+  totalBalance?: number;
+  defaultCategoryId?: number;
+}): Promise<UserModel> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};
 
@@ -228,17 +205,15 @@ export const updateUserById = async (
 
   await Users.update(updateFields, {
     where,
-    transaction: attributes.transaction,
   });
 
   const user = await Users.findOne({
     where,
-    transaction: attributes.transaction,
   });
 
   return user;
 };
 
-export const deleteUserById = ({ id }, attributes: GenericSequelizeModelAttributes = {}) => {
-  Users.destroy({ where: { id }, transaction: attributes.transaction });
+export const deleteUserById = ({ id }) => {
+  Users.destroy({ where: { id } });
 };

@@ -1,7 +1,7 @@
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as Transactions from '@models/Transactions.model';
+import { withTransaction } from '../common';
 
-export const getTransactionBySomeId = async (
-  payload: Transactions.GetTransactionBySomeIdPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => Transactions.getTransactionBySomeId(payload, attributes);
+export const getTransactionBySomeId = withTransaction(
+  async (payload: Transactions.GetTransactionBySomeIdPayload) =>
+    Transactions.getTransactionBySomeId(payload),
+);

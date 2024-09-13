@@ -1,7 +1,6 @@
 import { Transaction } from 'sequelize/types';
 import { CATEGORY_TYPES } from 'shared-types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from './Users.model';
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
@@ -49,14 +48,10 @@ export default class Categories extends Model {
   categoryId: number;
 }
 
-export const getCategories = async (
-  { userId }: { userId: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getCategories = async ({ userId }: { userId: number }) => {
   const categories = await Categories.findAll({
     where: { userId },
-    raw: attributes.raw ?? true,
-    transaction: attributes.transaction,
+    raw: true,
   });
 
   return categories;
@@ -71,14 +66,15 @@ export interface CreateCategoryPayload {
   type?: CATEGORY_TYPES;
 }
 
-export const createCategory = async (
-  { parentId, color, userId, ...params }: CreateCategoryPayload,
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const createCategory = async ({
+  parentId,
+  color,
+  userId,
+  ...params
+}: CreateCategoryPayload) => {
   if (parentId) {
     const parent = await Categories.findOne({
       where: { id: parentId, userId },
-      transaction,
     });
 
     if (!parent) {
@@ -88,15 +84,12 @@ export const createCategory = async (
     if (!color) color = parent.get('color');
   }
 
-  const category = await Categories.create(
-    {
-      parentId,
-      color,
-      userId,
-      ...params,
-    },
-    { transaction },
-  );
+  const category = await Categories.create({
+    parentId,
+    color,
+    userId,
+    ...params,
+  });
 
   return category;
 };
@@ -147,17 +140,14 @@ export const deleteCategory = async (
 export const bulkCreate = (
   { data },
   {
-    transaction,
     validate = true,
     returning = false,
   }: {
-    transaction: Transaction;
     validate?: boolean;
     returning?: boolean;
   },
 ) => {
   return Categories.bulkCreate(data, {
-    transaction,
     validate,
     returning,
   });

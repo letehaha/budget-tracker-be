@@ -1,9 +1,8 @@
-import { connection } from '@models/index';
 import { logger } from '@js/utils/logger';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { NotFoundError } from '@js/errors';
+import { withTransaction } from '../common';
 
 interface GetRefundParams {
   userId: number;
@@ -11,59 +10,52 @@ interface GetRefundParams {
   refundTxId: number;
 }
 
-export async function getRefund(
-  { userId, originalTxId, refundTxId }: GetRefundParams,
-  attributes: GenericSequelizeModelAttributes = {},
-): Promise<RefundTransactions.default> {
-  const transaction = attributes.transaction ?? (await connection.sequelize.transaction());
-
-  try {
-    const refundLink = await RefundTransactions.default.findOne({
-      where: {
-        originalTxId,
-        refundTxId,
-        userId,
-      },
-      include: [
-        {
-          model: Transactions.default,
-          as: 'originalTransaction',
+export const getRefund = withTransaction(
+  async ({
+    userId,
+    originalTxId,
+    refundTxId,
+  }: GetRefundParams): Promise<RefundTransactions.default> => {
+    try {
+      const refundLink = await RefundTransactions.default.findOne({
+        where: {
+          originalTxId,
+          refundTxId,
+          userId,
         },
-        {
-          model: Transactions.default,
-          as: 'refundTransaction',
-        },
-      ],
-      transaction,
-    });
-
-    if (!refundLink) {
-      throw new NotFoundError({
-        message: 'Refund link not found',
+        include: [
+          {
+            model: Transactions.default,
+            as: 'originalTransaction',
+          },
+          {
+            model: Transactions.default,
+            as: 'refundTransaction',
+          },
+        ],
       });
-    }
 
-    const haveNoAccess =
-      refundLink.originalTransaction.userId !== userId ||
-      refundLink.refundTransaction.userId !== userId;
+      if (!refundLink) {
+        throw new NotFoundError({
+          message: 'Refund link not found',
+        });
+      }
 
-    if (haveNoAccess) {
-      logger.warn('User tried to access transactions that that dont belong to him.');
-      throw new NotFoundError({
-        message: 'Refund link not found',
-      });
-    }
+      const haveNoAccess =
+        refundLink.originalTransaction.userId !== userId ||
+        refundLink.refundTransaction.userId !== userId;
 
-    if (!attributes.transaction) {
-      await transaction.commit();
-    }
+      if (haveNoAccess) {
+        logger.warn('User tried to access transactions that that dont belong to him.');
+        throw new NotFoundError({
+          message: 'Refund link not found',
+        });
+      }
 
-    return refundLink;
-  } catch (e) {
-    if (!attributes.transaction) {
-      await transaction.rollback();
+      return refundLink;
+    } catch (e) {
+      logger.error('Error retrieving refund link:', e);
+      throw e;
     }
-    logger.error('Error retrieving refund link:', e);
-    throw e;
-  }
-}
+  },
+);

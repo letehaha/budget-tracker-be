@@ -1,8 +1,8 @@
-import { GenericSequelizeModelAttributes } from '@common/types';
 import * as Transactions from '@models/Transactions.model';
+import { withTransaction } from '../common';
 
-export const getTransactionById = async (
-  {
+export const getTransactionById = withTransaction(
+  async ({
     id,
     userId,
     includeUser,
@@ -18,25 +18,17 @@ export const getTransactionById = async (
     includeCategory?: boolean;
     includeAll?: boolean;
     nestedInclude?: boolean;
-  },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  try {
-    const data = await Transactions.getTransactionById(
-      {
-        id,
-        userId,
-        includeUser,
-        includeAccount,
-        includeCategory,
-        includeAll,
-        nestedInclude,
-      },
-      { transaction: attributes.transaction },
-    );
+  }) => {
+    const data = await Transactions.getTransactionById({
+      id,
+      userId,
+      includeUser,
+      includeAccount,
+      includeCategory,
+      includeAll,
+      nestedInclude,
+    });
 
     return data;
-  } catch (err) {
-    throw new err();
-  }
-};
+  },
+);

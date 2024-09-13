@@ -11,7 +11,6 @@ import {
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from 'shared-types';
-import { GenericSequelizeModelAttributes } from '@common/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
@@ -151,8 +150,8 @@ export default class Accounts extends Model<AccountsAttributes> {
   isEnabled: boolean;
 
   @AfterCreate
-  static async updateAccountBalanceAfterCreate(instance: Accounts, { transaction }) {
-    await Balances.handleAccountChange({ account: instance }, { transaction });
+  static async updateAccountBalanceAfterCreate(instance: Accounts) {
+    await Balances.handleAccountChange({ account: instance });
   }
 
   @BeforeUpdate
@@ -166,10 +165,7 @@ export interface GetAccountsPayload {
   type?: AccountsAttributes['type'];
 }
 
-export const getAccounts = async (
-  payload: GetAccountsPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getAccounts = async (payload: GetAccountsPayload) => {
   const { userId, type } = payload;
   const where: {
     userId: AccountsAttributes['userId'];
@@ -181,19 +177,20 @@ export const getAccounts = async (
   const accounts = await Accounts.findAll({
     where,
     raw: true,
-    ...attributes,
   });
 
   return accounts;
 };
 
-export const getAccountById = async (
-  { userId, id }: { userId: AccountsAttributes['userId']; id: AccountsAttributes['id'] },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getAccountById = async ({
+  userId,
+  id,
+}: {
+  userId: AccountsAttributes['userId'];
+  id: AccountsAttributes['id'];
+}) => {
   const account = await Accounts.findOne({
     where: { userId, id },
-    ...attributes,
   });
 
   return account;
@@ -203,10 +200,10 @@ export interface GetAccountsByExternalIdsPayload {
   userId: AccountsAttributes['userId'];
   externalIds: string[];
 }
-export const getAccountsByExternalIds = async (
-  { userId, externalIds }: GetAccountsByExternalIdsPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getAccountsByExternalIds = async ({
+  userId,
+  externalIds,
+}: GetAccountsByExternalIdsPayload) => {
   const account = await Accounts.findAll({
     where: {
       userId,
@@ -214,7 +211,6 @@ export const getAccountsByExternalIds = async (
         [Op.in]: externalIds,
       },
     },
-    ...attributes,
   });
 
   return account;
@@ -235,29 +231,25 @@ export interface CreateAccountPayload {
   type: AccountsAttributes['type'];
 }
 
-export const createAccount = async (
-  { userId, type = ACCOUNT_TYPES.system, isEnabled = true, ...rest }: CreateAccountPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  const response = await Accounts.create(
-    {
-      userId,
-      type,
-      isEnabled,
-      currentBalance: rest.initialBalance,
-      refCurrentBalance: rest.refInitialBalance,
-      ...rest,
-    },
-    attributes,
-  );
+export const createAccount = async ({
+  userId,
+  type = ACCOUNT_TYPES.system,
+  isEnabled = true,
+  ...rest
+}: CreateAccountPayload) => {
+  const response = await Accounts.create({
+    userId,
+    type,
+    isEnabled,
+    currentBalance: rest.initialBalance,
+    refCurrentBalance: rest.refInitialBalance,
+    ...rest,
+  });
 
-  const account = await getAccountById(
-    {
-      id: response.get('id'),
-      userId,
-    },
-    attributes,
-  );
+  const account = await getAccountById({
+    id: response.get('id'),
+    userId,
+  });
 
   return account;
 };
@@ -279,33 +271,23 @@ export interface UpdateAccountByIdPayload {
   isEnabled?: AccountsAttributes['isEnabled'];
 }
 
-export async function updateAccountById(
-  { id, userId, ...payload }: UpdateAccountByIdPayload,
-  attributes: GenericSequelizeModelAttributes = {},
-) {
+export async function updateAccountById({ id, userId, ...payload }: UpdateAccountByIdPayload) {
   const where = { id, userId };
 
-  await Accounts.update(payload, { where, ...attributes });
+  await Accounts.update(payload, { where });
 
-  const account = await getAccountById(where, { ...attributes });
+  const account = await getAccountById(where);
 
   return account;
 }
 
-export const deleteAccountById = (
-  { id }: { id: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  return Accounts.destroy({ where: { id }, ...attributes });
+export const deleteAccountById = ({ id }: { id: number }) => {
+  return Accounts.destroy({ where: { id } });
 };
 
-export const getAccountCurrency = async (
-  { userId, id }: { userId: number; id: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
+export const getAccountCurrency = async ({ userId, id }: { userId: number; id: number }) => {
   const account = (await Accounts.findOne({
     where: { userId, id },
-    ...attributes,
     include: {
       model: Currencies,
     },
@@ -314,12 +296,12 @@ export const getAccountCurrency = async (
   return account;
 };
 
-export const getAccountsByCurrency = (
-  { userId, currencyId }: { userId: number; currencyId: number },
-  attributes: GenericSequelizeModelAttributes = {},
-) => {
-  return Accounts.findAll({
-    where: { userId, currencyId },
-    ...attributes,
-  });
+export const getAccountsByCurrency = ({
+  userId,
+  currencyId,
+}: {
+  userId: number;
+  currencyId: number;
+}) => {
+  return Accounts.findAll({ where: { userId, currencyId } });
 };
