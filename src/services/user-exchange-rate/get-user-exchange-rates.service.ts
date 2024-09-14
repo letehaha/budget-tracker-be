@@ -1,9 +1,7 @@
-import { Transaction } from 'sequelize/types';
-import { connection } from '@models/index';
-
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { getExchangeRate } from './get-exchange-rate.service';
+import { withTransaction } from '../common';
 
 /**
  * By default we just return system exchange rates from ExchangeRates table.
@@ -12,38 +10,19 @@ import { getExchangeRate } from './get-exchange-rate.service';
  * back, we need to remove his custom record from UserExchangeRates table
  */
 
-export async function getUserExchangeRates(
-  { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) {
-  const isTxPassedFromAbove = transaction !== undefined;
+export const getUserExchangeRates = withTransaction(async ({ userId }: { userId: number }) => {
+  const userBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
+  const userCurrencies = await UsersCurrencies.getCurrencies({ userId });
 
-  transaction = transaction ?? (await connection.sequelize.transaction());
+  const exchangeRates = await Promise.all(
+    userCurrencies.map((item) =>
+      getExchangeRate({
+        userId,
+        baseId: item.currencyId,
+        quoteId: userBaseCurrency.currencyId,
+      }),
+    ),
+  );
 
-  try {
-    const userBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
-    const userCurrencies = await UsersCurrencies.getCurrencies({ userId }, { transaction });
-
-    const exchangeRates = await Promise.all(
-      userCurrencies.map((item) =>
-        getExchangeRate({
-          userId,
-          baseId: item.currencyId,
-          quoteId: userBaseCurrency.currencyId,
-        }),
-      ),
-    );
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
-    return exchangeRates;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw new err();
-  }
-}
+  return exchangeRates;
+});

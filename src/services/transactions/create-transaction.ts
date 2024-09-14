@@ -1,7 +1,6 @@
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Transaction } from 'sequelize/types';
 import { logger } from '@js/utils/logger';
 import { UnwrapPromise } from '@common/types';
 import { ValidationError } from '@js/errors';
@@ -37,24 +36,21 @@ type CreateOppositeTransactionParams = [
  *    touch source tx, and calculate refAmount for opposite tx
  *
  */
-export const calcTransferTransactionRefAmount = async (
-  {
-    userId,
-    baseTransaction,
-    destinationAmount,
-    oppositeTxCurrencyCode,
-    baseCurrency,
-  }: {
-    userId: number;
-    baseTransaction: Transactions.default;
-    destinationAmount: number;
-    oppositeTxCurrencyCode: string;
-    baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const calcTransferTransactionRefAmount = async ({
+  userId,
+  baseTransaction,
+  destinationAmount,
+  oppositeTxCurrencyCode,
+  baseCurrency,
+}: {
+  userId: number;
+  baseTransaction: Transactions.default;
+  destinationAmount: number;
+  oppositeTxCurrencyCode: string;
+  baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
+}) => {
   if (!baseCurrency) {
-    baseCurrency = await UsersCurrencies.getBaseCurrency({ userId }, { transaction });
+    baseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
   }
 
   const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
@@ -65,14 +61,11 @@ export const calcTransferTransactionRefAmount = async (
   if (isSourceRef && !isOppositeRef) {
     oppositeRefAmount = baseTransaction.refAmount;
   } else if (!isSourceRef && isOppositeRef) {
-    baseTransaction = await Transactions.updateTransactionById(
-      {
-        id: baseTransaction.id,
-        userId,
-        refAmount: destinationAmount,
-      },
-      { transaction },
-    );
+    baseTransaction = await Transactions.updateTransactionById({
+      id: baseTransaction.id,
+      userId,
+      refAmount: destinationAmount,
+    });
     oppositeRefAmount = destinationAmount;
   } else if (isSourceRef && isOppositeRef) {
     oppositeRefAmount = baseTransaction.refAmount;

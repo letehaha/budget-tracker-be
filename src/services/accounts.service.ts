@@ -268,7 +268,6 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //     refAmount,
 //     currencyId,
 //   }: updateAccountBalanceRequiredFields & { amount: number; refAmount: number },
-//   { transaction }: { transaction?: Transaction },
 // ): Promise<void>;
 
 // /** For **DELETED** transactions. When only (prevAmount + prefRefAmount) passed */
