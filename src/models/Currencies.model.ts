@@ -1,5 +1,4 @@
 import cc from 'currency-codes';
-import { Transaction } from 'sequelize/types';
 import { Op } from 'sequelize';
 import {
   Table,
@@ -85,20 +84,17 @@ export async function getCurrency({
   });
 }
 
-export async function getCurrencies(
-  {
-    ids,
-    currencies,
-    numbers,
-    codes,
-  }: {
-    ids?: number[];
-    numbers?: number[];
-    currencies?: string[];
-    codes?: string[];
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) {
+export async function getCurrencies({
+  ids,
+  currencies,
+  numbers,
+  codes,
+}: {
+  ids?: number[];
+  numbers?: number[];
+  currencies?: string[];
+  codes?: string[];
+}) {
   if (
     ids === undefined &&
     currencies === undefined &&
@@ -118,7 +114,7 @@ export async function getCurrencies(
   if (codes) where.code = { [Op.in]: codes };
   if (numbers) where.number = { [Op.in]: numbers };
 
-  return Currencies.findAll({ where, transaction });
+  return Currencies.findAll({ where });
 }
 
 export const createCurrency = async ({ code }) => {

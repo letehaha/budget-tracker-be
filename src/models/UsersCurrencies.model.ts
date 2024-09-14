@@ -1,4 +1,3 @@
-import { Transaction } from 'sequelize/types';
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { UserCurrencyModel } from 'shared-types';
@@ -56,27 +55,19 @@ export default class UsersCurrencies extends Model<UserCurrencyAttributes> {
   isDefaultCurrency: boolean;
 }
 
-export const getCurrencies = (
-  { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getCurrencies = ({ userId }: { userId: number }) => {
   return UsersCurrencies.findAll({
     where: { userId },
     include: {
       model: Currencies,
     },
-    transaction,
   });
 };
 
-export const getBaseCurrency = async (
-  { userId }: { userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getBaseCurrency = async ({ userId }: { userId: number }) => {
   const data = (await UsersCurrencies.findOne({
     where: { userId, isDefaultCurrency: true },
     include: { model: Currencies },
-    transaction,
   })) as UsersCurrencies & { currency: Currencies };
 
   return data;
@@ -115,22 +106,19 @@ export const getCurrency: getCurrencyOverload = ({
   }) as Promise<UsersCurrencies & { currency: Currencies }>;
 };
 
-export const addCurrency = (
-  {
-    userId,
-    currencyId,
-    exchangeRate,
-    liveRateUpdate,
-    isDefaultCurrency,
-  }: {
-    userId: number;
-    currencyId: number;
-    exchangeRate?: number;
-    liveRateUpdate?: boolean;
-    isDefaultCurrency?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const addCurrency = ({
+  userId,
+  currencyId,
+  exchangeRate,
+  liveRateUpdate,
+  isDefaultCurrency,
+}: {
+  userId: number;
+  currencyId: number;
+  exchangeRate?: number;
+  liveRateUpdate?: boolean;
+  isDefaultCurrency?: boolean;
+}) => {
   return UsersCurrencies.create(
     {
       userId,
@@ -141,27 +129,23 @@ export const addCurrency = (
     },
     {
       returning: true,
-      transaction,
     },
   );
 };
 
-export const updateCurrency = async (
-  {
-    userId,
-    currencyId,
-    exchangeRate,
-    liveRateUpdate,
-    isDefaultCurrency,
-  }: {
-    userId: number;
-    currencyId: number;
-    exchangeRate?: number;
-    liveRateUpdate?: boolean;
-    isDefaultCurrency?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const updateCurrency = async ({
+  userId,
+  currencyId,
+  exchangeRate,
+  liveRateUpdate,
+  isDefaultCurrency,
+}: {
+  userId: number;
+  currencyId: number;
+  exchangeRate?: number;
+  liveRateUpdate?: boolean;
+  isDefaultCurrency?: boolean;
+}) => {
   const where = { userId, currencyId };
 
   await UsersCurrencies.update(
@@ -172,7 +156,6 @@ export const updateCurrency = async (
     },
     {
       where,
-      transaction,
     },
   );
 
@@ -181,40 +164,33 @@ export const updateCurrency = async (
   return currency;
 };
 
-export const deleteCurrency = async (
-  {
-    userId,
-    currencyId,
-  }: {
-    userId: number;
-    currencyId: number;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const deleteCurrency = async ({
+  userId,
+  currencyId,
+}: {
+  userId: number;
+  currencyId: number;
+}) => {
   const where = { userId, currencyId };
 
   return UsersCurrencies.destroy({
     where,
-    transaction,
   });
 };
 
-export const updateCurrencies = async (
-  {
-    userId,
-    currencyIds,
-    exchangeRate,
-    liveRateUpdate,
-    isDefaultCurrency,
-  }: {
-    userId: number;
-    currencyIds?: number[];
-    exchangeRate?: number;
-    liveRateUpdate?: boolean;
-    isDefaultCurrency?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const updateCurrencies = async ({
+  userId,
+  currencyIds,
+  exchangeRate,
+  liveRateUpdate,
+  isDefaultCurrency,
+}: {
+  userId: number;
+  currencyIds?: number[];
+  exchangeRate?: number;
+  liveRateUpdate?: boolean;
+  isDefaultCurrency?: boolean;
+}) => {
   const where: {
     userId: number;
     currencyId?: { [Op.in]: number[] };
@@ -234,12 +210,10 @@ export const updateCurrencies = async (
     },
     {
       where,
-      transaction,
     },
   );
 
   return UsersCurrencies.findAll({
     where,
-    transaction,
   });
 };

@@ -7,7 +7,6 @@ import {
   TransactionModel,
 } from 'shared-types';
 import { Op } from 'sequelize';
-import { Transaction } from 'sequelize/types';
 import {
   Table,
   BeforeCreate,
@@ -330,42 +329,39 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 }
 
-export const getTransactions = async (
-  {
-    from = 0,
-    limit = 20,
-    accountType,
-    accountId,
-    userId,
-    sortDirection = SORT_DIRECTIONS.desc,
-    includeUser,
-    includeAccount,
-    transactionType,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-    isRaw = false,
-    excludeTransfer,
-    excludeRefunds,
-  }: {
-    from: number;
-    limit: number;
-    accountType: ACCOUNT_TYPES;
-    transactionType: string;
-    accountId: number;
-    userId: number;
-    sortDirection: SORT_DIRECTIONS;
-    includeUser: boolean;
-    includeAccount: boolean;
-    includeCategory: boolean;
-    includeAll: boolean;
-    nestedInclude: boolean;
-    isRaw: boolean;
-    excludeTransfer?: boolean;
-    excludeRefunds?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getTransactions = async ({
+  from = 0,
+  limit = 20,
+  accountType,
+  accountId,
+  userId,
+  sortDirection = SORT_DIRECTIONS.desc,
+  includeUser,
+  includeAccount,
+  transactionType,
+  includeCategory,
+  includeAll,
+  nestedInclude,
+  isRaw = false,
+  excludeTransfer,
+  excludeRefunds,
+}: {
+  from: number;
+  limit: number;
+  accountType: ACCOUNT_TYPES;
+  transactionType: string;
+  accountId: number;
+  userId: number;
+  sortDirection: SORT_DIRECTIONS;
+  includeUser: boolean;
+  includeAccount: boolean;
+  includeCategory: boolean;
+  includeAll: boolean;
+  nestedInclude: boolean;
+  isRaw: boolean;
+  excludeTransfer?: boolean;
+  excludeRefunds?: boolean;
+}) => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -386,7 +382,6 @@ export const getTransactions = async (
         refundLinked: excludeRefunds ? false : undefined,
       }),
     },
-    transaction,
     offset: from,
     limit: limit,
     order: [['time', sortDirection]],
@@ -416,26 +411,23 @@ export const getTransactionBySomeId = ({
   });
 };
 
-export const getTransactionById = (
-  {
-    id,
-    userId,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  }: {
-    id: number;
-    userId: number;
-    includeUser?: boolean;
-    includeAccount?: boolean;
-    includeCategory?: boolean;
-    includeAll?: boolean;
-    nestedInclude?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-): Promise<Transactions | null> => {
+export const getTransactionById = ({
+  id,
+  userId,
+  includeUser,
+  includeAccount,
+  includeCategory,
+  includeAll,
+  nestedInclude,
+}: {
+  id: number;
+  userId: number;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
+}): Promise<Transactions | null> => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -447,30 +439,26 @@ export const getTransactionById = (
   return Transactions.findOne({
     where: { id, userId },
     include,
-    transaction,
   });
 };
 
-export const getTransactionsByTransferId = (
-  {
-    transferId,
-    userId,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  }: {
-    transferId: number;
-    userId: number;
-    includeUser?: boolean;
-    includeAccount?: boolean;
-    includeCategory?: boolean;
-    includeAll?: boolean;
-    nestedInclude?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getTransactionsByTransferId = ({
+  transferId,
+  userId,
+  includeUser,
+  includeAccount,
+  includeCategory,
+  includeAll,
+  nestedInclude,
+}: {
+  transferId: number;
+  userId: number;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
+}) => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -482,32 +470,28 @@ export const getTransactionsByTransferId = (
   return Transactions.findAll({
     where: { transferId, userId },
     include,
-    transaction,
   });
 };
 
-export const getTransactionsByArrayOfField = async <T extends keyof TransactionModel>(
-  {
-    fieldValues,
-    fieldName,
-    userId,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  }: {
-    fieldValues: TransactionModel[T][];
-    fieldName: T;
-    userId: number;
-    includeUser?: boolean;
-    includeAccount?: boolean;
-    includeCategory?: boolean;
-    includeAll?: boolean;
-    nestedInclude?: boolean;
-  },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getTransactionsByArrayOfField = async <T extends keyof TransactionModel>({
+  fieldValues,
+  fieldName,
+  userId,
+  includeUser,
+  includeAccount,
+  includeCategory,
+  includeAll,
+  nestedInclude,
+}: {
+  fieldValues: TransactionModel[T][];
+  fieldName: T;
+  userId: number;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
+}) => {
   const include = prepareTXInclude({
     includeUser,
     includeAccount,
@@ -524,7 +508,6 @@ export const getTransactionsByArrayOfField = async <T extends keyof TransactionM
       userId,
     },
     include,
-    transaction,
   });
 
   return transactions;
@@ -561,19 +544,13 @@ type CreateTxOptionalParams = Partial<
 
 export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams;
 
-export const createTransaction = async (
-  { userId, ...rest }: CreateTransactionPayload,
-  { transaction }: { transaction?: Transaction } = {},
-) => {
-  const response = await Transactions.create({ userId, ...rest }, { transaction });
+export const createTransaction = async ({ userId, ...rest }: CreateTransactionPayload) => {
+  const response = await Transactions.create({ userId, ...rest });
 
-  return getTransactionById(
-    {
-      id: response.get('id'),
-      userId,
-    },
-    { transaction },
-  );
+  return getTransactionById({
+    id: response.get('id'),
+    userId,
+  });
 };
 
 export interface UpdateTransactionByIdParams {
@@ -598,21 +575,19 @@ export interface UpdateTransactionByIdParams {
 export const updateTransactionById = async (
   { id, userId, ...payload }: UpdateTransactionByIdParams,
   {
-    transaction,
     // For refunds we need to have an option to disable them. Otherwise there will be some kind of
     // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
     individualHooks = true,
-  }: { transaction?: Transaction; individualHooks?: boolean } = {},
+  }: { individualHooks?: boolean } = {},
 ) => {
   const where = { id, userId };
 
   await Transactions.update(removeUndefinedKeys(payload), {
     where,
-    transaction,
     individualHooks,
   });
 
-  return getTransactionById({ id, userId }, { transaction });
+  return getTransactionById({ id, userId });
 };
 
 export const updateTransactions = (
@@ -631,24 +606,19 @@ export const updateTransactions = (
   },
   where: Record<string, unknown> & { userId: number },
   {
-    transaction,
     // For refunds we need to have an option to disable them. Otherwise there will be some kind of
     // deadlock - request stucks forever with no error message. TODO: consider removing this logic at all
     individualHooks = true,
-  }: { transaction?: Transaction; individualHooks?: boolean } = {},
+  }: { individualHooks?: boolean } = {},
 ) => {
   return Transactions.update(removeUndefinedKeys(payload), {
     where,
-    transaction,
     individualHooks,
   });
 };
 
-export const deleteTransactionById = async (
-  { id, userId }: { id: number; userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
-  const tx = await getTransactionById({ id, userId }, { transaction });
+export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
+  const tx = await getTransactionById({ id, userId });
 
   if (tx.accountType !== ACCOUNT_TYPES.system) {
     throw new ValidationError({
@@ -658,7 +628,6 @@ export const deleteTransactionById = async (
 
   return Transactions.destroy({
     where: { id, userId },
-    transaction,
     // So that BeforeDestroy will be triggered
     individualHooks: true,
   });

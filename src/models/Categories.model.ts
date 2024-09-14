@@ -1,4 +1,3 @@
-import { Transaction } from 'sequelize/types';
 import { CATEGORY_TYPES } from 'shared-types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import Users from './Users.model';
@@ -102,10 +101,7 @@ export interface EditCategoryPayload {
   color?: string;
 }
 
-export const editCategory = async (
-  { userId, categoryId, ...params }: EditCategoryPayload,
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const editCategory = async ({ userId, categoryId, ...params }: EditCategoryPayload) => {
   const existingCategory = await Categories.findByPk(categoryId);
   if (!existingCategory) {
     throw new NotFoundError({ message: 'Category with provided id does not exist!' });
@@ -116,7 +112,6 @@ export const editCategory = async (
       userId,
     },
     returning: true,
-    transaction,
   });
 
   return categories;
@@ -127,13 +122,9 @@ export interface DeleteCategoryPayload {
   categoryId: number;
 }
 
-export const deleteCategory = async (
-  { userId, categoryId }: DeleteCategoryPayload,
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const deleteCategory = async ({ userId, categoryId }: DeleteCategoryPayload) => {
   return Categories.destroy({
     where: { userId, id: categoryId },
-    transaction,
   });
 };
 

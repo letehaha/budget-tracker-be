@@ -1,4 +1,3 @@
-import { Transaction } from 'sequelize/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import Transactions from './Transactions.model';
 import Users from './Users.model';
@@ -60,42 +59,42 @@ export default class RefundTransactions extends Model {
   refundTransaction: Transactions;
 }
 
-export const createRefundTransaction = async (
-  {
-    userId,
-    originalTxId,
-    refundTxId,
-  }: { userId: number; originalTxId: number | null; refundTxId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
-  return RefundTransactions.create({ userId, originalTxId, refundTxId }, { transaction });
+export const createRefundTransaction = async ({
+  userId,
+  originalTxId,
+  refundTxId,
+}: {
+  userId: number;
+  originalTxId: number | null;
+  refundTxId: number;
+}) => {
+  return RefundTransactions.create({ userId, originalTxId, refundTxId });
 };
 
-export const getRefundsForTransaction = async (
-  { originalTxId, userId }: { originalTxId: number; userId: number },
-  { transaction }: { transaction?: Transaction } = {},
-) => {
+export const getRefundsForTransaction = async ({
+  originalTxId,
+  userId,
+}: {
+  originalTxId: number;
+  userId: number;
+}) => {
   return RefundTransactions.findAll({
     where: { originalTxId: originalTxId, userId },
     include: [{ model: Transactions, as: 'refundTransaction' }],
-    transaction,
   });
 };
 
 export const bulkCreateRefundTransactions = (
   { data }: { data: Array<{ userId: number; originalTxId: number | null; refundTxId: number }> },
   {
-    transaction,
     validate = true,
     returning = false,
   }: {
-    transaction: Transaction;
     validate?: boolean;
     returning?: boolean;
   },
 ) => {
   return RefundTransactions.bulkCreate(data, {
-    transaction,
     validate,
     returning,
   });
