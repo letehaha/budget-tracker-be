@@ -1,8 +1,10 @@
 import path from 'path';
 import Umzug from 'umzug';
-import { serverInstance, redisClient } from '@root/app';
+import { serverInstance } from '@root/app';
+import { redisClient } from '@root/redis';
 import { connection } from '@models/index';
 import { makeRequest, extractResponse } from '@tests/helpers';
+import { until } from '@common/helpers';
 
 jest.mock('axios');
 
@@ -58,9 +60,17 @@ expect.extend({
 
 beforeEach(async () => {
   try {
+    await until(async () => {
+      // Wait until connection is established
+      const result = await redisClient.hello();
+      return !!result;
+    });
     await connection.sequelize.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
-    redisClient.FLUSHALL('SYNC');
+    const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
+    if (workerKeys.length) {
+      await redisClient.del(workerKeys);
+    }
     await umzug.up();
 
     await makeRequest({
@@ -104,12 +114,11 @@ beforeEach(async () => {
   } catch (err) {
     console.log(err);
   }
-});
+}, 10_000);
 
 afterAll(async () => {
   try {
     await redisClient.quit();
-    // await connection.sequelize.close();
     await serverInstance.close();
   } catch (err) {
     console.log('afterAll', err);

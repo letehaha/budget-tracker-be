@@ -11,7 +11,7 @@ jobs:
     name: Prepare local deps
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: prepare-env
         uses: ./.github/actions/prepare-local-env
       - name: Install dependencies
@@ -23,7 +23,7 @@ jobs:
     needs: prepare-dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env
       - name: Lint source code
         run: npm run lint
@@ -33,30 +33,11 @@ jobs:
     needs: prepare-dependencies
     runs-on: ubuntu-latest
     environment: test
-    services:
-      postgres:
-        image: postgres:11.12-stretch
-        env:
-          POSTGRES_DB: budget-tracker_test
-          POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env
       - name: Make envfile
-        uses: SpicyPizza/create-envfile@v1
+        uses: SpicyPizza/create-envfile@v2
         with:
           envkey_APPLICATION_HOST: ${{ secrets.APPLICATION_HOST }}
           envkey_APPLICATION_PORT: ${{ secrets.APPLICATION_PORT }}
@@ -68,6 +49,7 @@ jobs:
           envkey_APPLICATION_DB_PORT: ${{ secrets.APPLICATION_DB_PORT }}
           envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
           envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
+          envkey_JEST_WORKERS_AMOUNT: ${{ secrets.JEST_WORKERS_AMOUNT }}
           directory: ./
           file_name: .env.test
       - name: Unit and e2e testing
@@ -78,9 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Make envfile
-        uses: SpicyPizza/create-envfile@v1
+        uses: SpicyPizza/create-envfile@v2
         with:
           envkey_APPLICATION_HOST: ${{ secrets.APPLICATION_HOST }}
           envkey_APPLICATION_PORT: ${{ secrets.APPLICATION_PORT }}
@@ -92,6 +74,7 @@ jobs:
           envkey_APPLICATION_DB_PORT: ${{ secrets.APPLICATION_DB_PORT }}
           envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
           envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
+          envkey_JEST_WORKERS_AMOUNT: ${{ secrets.JEST_WORKERS_AMOUNT }}
           directory: ./
           file_name: .env.production
       - uses: ./.github/actions/docker-build

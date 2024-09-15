@@ -12,11 +12,12 @@ import * as Accounts from '@models/Accounts.model';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
 import * as userService from '@services/user.service';
-import { redisClient } from '@root/app';
+import { redisClient } from '@root/redis';
 import { NotFoundError } from '@js/errors';
 import Balances from '@models/Balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
+import { redisKeyFormatter } from '@common/lib/redis';
 
 export const getAccounts = withTransaction(
   async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> =>
@@ -96,8 +97,10 @@ export const pairMonobankAccount = withTransaction(
       return { connected: true };
     }
 
+    const redisToken = redisKeyFormatter(token);
+
     // Otherwise begin user connection
-    const response: string = await redisClient.get(token);
+    const response: string = await redisClient.get(redisToken);
     let clientInfo: ExternalMonobankClientInfoResponse;
 
     if (!response) {
@@ -122,8 +125,11 @@ export const pairMonobankAccount = withTransaction(
 
       clientInfo = result.data;
 
-      await redisClient.set(token, JSON.stringify(response));
-      await redisClient.expire(token, 60);
+      await redisClient
+        .multi()
+        .set(redisToken, JSON.stringify(response))
+        .expire(redisToken, 60)
+        .exec();
     } else {
       clientInfo = JSON.parse(response);
     }

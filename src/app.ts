@@ -3,13 +3,11 @@ import 'module-alias/register';
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 import config from 'config';
-import express, { Request } from 'express';
+import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { createClient } from 'redis';
 import locale from 'locale';
 import passport from 'passport';
-import { promisify } from 'util';
 import { logger } from '@js/utils/logger';
 
 /**
@@ -30,24 +28,10 @@ import { supportedLocales } from './translations';
 
 import middlewarePassword from './middlewares/passport';
 
+import './redis';
+
 export const app = express();
 const apiPrefix = config.get('apiPrefix');
-export const redisClient = createClient({
-  host: config.get('redis.host'),
-});
-
-redisClient.on('error', (error: Error) => {
-  logger.error({ message: 'Redis Client Error', error });
-});
-
-['get', 'set', 'del', 'expire'].forEach((item) => {
-  redisClient[item] = promisify(redisClient[item]);
-});
-
-app.use((req, res, next) => {
-  (req as Request & typeof redisClient).redisClient = redisClient;
-  next();
-});
 
 app.use(passport.initialize());
 middlewarePassword(passport);
