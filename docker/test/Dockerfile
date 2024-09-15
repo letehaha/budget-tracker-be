@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY post-install.sh ./
 COPY docker ./docker
 RUN chmod +x ./post-install.sh
-RUN npm ci
+RUN npm ci --also=dev
 
 # Copy the rest of the application
 COPY . .

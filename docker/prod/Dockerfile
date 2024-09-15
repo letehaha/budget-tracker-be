@@ -8,6 +8,6 @@ ENV NODE_ENV=production
 
 # Install dependencies
 RUN chmod +x ./post-install.sh
-RUN npm ci
+RUN npm ci --also=dev
 
 CMD ["/bin/sh", "-c", "npm run prod"]
