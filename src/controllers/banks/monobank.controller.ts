@@ -15,6 +15,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
 } from 'shared-types';
 import { CustomResponse } from '@common/types';
+import { redisClient } from '@root/redis';
 
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
@@ -29,6 +30,7 @@ import * as Users from '@models/Users.model';
 import { logger } from '@js/utils/logger';
 import { errorHandler } from '@controllers/helpers';
 import { ERROR_CODES, ValidationError } from '@js/errors';
+import { redisKeyFormatter } from '@common/lib/redis';
 
 const usersQuery = new Map();
 
@@ -281,10 +283,10 @@ export const updateWebhook = async (req, res: CustomResponse) => {
     const { clientId }: endpointsTypes.UpdateWebhookBody = req.body;
     const { id } = req.user;
 
-    const token = `monobank-${id}-update-webhook`;
-    const tempToken = await req.redisClient.get(token);
+    const token = redisKeyFormatter(`monobank-${id}-update-webhook`);
+    const tempToken = await redisClient.get(token);
 
-    if (!tempToken) {
+    if (tempToken !== 'true') {
       await monobankUsersService.updateUser({
         systemUserId: id,
         clientId,
@@ -294,8 +296,8 @@ export const updateWebhook = async (req, res: CustomResponse) => {
       // TODO: why here we don't pass userToken?
       await updateWebhookAxios();
 
-      await req.redisClient.set(token, true);
-      await req.redisClient.expire(token, 60);
+      await redisClient.set(token, 'true');
+      await redisClient.expire(token, 60);
 
       return res.status(200).json({ status: API_RESPONSE_STATUS.success });
     }
@@ -326,10 +328,10 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     if (!to || !Number(to)) throw new ValidationError({ message: '"to" field is invalid' });
     if (!accountId) throw new ValidationError({ message: '"accountId" field is required' });
 
-    const redisToken = `monobank-${systemUserId}-load-transactions`;
-    const tempRedisToken = await req.redisClient.get(redisToken);
+    const redisToken = redisKeyFormatter(`monobank-${systemUserId}-load-transactions`);
+    const tempRedisToken = await redisClient.get(redisToken);
 
-    if (tempRedisToken) {
+    if (tempRedisToken === 'true') {
       return res.status(ERROR_CODES.TooManyRequests).json({
         status: API_RESPONSE_STATUS.error,
         response: {
@@ -421,8 +423,8 @@ export const loadTransactions = async (req, res: CustomResponse) => {
           }
         } catch (err) {
           if (err?.response?.status === ERROR_CODES.TooManyRequests) {
-            await req.redisClient.set(redisToken, true);
-            await req.redisClient.expire(redisToken, 60);
+            await redisClient.set(redisToken, 'true');
+            await redisClient.expire(redisToken, 60);
           } else {
             logger.error(err);
           }
@@ -476,10 +478,10 @@ export const refreshAccounts = async (req, res) => {
         });
       }
 
-      const token = `monobank-${systemUserId}-client-info`;
-      const tempToken = await req.redisClient.get(token);
+      const token = redisKeyFormatter(`monobank-${systemUserId}-client-info`);
+      const tempToken = await redisClient.get(token);
 
-      if (!tempToken) {
+      if (tempToken !== 'true') {
         let clientInfo: ExternalMonobankClientInfoResponse;
         try {
           clientInfo = (
@@ -517,8 +519,8 @@ export const refreshAccounts = async (req, res) => {
           });
         }
 
-        await req.redisClient.set(token, true);
-        await req.redisClient.expire(token, 60);
+        await redisClient.set(token, 'true');
+        await redisClient.expire(token, 60);
 
         const existingAccounts = await accountsService.getAccountsByExternalIds({
           userId: monoUser.systemUserId,

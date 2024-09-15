@@ -9,11 +9,7 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      let data = {};
-
-      if (isTest) {
-        data.data = JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json'));
-      }
+      let data = { data: JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json')) };
 
       const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', {
         type: QueryTypes.SELECT,

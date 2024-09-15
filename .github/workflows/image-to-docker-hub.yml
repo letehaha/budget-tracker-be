@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Check Out Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Make envfile
-        uses: SpicyPizza/create-envfile@v1
+        uses: SpicyPizza/create-envfile@v2
         with:
           envkey_APPLICATION_HOST: ${{ secrets.APPLICATION_HOST }}
           envkey_APPLICATION_PORT: ${{ secrets.APPLICATION_PORT }}
@@ -30,6 +30,7 @@ jobs:
           envkey_APPLICATION_DB_PORT: ${{ secrets.APPLICATION_DB_PORT }}
           envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
           envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
+          envkey_JEST_WORKERS_AMOUNT: ${{ secrets.JEST_WORKERS_AMOUNT }}
           directory: ./
           file_name: .env.production
 

@@ -1,18 +1,15 @@
 # budget-tracker-be
 
-Budget tracker back-end
+## First run instructions
 
-### First run instructions
+You need to make sure you have Docker installed. Current instruction is written
+for the Docker v4.34.
 
-Required stack (WIP): Postgres v11, Node version specified in `.nvmrc`
+### 1. Install dependencies
 
-1. Install dependencies
+Use `npm ci` to install all the dependencies with correct versions.
 
-```sh
-npm i
-```
-
-2. Create corresponding env variables.
+### 2. Create corresponding env variables.
 
 Project uses different `.env` files for each environment: `.env.development`,
 `.env.production`, `.env.test`.
@@ -25,38 +22,36 @@ variables.
 since when tests are running, they're automatically filling and cleaning the DB,
 so all your data from the DB used for development might be lost.
 
-3. Run migrations
+### 3. Start dev server
 
-```sh
-npm run migrate:dev
-```
+Run `npm run docker:dev` or `npm run docker:dev -- -d` to run it "in background".
 
-If you have an error running this command, you probably need to install Postgres. Read [the guide below](#setup-postgres).
+It will be working in HMR mode, so any changes to the codebase will be reflected.
 
-If you encountered any errors during `npm run migrate:dev`, you can run
-`npm run migrate-undo:dev` to undo migrations. If you still facing issues, you
-can clear the DB using these two commands:
+### 4. That's it ! 🎉🎉🎉
 
-```sh
-drop schema public cascade;
-create schema public;
-```
+Now it should be accessible under the port that you defined in the `.env.development` file.
 
-They will completely clean the DB and you will be able to run migrations again.
+### Troubleshoting:
 
-4. Start dev server
+1. Sometimes when running `npm run docker:dev` it might stuck running migrations
+   due to DB connection issues. It's a very rare case, but if this happens,
+   _**simply run the command again**_.
 
-```sh
-npm run dev
-```
+### Useful command for local development:
 
-### If you didn't work on it for long time
+1. `npm run docker:dev:down` to stop containers. All the data will still be stored in the DB.
+2. `npm run docker:dev:destroy` stops containers, and _**Completely destroys all the images, container and volumes**_. It means all the data will be erased from the DB. Useful when you want to test new migrations, or DB structure was damaged.
+3. Use `docker:dev:run-in-container -- <some command>` to run any command inside running docker container. For example `docker:dev:run-in-container -- npm run migrate:dev` to run migrations and `docker:dev:run-in-container -- npm run migrate:dev:undo` to undo them.
 
-1. Make sure Postres v11 is running
-2. Run `nvm use`
-3. That's it!
+<hr>
 
-### Setup Postgres
+### If you don't want to use Docker
+
+For whatever reason if you don't want not to use Docker, you still need to complete
+first 2 steps described above, and then follow these instructions:
+
+### 3. Setup Postgres
 
 If you can access your user and you know how to create a DB, **you can ignore that section**.
 
@@ -92,8 +87,36 @@ CREATE DATABASE "budget-tracker";
 
 7. That's it.
 
-To install Redis (if you don't have one):
+### 4. Install Redis (if you don't have one):
 
 1. Install Redis via `brew install redis`
 2. Then `brew services start redis`
-3. You're done :)
+
+### 5. Run migrations
+
+```sh
+npm run migrate:dev
+```
+
+If you have an error running this command, you probably need to install Postgres. Read [the guide below](#setup-postgres).
+
+If you encountered any errors during `npm run migrate:dev`, you can run
+`npm run migrate-undo:dev` to undo migrations. If you still facing issues, you
+can clear the DB using these two commands:
+
+```sh
+drop schema public cascade;
+create schema public;
+```
+
+They will completely clean the DB and you will be able to run migrations again.
+
+### 6. Start dev server
+
+```sh
+npm run dev
+```
+
+### 7. That's it! 🎉🎉🎉
+
+But better use Docker 🙈
