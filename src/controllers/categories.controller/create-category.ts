@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { API_RESPONSE_STATUS, CATEGORY_TYPES, endpointsTypes } from 'shared-types';
+import { API_RESPONSE_STATUS, CATEGORY_TYPES } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as categoriesService from '@root/services/categories/create-category';
 import { errorHandler } from '../helpers';
 
 export const createCategory = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { name, imageUrl, color, parentId }: endpointsTypes.CreateCategoryBody = req.validated.body;
+  const { name, imageUrl, color, parentId }: CreateCategoryParams = req.validated.body;
 
   try {
     const data = await categoriesService.createCategory({
@@ -29,7 +29,7 @@ export const createCategory = async (req, res: CustomResponse) => {
 export const CreateCategoryPayloadSchema = z
   .object({
     name: z.string().min(1).max(200, 'The name must not exceed 200 characters'),
-    imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
+    imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').nullish(),
     type: z
       .enum(Object.values(CATEGORY_TYPES) as [string, ...string[]])
       .default(CATEGORY_TYPES.custom),
@@ -41,7 +41,7 @@ export const CreateCategoryPayloadSchema = z
         color: z
           .string()
           .regex(/^#[0-9A-F]{6}$/i)
-          .optional(),
+          .nullish(),
       }),
       z.object({
         parentId: z.undefined(),
@@ -53,3 +53,5 @@ export const CreateCategoryPayloadSchema = z
 export const createCategorySchema = z.object({
   body: CreateCategoryPayloadSchema,
 });
+
+type CreateCategoryParams = z.infer<typeof CreateCategoryPayloadSchema>;
