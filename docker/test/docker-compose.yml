@@ -8,14 +8,12 @@ services:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    ports: ['${APPLICATION_DB_PORT}:5432']
     env_file: ../../.env.test
 
   test-redis:
     image: redis:6
     container_name: test-budget-tracker-redis
     volumes: ['test_redis_data:/data']
-    ports: ['6379:6379']
 
   test-runner:
     build:
