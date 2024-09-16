@@ -38,12 +38,26 @@ Now it should be accessible under the port that you defined in the `.env.develop
    due to DB connection issues. It's a very rare case, but if this happens,
    _**simply run the command again**_.
 
+### Additional services for local development
+
+#### pgAdmin (DB data viewer)
+
+There's a pgAdmin available under the port `8001`. You can modify configuration for email and password of the dashboard in the env file. On the first setup, after logging in on the dashboard you will see "Add new server". Click on it, give it whatever Name you want.
+
+Under the `Connection` tab you will need to fill a few fields:
+
+- Host name/address – `db` (postgres service name from `docker/dev/docker-compose.yml` file)
+- Username – value from the `APPLICATION_DB_USERNAME` env variable
+- Password - value from the `APPLICATION_DB_PASSWORD` env variable
+
 ### Useful command for local development:
 
 1. `npm run docker:dev:down` to stop containers. All the data will still be stored in the DB.
 2. `npm run docker:dev:destroy` stops containers, and _**Completely destroys all the images, container and volumes**_. It means all the data will be erased from the DB. Useful when you want to test new migrations, or DB structure was damaged.
 3. Use `docker:dev:run-in-container -- <some command>` to run any command inside running docker container. For example `docker:dev:run-in-container -- npm run migrate:dev` to run migrations and `docker:dev:run-in-container -- npm run migrate:dev:undo` to undo them.
 
+<hr>
+<hr>
 <hr>
 
 ### If you don't want to use Docker
