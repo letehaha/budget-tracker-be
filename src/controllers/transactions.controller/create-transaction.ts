@@ -88,7 +88,7 @@ const bodyZodSchema = z
       .optional(),
     destinationAccountId: recordId().optional(),
     destinationTransactionId: recordId().optional(),
-    categoryId: recordId(),
+    categoryId: z.union([recordId(), z.undefined()]),
     transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE),
     refundsTxId: recordId().optional(),
   })
@@ -144,6 +144,21 @@ const bodyZodSchema = z
     {
       message: `For ${TRANSACTION_TRANSFER_NATURE.common_transfer} without "destinationTransactionId" - "destinationAccountId", and "destinationAmount" must be provided`,
       path: ['destinationAccountId', 'destinationAmount', 'destinationTransactionId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (
+        data.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer &&
+        data.categoryId === undefined
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "'categoryId' is required for non-transfer transactions.",
+      path: ['categoryId', 'transferNature'],
     },
   );
 
