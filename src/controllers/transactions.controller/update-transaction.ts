@@ -4,7 +4,6 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  endpointsTypes,
 } from 'shared-types';
 import { CustomResponse, CustomRequest } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
@@ -31,7 +30,7 @@ export const updateTransaction = async (
       transferNature,
       refundedByTxIds,
       refundsTxId,
-    }: endpointsTypes.UpdateTransactionBody = req.validated.body;
+    } = req.validated.body;
     const { id: userId } = req.user;
 
     const data = await transactionsService.updateTransaction({
@@ -41,7 +40,7 @@ export const updateTransaction = async (
         destinationAmount,
         destinationTransactionId,
         note,
-        time: new Date(time),
+        time: time ? new Date(time) : undefined,
         userId,
         transactionType,
         paymentType,

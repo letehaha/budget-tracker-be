@@ -2,6 +2,7 @@ import { logger } from '@js/utils/logger';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as Currencies from '@models/Currencies.model';
+import { ValidationError } from '@js/errors';
 import { withTransaction } from './common';
 
 /**
@@ -31,7 +32,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
   const { baseId, quoteId, userId, amount } = params;
 
   try {
-    let defaultUserCurrency: Currencies.default;
+    let defaultUserCurrency: Currencies.default | undefined = undefined;
 
     if (!baseCode && baseId) {
       baseCode = (await Currencies.getCurrency({ id: baseId }))?.code;
@@ -42,8 +43,11 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
     }
 
     if (!quoteCode) {
-      const { currency } = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
-      defaultUserCurrency = currency;
+      const result = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
+      if (!result) {
+        throw new ValidationError({ message: 'Cannot find currency to calculate ref amount!' });
+      }
+      defaultUserCurrency = result.currency;
     }
 
     // If baseCade same as default currency code no need to calculate anything
@@ -51,10 +55,17 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
       return amount;
     }
 
+    if (!baseCode || (quoteCode === undefined && defaultUserCurrency === undefined)) {
+      throw new ValidationError({
+        message: 'Cannot calculate ref amount',
+        details: { baseCode, defaultUserCurrency },
+      });
+    }
+
     const result = await userExchangeRateService.getExchangeRate({
       userId,
       baseCode,
-      quoteCode: quoteCode || defaultUserCurrency.code,
+      quoteCode: quoteCode || defaultUserCurrency!.code,
     });
     const rate = result.rate;
 

@@ -54,11 +54,11 @@ export const getBalanceHistoryForAccount = async ({
     data = balancesInRange;
 
     if (!balancesInRange.length) {
-      let balanceRecord: BalanceModel;
+      let balanceRecord: BalanceModel | undefined = undefined;
 
       if (from) {
         // Check for records before "from" date
-        balanceRecord = await Balances.default.findOne({
+        balanceRecord = (await Balances.default.findOne({
           where: {
             date: {
               [Op.lt]: new Date(from),
@@ -68,13 +68,13 @@ export const getBalanceHistoryForAccount = async ({
           order: [['date', 'DESC']],
           attributes: dataAttributes,
           raw: true,
-        });
+        }))!;
       }
 
       if (!balanceRecord && to) {
         // If no record found before "from" date, check for records after "to"
         // date with amount > 0
-        balanceRecord = await Balances.default.findOne({
+        balanceRecord = (await Balances.default.findOne({
           where: {
             accountId,
             date: {
@@ -87,18 +87,19 @@ export const getBalanceHistoryForAccount = async ({
           order: [['date', 'ASC']],
           attributes: dataAttributes,
           raw: true,
-        });
+        }))!;
       }
 
-      // Combine the results
-      data = [
-        ...data,
-        // filter(Boolean) to remove any null values
-        {
-          ...balanceRecord,
-          date: new Date(to ?? from ?? new Date()),
-        },
-      ];
+      if (balanceRecord) {
+        // Combine the results
+        data = [
+          ...data,
+          {
+            ...balanceRecord,
+            date: new Date(to ?? from ?? new Date()),
+          },
+        ];
+      }
     }
 
     return data;

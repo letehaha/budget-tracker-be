@@ -1,9 +1,14 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import {
+  ACCOUNT_TYPES,
+  TRANSACTION_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  API_ERROR_CODES,
+} from 'shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
 import { logger } from '@js/utils/logger';
 import { UnwrapPromise } from '@common/types';
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 
 import * as Transactions from '@models/Transactions.model';
 import * as Accounts from '@models/Accounts.model';
@@ -150,7 +155,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     transferId,
   });
 
-  return { baseTx, oppositeTx };
+  return { baseTx, oppositeTx: oppositeTx! };
 };
 
 /**
@@ -174,6 +179,16 @@ export const createTransaction = withTransaction(
         });
       }
 
+      const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
+        userId,
+        isDefaultCurrency: true,
+      });
+
+      const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
+        userId,
+        id: accountId,
+      });
+
       const generalTxParams: Transactions.CreateTransactionPayload = {
         ...payload,
         amount,
@@ -182,26 +197,11 @@ export const createTransaction = withTransaction(
         transferNature,
         refAmount: amount,
         // since we already pass accountId, we don't need currencyId (at least for now)
-        currencyId: undefined,
-        currencyCode: undefined,
+        currencyId: generalTxCurrency.id,
+        currencyCode: generalTxCurrency.code,
         transferId: undefined,
-        refCurrencyCode: undefined,
+        refCurrencyCode: defaultUserCurrency.code,
       };
-
-      const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
-        userId,
-        isDefaultCurrency: true,
-      });
-
-      generalTxParams.refCurrencyCode = defaultUserCurrency.code;
-
-      const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
-        userId,
-        id: accountId,
-      });
-
-      generalTxParams.currencyId = generalTxCurrency.id;
-      generalTxParams.currencyCode = generalTxCurrency.code;
 
       if (defaultUserCurrency.code !== generalTxCurrency.code) {
         generalTxParams.refAmount = await calculateRefAmount({
@@ -215,14 +215,14 @@ export const createTransaction = withTransaction(
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
       let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [
-        baseTransaction,
+        baseTransaction!,
       ];
 
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
         await createSingleRefund({
           userId,
           originalTxId: refundsTxId,
-          refundTxId: baseTransaction.id,
+          refundTxId: baseTransaction!.id,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
         /**
@@ -238,13 +238,24 @@ export const createTransaction = withTransaction(
            * We need to update the existing one, or fail the whole creation if it
            * doesn't exist
            */
-          const [[baseTx, oppositeTx]] = await linkTransactions({
+          const result = await linkTransactions({
             userId,
-            ids: [[baseTransaction.id, destinationTransactionId]],
+            ids: [[baseTransaction!.id, destinationTransactionId]],
             ignoreBaseTxTypeValidation: true,
           });
-
-          transactions = [baseTx, oppositeTx];
+          if (result[0]) {
+            const [baseTx, oppositeTx] = result[0];
+            transactions = [baseTx, oppositeTx];
+          } else {
+            logger.info('Cannot create transaction with provided params', {
+              ids: [[baseTransaction!.id, destinationTransactionId]],
+              result,
+            });
+            throw new UnexpectedError(
+              API_ERROR_CODES.unexpected,
+              'Cannot create transaction with provided params',
+            );
+          }
         } else {
           const res = await createOppositeTransaction([
             {
@@ -254,7 +265,7 @@ export const createTransaction = withTransaction(
               transferNature,
               ...payload,
             },
-            baseTransaction,
+            baseTransaction!,
           ]);
           transactions = [res.baseTx, res.oppositeTx];
         }

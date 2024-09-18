@@ -1,7 +1,7 @@
 import config from 'config';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { API_ERROR_CODES } from 'shared-types';
+import { API_ERROR_CODES, CategoryModel, UserModel } from 'shared-types';
 
 import { connection } from '@models/index';
 import * as userService from '@services/user.service';
@@ -55,18 +55,17 @@ export const login = withTransaction(
 );
 
 export const register = withTransaction(
-  async ({ username, password }: { username: string; password: string }) => {
+  async ({ username, password }: { username: string; password: string }): Promise<UserModel> => {
     try {
-      // Check if user already exists
-      let user = await userService.getUserByCredentials({ username });
-      if (user) {
+      const existingUser = await userService.getUserByCredentials({ username });
+      if (existingUser) {
         throw new ConflictError(API_ERROR_CODES.userExists, 'User already exists!');
       }
 
       const salt = bcrypt.genSaltSync(10);
 
       // Create user with salted password
-      user = await userService.createUser({
+      let user = await userService.createUser({
         username,
         password: bcrypt.hashSync(password, salt),
       });
@@ -82,7 +81,7 @@ export const register = withTransaction(
         { returning: true },
       );
 
-      let subcats = [];
+      let subcats: Omit<CategoryModel, 'id' | 'imageUrl'>[] = [];
 
       // Loop through categories and make subcats as a raw array of categories
       // since DB expects that
@@ -108,21 +107,26 @@ export const register = withTransaction(
       await categoriesService.bulkCreate({ data: subcats });
 
       // set defaultCategoryId so the undefined mcc codes will use it
-      const defaultCategoryId = categories.find(
+      const defaultCategory = categories.find(
         (item) => item.name === DEFAULT_CATEGORIES.names.other,
-      ).id;
+      );
 
-      if (!defaultCategoryId) {
+      if (!defaultCategory) {
         // TODO: return UnexpectedError, but move descriptive message to logger, so users won't see this internal issue
         throw new UnexpectedError(
           API_ERROR_CODES.unexpected,
           "Cannot find 'defaultCategoryId' in the previously create categories.",
         );
       } else {
-        user = await userService.updateUser({
-          defaultCategoryId,
-          id: user.id,
-        });
+        try {
+          const updatedUser = await userService.updateUser({
+            defaultCategoryId: defaultCategory.id,
+            id: user.id,
+          });
+          if (updatedUser) user = updatedUser;
+        } catch (err) {
+          logger.error(err);
+        }
       }
 
       return user;

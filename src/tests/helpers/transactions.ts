@@ -41,8 +41,11 @@ export async function createTransaction({
 }: CreateTransactionBasePayload & { raw?: true }): Promise<
   [baseTx: Transactions, oppositeTx?: Transactions]
 >;
-export async function createTransaction({ raw = false, payload = undefined } = {}) {
-  let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
+export async function createTransaction({
+  raw = false,
+  payload = undefined,
+}: CreateTransactionBasePayload & { raw?: boolean } = {}) {
+  let txPayload: ReturnType<typeof buildTransactionPayload> | undefined = payload;
 
   if (payload === undefined) {
     const account = await createAccount({ raw: true });
@@ -120,7 +123,13 @@ export function unlinkTransferTransactions({
   transferIds: string[];
   raw?: true;
 }): Promise<Transactions[]>;
-export function unlinkTransferTransactions({ raw = false, transferIds = [] } = {}) {
+export function unlinkTransferTransactions({
+  raw = false,
+  transferIds = [],
+}: {
+  transferIds: string[];
+  raw?: boolean;
+}) {
   return makeRequest({
     method: 'put',
     url: '/transactions/unlink',

@@ -33,7 +33,7 @@ describe('Accounts controller', () => {
           ...helpers.buildAccountPayload(),
           initialBalance,
           creditLimit,
-          currencyId: currency.currencyId,
+          currencyId: currency!.currencyId,
         },
         raw: true,
       });
@@ -42,14 +42,14 @@ describe('Accounts controller', () => {
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
       expect(account.refInitialBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate.rate),
+        Math.floor(initialBalance * currencyRate!.rate),
       );
       expect(account.currentBalance).toStrictEqual(initialBalance);
       expect(account.refCurrentBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate.rate),
+        Math.floor(initialBalance * currencyRate!.rate),
       );
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate.rate));
+      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate!.rate));
     });
   });
   describe('update account', () => {
@@ -136,7 +136,7 @@ describe('Accounts controller', () => {
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
-          currencyId: currency.currencyId,
+          currencyId: currency!.currencyId,
         },
         raw: true,
       });

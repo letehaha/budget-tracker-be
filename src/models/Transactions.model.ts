@@ -6,7 +6,7 @@ import {
   SORT_DIRECTIONS,
   TransactionModel,
 } from 'shared-types';
-import { Op } from 'sequelize';
+import { Op, Includeable } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -44,10 +44,10 @@ const prepareTXInclude = ({
   includeAll?: boolean;
   nestedInclude?: boolean;
 }) => {
-  let include = null;
+  let include: Includeable | Includeable[] | null = null;
 
   if (isExist(includeAll)) {
-    include = { all: true, nested: isExist(nestedInclude) };
+    include = { all: true, nested: isExist(nestedInclude) || undefined };
   } else {
     include = [];
 
@@ -98,7 +98,7 @@ export interface TransactionsAttributes {
 @Table({
   timestamps: false,
 })
-export default class Transactions extends Model<TransactionsAttributes> {
+export default class Transactions extends Model {
   @Column({
     unique: true,
     allowNull: false,
@@ -347,17 +347,17 @@ export const getTransactions = async ({
   excludeRefunds,
 }: {
   from: number;
-  limit: number;
-  accountType: ACCOUNT_TYPES;
-  transactionType: string;
-  accountId: number;
+  limit?: number;
+  accountType?: ACCOUNT_TYPES;
+  transactionType?: TRANSACTION_TYPES;
+  accountId?: number;
   userId: number;
   sortDirection: SORT_DIRECTIONS;
-  includeUser: boolean;
-  includeAccount: boolean;
-  includeCategory: boolean;
-  includeAll: boolean;
-  nestedInclude: boolean;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
   isRaw: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
@@ -517,12 +517,10 @@ type CreateTxRequiredParams = Pick<
   TransactionsAttributes,
   | 'amount'
   | 'refAmount'
-  | 'time'
   | 'userId'
   | 'transactionType'
   | 'paymentType'
   | 'accountId'
-  | 'categoryId'
   | 'currencyId'
   | 'currencyCode'
   | 'accountType'
@@ -532,6 +530,8 @@ type CreateTxOptionalParams = Partial<
   Pick<
     TransactionsAttributes,
     | 'note'
+    | 'time'
+    | 'categoryId'
     | 'refCurrencyCode'
     | 'transferId'
     | 'originalId'
@@ -558,7 +558,7 @@ export interface UpdateTransactionByIdParams {
   userId: number;
   amount?: number;
   refAmount?: number;
-  note?: string;
+  note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
@@ -568,7 +568,7 @@ export interface UpdateTransactionByIdParams {
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  transferId?: string;
+  transferId?: string | null;
   refundLinked?: boolean;
 }
 
@@ -587,7 +587,8 @@ export const updateTransactionById = async (
     individualHooks,
   });
 
-  return getTransactionById({ id, userId });
+  // Return transactions exactly like that. Ading `returning: true` causes balances not being updated
+  return getTransactionById({ id, userId }) as Promise<Transactions>;
 };
 
 export const updateTransactions = (
@@ -619,6 +620,8 @@ export const updateTransactions = (
 
 export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
   const tx = await getTransactionById({ id, userId });
+
+  if (!tx) return true;
 
   if (tx.accountType !== ACCOUNT_TYPES.system) {
     throw new ValidationError({

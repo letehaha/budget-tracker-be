@@ -40,7 +40,7 @@ export default class RefundTransactions extends Model {
     // consider that not all user real-life accounts will be present in the system
     allowNull: true,
   })
-  originalTxId: number | null;
+  originalTxId: number;
 
   @ForeignKey(() => Transactions)
   @Column({

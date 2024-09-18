@@ -49,7 +49,7 @@ describe('Monobank integration', () => {
         const rates = await helpers.getCurrenciesRates();
         const rate = rates.find(
           (r) => r.baseCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode],
-        ).rate;
+        )!.rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
         expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));

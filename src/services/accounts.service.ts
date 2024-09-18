@@ -7,13 +7,14 @@ import {
   MonobankUserModel,
   ACCOUNT_TYPES,
   ACCOUNT_CATEGORIES,
+  API_ERROR_CODES,
 } from 'shared-types';
 import * as Accounts from '@models/Accounts.model';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
 import * as userService from '@services/user.service';
 import { redisClient } from '@root/redis';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, UnexpectedError } from '@js/errors';
 import Balances from '@models/Balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
@@ -30,7 +31,7 @@ export const getAccountsByExternalIds = withTransaction(
 );
 
 export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountModel> =>
+  async (payload: { id: number; userId: number }): Promise<AccountModel | null> =>
     Accounts.getAccountById(payload),
 );
 
@@ -44,12 +45,11 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
     userId: number;
     monoAccounts: ExternalMonobankClientInfoResponse['accounts'];
   }) => {
-    // TODO: wrap createCurrency and createAccount into single transactions
     const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
 
-    const currencies = await Promise.all(
-      currencyCodes.map((code) => Currencies.createCurrency({ code })),
-    );
+    const currencies = (
+      await Promise.all(currencyCodes.map((code) => Currencies.createCurrency({ code })))
+    ).filter(Boolean) as Currencies.default[];
 
     const accountCurrencyCodes = {};
     currencies.forEach((item) => {
@@ -100,7 +100,7 @@ export const pairMonobankAccount = withTransaction(
     const redisToken = redisKeyFormatter(token);
 
     // Otherwise begin user connection
-    const response: string = await redisClient.get(redisToken);
+    const response = await redisClient.get(redisToken);
     let clientInfo: ExternalMonobankClientInfoResponse;
 
     if (!response) {
@@ -160,7 +160,7 @@ export const pairMonobankAccount = withTransaction(
 export const createAccount = withTransaction(
   async (
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
-  ): Promise<AccountModel> => {
+  ): Promise<AccountModel | null> => {
     const { userId, creditLimit, currencyId, initialBalance } = payload;
     const refCreditLimit = await calculateRefAmount({
       userId: userId,
@@ -194,6 +194,10 @@ export const updateAccount = withTransaction(
     )) => {
     const accountData = await Accounts.default.findByPk(id);
 
+    if (!accountData) {
+      throw new NotFoundError({ message: 'Account not found!' });
+    }
+
     const currentBalanceIsChanging =
       payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
     let initialBalance = accountData.initialBalance;
@@ -205,7 +209,7 @@ export const updateAccount = withTransaction(
      * but without creating adjustment transaction, so instead we change both `initialBalance`
      * and `currentBalance` on the same diff
      */
-    if (currentBalanceIsChanging) {
+    if (currentBalanceIsChanging && payload.currentBalance !== undefined) {
       const diff = payload.currentBalance - accountData.currentBalance;
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
@@ -233,6 +237,10 @@ export const updateAccount = withTransaction(
       refCurrentBalance,
       ...payload,
     });
+
+    if (!result) {
+      throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Account updation is not successful');
+    }
 
     await Balances.handleAccountChange({ account: result, prevAccount: accountData });
 
@@ -319,7 +327,11 @@ export async function updateAccountBalanceForChangedTxImpl({
   prevTransactionType = transactionType,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any): Promise<void> {
-  const { currentBalance, refCurrentBalance } = await getAccountById({ id: accountId, userId });
+  const account = await getAccountById({ id: accountId, userId });
+
+  if (!account) return undefined;
+
+  const { currentBalance, refCurrentBalance } = account;
 
   const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
   const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType);

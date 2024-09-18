@@ -13,7 +13,7 @@ export enum ERROR_CODES {
 export class CustomError extends Error {
   public httpCode: number;
   public code: API_ERROR_CODES;
-  public details: Record<string, unknown>;
+  public details: Record<string, unknown> | undefined;
 
   constructor(httpCode, code: API_ERROR_CODES, message: string, details?: Record<string, unknown>) {
     super(message);

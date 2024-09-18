@@ -42,7 +42,7 @@ export const createSingleRefund = withTransaction(
     try {
       // Fetch original and refund transactions
       const [originalTx, refundTx] = await Promise.all([
-        Transactions.getTransactionById({ userId, id: originalTxId }),
+        Transactions.getTransactionById({ userId, id: originalTxId! }),
         Transactions.getTransactionById({ userId, id: refundTxId }),
       ]);
 
@@ -116,7 +116,7 @@ export const createSingleRefund = withTransaction(
         });
       }
 
-      if (originalTxId) {
+      if (originalTxId && originalTx) {
         // Fetch all existing refunds for the original transaction
         const existingRefunds = await RefundTransactions.default.findAll({
           where: { originalTxId, userId },

@@ -1,6 +1,6 @@
-import { ACCOUNT_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, API_ERROR_CODES } from 'shared-types';
 
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -133,6 +133,10 @@ export const setBaseUserCurrency = withTransaction(
       { baseCode: currency.code, quoteCode: currency.code },
     ]);
 
+    if (!exchangeRate) {
+      throw new ValidationError({ message: 'No exchange rate for current pair!' });
+    }
+
     await addUserCurrencies([
       {
         userId,
@@ -156,7 +160,7 @@ export const addUserCurrencies = withTransaction(
       liveRateUpdate?: boolean;
     }[],
   ) => {
-    if (!currencies.length) {
+    if (!currencies.length || !currencies[0]) {
       throw new ValidationError({ message: 'Currencies list is empty' });
     }
 
@@ -273,6 +277,13 @@ export const deleteUserCurrency = withTransaction(
     }
 
     const defaultCurrency = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
+
+    if (!defaultCurrency) {
+      throw new UnexpectedError(
+        API_ERROR_CODES.unexpected,
+        'Cannot delete currency. Default currency is not present in the system',
+      );
+    }
 
     await Transactions.updateTransactions(
       {

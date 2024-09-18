@@ -1,15 +1,14 @@
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { UserCurrencyModel } from 'shared-types';
+
 import { removeUndefinedKeys } from '@js/helpers';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
 
-interface UserCurrencyAttributes extends UserCurrencyModel {}
 @Table({
   timestamps: false,
 })
-export default class UsersCurrencies extends Model<UserCurrencyAttributes> {
+export default class UsersCurrencies extends Model {
   @BelongsTo(() => Users, {
     as: 'user',
     foreignKey: 'userId',

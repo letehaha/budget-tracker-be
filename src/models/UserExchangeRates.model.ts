@@ -3,12 +3,12 @@ import { Op } from 'sequelize';
 import { UserExchangeRatesModel } from 'shared-types';
 import Currencies, { getCurrencies } from './Currencies.model';
 import Users from './Users.model';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
 @Table({ timestamps: true })
-export default class UserExchangeRates extends Model<UserExchangeRatesAttributes> {
+export default class UserExchangeRates extends Model {
   @Column({
     unique: true,
     allowNull: false,
@@ -125,8 +125,8 @@ export async function updateRates({
   pair?: UpdateExchangeRatePair;
   pairs?: UpdateExchangeRatePair[];
 }): Promise<UserExchangeRates[]> {
-  const iterations = pairs ?? [pair];
-  const returningValues = [];
+  const iterations = (pairs ?? [pair]) as UpdateExchangeRatePair[];
+  const returningValues: UserExchangeRates[] = [];
 
   for (const pairItem of iterations) {
     const foundItem = await UserExchangeRates.findOne({
@@ -152,7 +152,7 @@ export async function updateRates({
         },
       );
 
-      returningValues.push(updatedItems[0]);
+      if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
       const currencies = await getCurrencies({
         codes: [pairItem.baseCode, pairItem.quoteCode],
@@ -160,21 +160,25 @@ export async function updateRates({
       const baseCurrency = currencies.find((item) => item.code === pairItem.baseCode);
       const quoteCurrency = currencies.find((item) => item.code === pairItem.quoteCode);
 
-      const res = await UserExchangeRates.create(
-        {
-          userId,
-          rate: pairItem.rate,
-          baseId: baseCurrency.id,
-          baseCode: baseCurrency.code,
-          quoteId: quoteCurrency.id,
-          quoteCode: quoteCurrency.code,
-        },
-        {
-          returning: true,
-        },
-      );
+      if (baseCurrency && quoteCurrency) {
+        const res = await UserExchangeRates.create(
+          {
+            userId,
+            rate: pairItem.rate,
+            baseId: baseCurrency.id,
+            baseCode: baseCurrency.code,
+            quoteId: quoteCurrency.id,
+            quoteCode: quoteCurrency.code,
+          },
+          {
+            returning: true,
+          },
+        );
 
-      returningValues.push(res);
+        returningValues.push(res);
+      } else {
+        throw new NotFoundError({ message: 'Cannot find currencies to update rates for.' });
+      }
     }
   }
 

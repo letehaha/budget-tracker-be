@@ -1,5 +1,5 @@
 import { expect } from '@jest/globals';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
+import { CategoryModel, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 
 describe('[Stats] Spendings by categories', () => {
@@ -10,7 +10,7 @@ describe('[Stats] Spendings by categories', () => {
       amount: 100,
     });
     const categoriesList = await helpers.getCategoriesList();
-    const category = categoriesList.find((i) => i.id === payload.categoryId);
+    const category = categoriesList.find((i) => i.id === payload.categoryId)!;
 
     await Promise.all([
       helpers.createTransaction({
@@ -51,7 +51,7 @@ describe('[Stats] Spendings by categories', () => {
       .slice(0, CATEGORIES_AMOUNT_FOR_EACH_NESTING_LEVEL);
 
     // Prepare nested 1-level categories
-    const excludedIds = new Set([]);
+    const excludedIds = new Set<number>([]);
     const firstLevelNestedCategories = categoriesList.filter((c) => {
       if (c.parentId) {
         if (rootCategories.some((e) => e.id === c.parentId) && !excludedIds.has(c.parentId)) {
@@ -74,7 +74,7 @@ describe('[Stats] Spendings by categories', () => {
       ...firstLevelNestedCategories,
       customCategory1,
       customCategory2,
-    ];
+    ].filter(Boolean) as CategoryModel[];
 
     const payload = helpers.buildTransactionPayload({
       accountId: account.id,
@@ -127,19 +127,19 @@ describe('[Stats] Spendings by categories', () => {
     // Create two refunds based on income tx:
     // – in first income is being REFUNDED
     // – in second income is REFUNDING the existing expense
-    const tx1 = expenseTransactions.flat().find((t) => t.categoryId === customCategory1.id);
-    const tx2 = expenseTransactions.flat().find((t) => t.categoryId === customCategory2.id);
+    const tx1 = expenseTransactions.flat().find((t) => t!.categoryId === customCategory1!.id);
+    const tx2 = expenseTransactions.flat().find((t) => t!.categoryId === customCategory2!.id);
     await Promise.all([
       helpers.createSingleRefund(
         {
           originalTxId: incomeThatWillBeRefunded.id,
-          refundTxId: tx1.id,
+          refundTxId: tx1!.id,
         },
         true,
       ),
       helpers.createSingleRefund(
         {
-          originalTxId: tx2.id,
+          originalTxId: tx2!.id,
           refundTxId: incomeThatRefunds.id,
         },
         true,
@@ -154,13 +154,13 @@ describe('[Stats] Spendings by categories', () => {
     // Transfers are ignored
     expect(spendingsByCategories).toEqual({
       '1': {
-        name: rootCategories[0].name,
-        color: rootCategories[0].color,
+        name: rootCategories[0]!.name,
+        color: rootCategories[0]!.color,
         amount: 400,
       },
       '2': {
-        name: rootCategories[1].name,
-        color: rootCategories[1].color,
+        name: rootCategories[1]!.name,
+        color: rootCategories[1]!.color,
         amount: 500,
       },
     });
@@ -184,23 +184,23 @@ describe('[Stats] Spendings by categories', () => {
     // Set fake custom exchange rates so it's easier to calculate them in tests
     await helpers.editUserCurrencyExchangeRate({
       pairs: [
-        { baseCode: usdCurrency.currency.code, quoteCode: uahCurrency.currency.code, rate: 10 },
-        { baseCode: uahCurrency.currency.code, quoteCode: usdCurrency.currency.code, rate: 0.1 },
-        { baseCode: usdCurrency.currency.code, quoteCode: eurCurrency.currency.code, rate: 2 },
-        { baseCode: eurCurrency.currency.code, quoteCode: usdCurrency.currency.code, rate: 0.5 },
+        { baseCode: usdCurrency!.currency.code, quoteCode: uahCurrency!.currency.code, rate: 10 },
+        { baseCode: uahCurrency!.currency.code, quoteCode: usdCurrency!.currency.code, rate: 0.1 },
+        { baseCode: usdCurrency!.currency.code, quoteCode: eurCurrency!.currency.code, rate: 2 },
+        { baseCode: eurCurrency!.currency.code, quoteCode: usdCurrency!.currency.code, rate: 0.5 },
       ],
     });
     const uahAccount = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: uahCurrency.currencyId,
+        currencyId: uahCurrency!.currencyId,
       },
       raw: true,
     });
     const eurAccount = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: eurCurrency.currencyId,
+        currencyId: eurCurrency!.currencyId,
       },
       raw: true,
     });
@@ -242,14 +242,14 @@ describe('[Stats] Spendings by categories', () => {
 
     expect(spendingsByCategories).toEqual({
       '1': {
-        name: rootCategories[0].name,
-        color: rootCategories[0].color,
+        name: rootCategories[0]!.name,
+        color: rootCategories[0]!.color,
         // 400 (initial) + 400 (expense eur 500 - uah income refund 100) + 1000 (uah expense)
         amount: 400 + 400 + 1000,
       },
       '2': {
-        name: rootCategories[1].name,
-        color: rootCategories[1].color,
+        name: rootCategories[1]!.name,
+        color: rootCategories[1]!.color,
         amount: 500,
       },
     });

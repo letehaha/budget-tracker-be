@@ -12,10 +12,14 @@ import { withTransaction } from '../common';
 export const deleteTransaction = withTransaction(
   async ({ id, userId }: { id: number; userId: number }): Promise<void> => {
     try {
-      const { accountType, transferNature, transferId, refundLinked } = await getTransactionById({
+      const result = await getTransactionById({
         id,
         userId,
       });
+
+      if (!result) return undefined;
+
+      const { accountType, transferNature, transferId, refundLinked } = result;
 
       if (accountType !== ACCOUNT_TYPES.system) {
         throw new ValidationError({
@@ -65,6 +69,8 @@ const unlinkRefundTransaction = withTransaction(async (id: number) => {
       [Op.or]: [{ originalTxId: id }, { refundTxId: id }],
     },
   });
+
+  if (!refundTx) return undefined;
 
   const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
     (i) => Boolean(i) && i !== id,

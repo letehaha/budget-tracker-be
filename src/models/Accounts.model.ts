@@ -41,7 +41,7 @@ export interface AccountsAttributes {
 @Table({
   timestamps: false,
 })
-export default class Accounts extends Model<AccountsAttributes> {
+export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {
     as: 'currency',
     foreignKey: 'currencyId',

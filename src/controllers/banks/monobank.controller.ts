@@ -40,7 +40,7 @@ const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
 function dateRange({ from, to }: { from: number; to: number }): { start: number; end: number }[] {
   const difference = differenceInCalendarMonths(new Date(to), new Date(from));
-  const dates = [];
+  const dates: { start: number; end: number }[] = [];
 
   for (let i = 0; i <= difference; i++) {
     const start = startOfMonth(addMonths(new Date(from), i));
@@ -85,7 +85,7 @@ async function createMonoTransaction({
 
   if (isTransactionExists) return;
 
-  const userData = await usersService.getUser(account.userId);
+  const userData = (await usersService.getUser(account.userId))!;
 
   let mccId = await MerchantCategoryCodes.getByCode({ code: data.mcc });
 
@@ -99,12 +99,14 @@ async function createMonoTransaction({
     userId: userData.id,
   });
 
-  let categoryId;
+  let categoryId: number;
 
   if (userMcc.length) {
-    categoryId = userMcc[0].get('categoryId');
+    categoryId = userMcc[0]!.get('categoryId');
   } else {
-    categoryId = (await Users.getUserDefaultCategory({ id: userData.id })).get('defaultCategoryId');
+    categoryId = (await Users.getUserDefaultCategory({ id: userData.id }))!.get(
+      'defaultCategoryId',
+    );
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),
@@ -156,7 +158,7 @@ export const pairAccount = async (req, res: CustomResponse) => {
       userId: systemUserId,
     });
 
-    if ('connected' in result && result.connected) {
+    if (result && 'connected' in result && result.connected) {
       return res.status(404).json({
         status: API_RESPONSE_STATUS.error,
         response: {
@@ -527,13 +529,12 @@ export const refreshAccounts = async (req, res) => {
           externalIds: clientInfo.accounts.map((item) => item.id),
         });
 
-        const accountsToUpdate = [];
-        const accountsToCreate = [];
+        const promises: Promise<unknown>[] = [];
         clientInfo.accounts.forEach((account) => {
           const existingAccount = existingAccounts.find((acc) => acc.externalId === account.id);
 
           if (existingAccount) {
-            accountsToUpdate.push(
+            promises.push(
               accountsService.updateAccount({
                 id: existingAccount.id,
                 currentBalance: account.balance,
@@ -547,7 +548,7 @@ export const refreshAccounts = async (req, res) => {
               }),
             );
           } else {
-            accountsToCreate.push(
+            promises.push(
               accountsService.createSystemAccountsFromMonobankAccounts({
                 userId: systemUserId,
                 monoAccounts: [account],
@@ -556,8 +557,7 @@ export const refreshAccounts = async (req, res) => {
           }
         });
 
-        await Promise.all(accountsToUpdate);
-        await Promise.all(accountsToCreate);
+        await Promise.all(promises);
 
         const accounts = await accountsService.getAccounts({
           userId: monoUser.systemUserId,

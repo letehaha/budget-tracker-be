@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { logger } from '@js/utils/logger';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as Accounts from '@models/Accounts.model';
@@ -87,7 +87,11 @@ const makeBasicBaseTxUpdation = async (
       ? newData.transactionType
       : prevData.transactionType;
 
-  const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams = {
+  const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
+    amount: number;
+    refAmount: number;
+    currencyCode: string;
+  } = {
     id: newData.id,
     amount: newData.amount ?? prevData.amount,
     refAmount: newData.amount ?? prevData.refAmount,
@@ -169,7 +173,7 @@ const makeBasicBaseTxUpdation = async (
         }
 
         await Promise.all(
-          newData.refundedByTxIds.map((id) =>
+          newData.refundedByTxIds!.map((id) =>
             refundsService.createSingleRefund({
               originalTxId: newData.id,
               refundTxId: id,
@@ -231,6 +235,10 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
+  if (!oppositeTx) {
+    throw new NotFoundError({ message: 'Cannot find opposite tx to make an updation' });
+  }
+
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
     userId,
@@ -265,7 +273,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     await calcTransferTransactionRefAmount({
       userId,
       baseTransaction,
-      destinationAmount: updateOppositeTxParams.amount,
+      destinationAmount: updateOppositeTxParams.amount!,
       oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
     });
 
@@ -347,6 +355,10 @@ export const updateTransaction = withTransaction(
     try {
       const prevData = await getTransactionById({ id: payload.id, userId: payload.userId });
 
+      if (!prevData) {
+        throw new NotFoundError({ message: 'Transaction with provided `id` does not exist!' });
+      }
+
       // Validate that passed parameters are not breaking anything
       validateTransaction(payload, prevData);
 
@@ -373,11 +385,12 @@ export const updateTransaction = withTransaction(
         updatedTransactions = [baseTx, oppositeTx];
       } else if (isCreatingTransfer(payload, prevData)) {
         if (payload.destinationTransactionId) {
-          const [[baseTx, oppositeTx]] = await linkTransactions({
+          const result = await linkTransactions({
             userId: payload.userId,
             ids: [[updatedTransactions[0].id, payload.destinationTransactionId]],
             ignoreBaseTxTypeValidation: true,
           });
+          const [baseTx, oppositeTx] = result[0]!;
 
           updatedTransactions = [baseTx, oppositeTx];
         } else {

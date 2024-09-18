@@ -15,15 +15,15 @@ interface UpdateParams {
   id: number;
   userId: number;
   amount?: number;
-  note?: string;
+  note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
   accountId?: number;
   categoryId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId: number | null;
-  refundedByTxIds: number[] | null;
+  refundsTxId?: number | null;
+  refundedByTxIds?: number[] | null;
 }
 
 interface UpdateTransferParams {

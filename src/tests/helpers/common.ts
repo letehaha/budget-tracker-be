@@ -7,7 +7,7 @@ const apiPrefix = config.get('apiPrefix');
 interface MakeRequestParams {
   url: string;
   method: 'get' | 'post' | 'put' | 'delete';
-  payload?: object;
+  payload?: object | null;
   headers?: object;
   raw?: boolean;
 }

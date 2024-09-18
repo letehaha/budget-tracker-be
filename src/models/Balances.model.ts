@@ -12,7 +12,7 @@ interface GetTotalBalanceHistoryPayload {
 }
 
 @Table({ timestamps: true })
-export default class Balances extends Model<BalanceModel> {
+export default class Balances extends Model {
   @Column({
     allowNull: false,
     primaryKey: true,
@@ -163,7 +163,13 @@ export default class Balances extends Model<BalanceModel> {
       if (existingRecordForTheDate) {
         // Store the highest amount
         existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > balance ? existingRecordForTheDate.amount : balance;
+          existingRecordForTheDate.amount > (balance || 0)
+            ? existingRecordForTheDate.amount
+            : (balance as number);
+
+        // existingRecordForTheDate.amount = balance
+        // ? Math.max(existingRecordForTheDate.amount, balance)
+        // : existingRecordForTheDate.amount;
 
         await existingRecordForTheDate.save();
       } else {
@@ -224,20 +230,22 @@ export default class Balances extends Model<BalanceModel> {
           where: { id: accountId },
         });
 
+        // if (account) {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
         await this.create({
           accountId,
           date: subDays(new Date(date), 1),
-          amount: account.initialBalance,
+          amount: account!.initialBalance,
         });
 
         // (2) Then we create a record for that transaction
         await this.create({
           accountId,
           date,
-          amount: account.initialBalance + amount,
+          amount: account!.initialBalance + amount,
         });
+        // }
       } else {
         // And then create a new record with the amount + latestBalance
         balanceForTxDate = await this.create({
@@ -253,9 +261,10 @@ export default class Balances extends Model<BalanceModel> {
       await balanceForTxDate.save();
     }
 
+    // if (Balances.sequelize) {
     // Update the amount of all balances for the account that come after the date
     await this.update(
-      { amount: Balances.sequelize.literal(`amount + ${amount}`) },
+      { amount: Balances.sequelize!.literal(`amount + ${amount}`) },
       {
         where: {
           accountId,
@@ -265,6 +274,7 @@ export default class Balances extends Model<BalanceModel> {
         },
       },
     );
+    // }
   }
 
   static async handleAccountChange({
@@ -287,13 +297,15 @@ export default class Balances extends Model<BalanceModel> {
     if (record && prevAccount) {
       const diff = refInitialBalance - prevAccount.refInitialBalance;
 
+      // if (Balances.sequelize) {
       // Update history for all the records realted to that account
       await this.update(
-        { amount: Balances.sequelize.literal(`amount + ${diff}`) },
+        { amount: Balances.sequelize!.literal(`amount + ${diff}`) },
         {
           where: { accountId },
         },
       );
+      // }
     } else {
       const date = new Date();
       date.setHours(0, 0, 0, 0);

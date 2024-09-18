@@ -43,6 +43,7 @@ const validateTransactionLinking = ({
   }
 };
 
+type ResultStruct = [baseTx: Transactions.default, oppositeTx: Transactions.default];
 export const linkTransactions = withTransaction(
   async ({
     userId,
@@ -54,10 +55,10 @@ export const linkTransactions = withTransaction(
     ignoreBaseTxTypeValidation?: boolean;
   }): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
     try {
-      const result: [baseTx: Transactions.default, oppositeTx: Transactions.default][] = [];
+      const result: ResultStruct[] = [];
 
       for (const [baseTxId, oppositeTxId] of ids) {
-        let transactions = await Transactions.getTransactionsByArrayOfField({
+        const transactions = await Transactions.getTransactionsByArrayOfField({
           userId,
           fieldName: 'id',
           fieldValues: [baseTxId, oppositeTxId],
@@ -69,13 +70,24 @@ export const linkTransactions = withTransaction(
           });
         }
 
+        const base = transactions.find((tx) => tx.id === baseTxId);
+        const opposite = transactions.find((tx) => tx.id === oppositeTxId);
+
+        if (!base || !opposite) {
+          logger.info('Cannot find base or opposite transactions', {
+            base,
+            opposite,
+          });
+          throw new ValidationError({ message: 'Cannot find base or opposite transactions' });
+        }
+
         validateTransactionLinking({
-          base: transactions.find((tx) => tx.id === baseTxId),
-          opposite: transactions.find((tx) => tx.id === oppositeTxId),
+          base,
+          opposite,
           ignoreBaseTxTypeValidation,
         });
 
-        await Transactions.default.update(
+        const [, results] = await Transactions.default.update(
           {
             transferId: uuidv4(),
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
@@ -85,19 +97,14 @@ export const linkTransactions = withTransaction(
               userId,
               id: { [Op.in]: [baseTxId, oppositeTxId] },
             },
+            returning: true,
           },
         );
 
-        transactions = await Transactions.getTransactionsByArrayOfField({
-          userId,
-          fieldName: 'id',
-          fieldValues: [baseTxId, oppositeTxId],
-        });
-
         result.push([
-          transactions.find((tx) => tx.id === baseTxId),
-          transactions.find((tx) => tx.id === oppositeTxId),
-        ]);
+          results.find((tx) => tx.id === baseTxId),
+          results.find((tx) => tx.id === oppositeTxId),
+        ] as ResultStruct);
       }
 
       return result;

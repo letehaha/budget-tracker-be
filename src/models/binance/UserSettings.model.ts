@@ -1,5 +1,6 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import Users from '../Users.model';
+import { UnwrapArray } from '@common/types';
 
 @Table({
   timestamps: false,
@@ -46,18 +47,16 @@ export const addSettings = async ({
   if (apiKey) settingsData.apiKey = apiKey;
   if (secretKey) settingsData.secretKey = secretKey;
 
-  let userSettings: BinanceUserSettings[] | BinanceUserSettings = await BinanceUserSettings.findOne(
-    { where: { userId } },
-  );
+  let userSettings = await BinanceUserSettings.findOne({ where: { userId } });
 
   if (userSettings) {
-    const result = await BinanceUserSettings.update(settingsData, {
+    const [, result] = await BinanceUserSettings.update(settingsData, {
       where: { userId },
       returning: true,
     });
-    if (result[1]) {
-      // eslint-disable-next-line prefer-destructuring
-      userSettings = result[1];
+
+    if (result) {
+      userSettings = result as unknown as UnwrapArray<typeof result>;
     }
   } else {
     userSettings = await BinanceUserSettings.create({
