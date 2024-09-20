@@ -177,6 +177,7 @@ describe('[Stats] Spendings by categories', () => {
     const newCurrencies: string[] = [global.BASE_CURRENCY_CODE, 'UAH', 'EUR'];
     await helpers.addUserCurrencies({ currencyCodes: newCurrencies, raw: true });
     const userCurrencies = await helpers.getUserCurrencies();
+    console.log('userCurrencies', userCurrencies);
     const [usdCurrency, uahCurrency, eurCurrency] = newCurrencies.map((c) =>
       userCurrencies.find((i) => i.currency.code === c),
     );

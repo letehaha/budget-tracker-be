@@ -12,7 +12,7 @@ import {
 import * as Accounts from '@models/Accounts.model';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
-import * as userService from '@services/user.service';
+import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { redisClient } from '@root/redis';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import Balances from '@models/Balances.model';
@@ -56,7 +56,7 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
       accountCurrencyCodes[item.number] = item.id;
     });
 
-    await userService.addUserCurrencies(
+    await addUserCurrencies(
       currencies.map((item) => ({
         userId,
         currencyId: item.id,

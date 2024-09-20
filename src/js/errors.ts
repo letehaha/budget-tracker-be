@@ -61,8 +61,16 @@ export class NotFoundError extends CustomError {
 }
 
 export class ConflictError extends CustomError {
-  constructor(code: API_ERROR_CODES, message: string) {
-    super(ERROR_CODES.ConflictError, code, message);
+  constructor({
+    code = API_ERROR_CODES.conflict,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.ConflictError, code, message, details);
   }
 }
 

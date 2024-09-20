@@ -8,6 +8,7 @@ import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
 import { withTransaction } from './common';
+import { addUserCurrencies } from './currencies/add-user-currency';
 
 export const getUser = withTransaction(async (id: number) => {
   const user = await Users.getUserById({ id });
@@ -146,35 +147,6 @@ export const setBaseUserCurrency = withTransaction(
     ]);
 
     const result = await setDefaultUserCurrency({ userId, currencyId });
-
-    return result;
-  },
-);
-
-export const addUserCurrencies = withTransaction(
-  async (
-    currencies: {
-      userId: number;
-      currencyId: number;
-      exchangeRate?: number;
-      liveRateUpdate?: boolean;
-    }[],
-  ) => {
-    if (!currencies.length || !currencies[0]) {
-      throw new ValidationError({ message: 'Currencies list is empty' });
-    }
-
-    const existingCurrencies = await UsersCurrencies.getCurrencies({
-      userId: currencies[0].userId,
-    });
-
-    existingCurrencies.forEach((item) => {
-      const index = currencies.findIndex((currency) => currency.currencyId === item.currencyId);
-
-      if (index >= 0) currencies.splice(index, 1);
-    });
-
-    const result = await Promise.all(currencies.map((item) => UsersCurrencies.addCurrency(item)));
 
     return result;
   },

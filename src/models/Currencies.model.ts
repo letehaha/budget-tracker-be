@@ -121,6 +121,10 @@ export const createCurrency = async ({ code }: { code: number }) => {
     return null;
   }
 
+  if (!currency) {
+    throw new ValidationError({ message: `Currency with code {code} is not found.` });
+  }
+
   const currencyData = {
     code: currency.code,
     number: Number(currency.number),

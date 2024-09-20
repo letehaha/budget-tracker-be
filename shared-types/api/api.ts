@@ -9,6 +9,7 @@ export enum API_ERROR_CODES {
   notFound = 'NOT_FOUND',
   unexpected = 'UNEXPECTED',
   validationError = 'VALIDATION_ERROR',
+  conflict = 'CONFLICT',
   forbidden = 'FORBIDDEN',
   BadRequest = 'BAD_REQUEST',
 

@@ -59,7 +59,10 @@ export const register = withTransaction(
     try {
       const existingUser = await userService.getUserByCredentials({ username });
       if (existingUser) {
-        throw new ConflictError(API_ERROR_CODES.userExists, 'User already exists!');
+        throw new ConflictError({
+          code: API_ERROR_CODES.userExists,
+          message: 'User already exists!',
+        });
       }
 
       const salt = bcrypt.genSaltSync(10);

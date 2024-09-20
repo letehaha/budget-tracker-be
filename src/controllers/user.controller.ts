@@ -133,35 +133,6 @@ export const setBaseUserCurrency = async (req, res: CustomResponse) => {
   }
 };
 
-export const addUserCurrencies = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  const {
-    currencies,
-  }: {
-    currencies: {
-      currencyId: number;
-      exchangeRate?: number;
-      liveRateUpdate?: boolean;
-    }[];
-  } = req.body;
-
-  // TODO: types validation
-
-  try {
-    const result = await userService.addUserCurrencies(
-      currencies.map((item) => ({ userId, ...item })),
-    );
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err);
-  }
-};
-
 export const editUserCurrency = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
