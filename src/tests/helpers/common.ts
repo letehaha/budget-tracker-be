@@ -1,26 +1,53 @@
 import config from 'config';
+import { CustomResponse as ExpressCustomResponse } from '@common/types';
 import request from 'supertest';
 import { app } from '@root/app';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from '../../../shared-types/api';
 
 const apiPrefix = config.get('apiPrefix');
 
-interface MakeRequestParams {
+interface MakeRequestParams<T> {
   url: string;
   method: 'get' | 'post' | 'put' | 'delete';
   payload?: object | null;
   headers?: object;
-  raw?: boolean;
+  raw?: T;
 }
 
-export const extractResponse = (response) => response?.body?.response;
+export interface CustomResponse<T> extends ExpressCustomResponse {
+  body: {
+    code: API_ERROR_CODES;
+    status: API_RESPONSE_STATUS;
+    response: T;
+  };
+}
 
-export async function makeRequest({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const extractResponse = <T = any>(response: CustomResponse<T>) => response.body.response;
+
+export type MakeRequestReturn<T, R extends boolean | undefined = false> = R extends true
+  ? T
+  : CustomResponse<T>;
+
+export interface ErrorResponse {
+  message: string;
+  code: string;
+}
+
+export type UtilizeReturnType<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (...args: any[]) => any,
+  R extends boolean | undefined,
+> = Promise<MakeRequestReturn<Awaited<ReturnType<T>>, R>>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function makeRequest<T = any, R extends boolean | undefined = false>({
   url,
   method,
   payload = null,
   headers = {},
   raw = false,
-}: MakeRequestParams) {
+}: MakeRequestParams<R>): Promise<MakeRequestReturn<T, R>> {
   let tempUrl = url;
 
   if (method === 'get') {
@@ -33,8 +60,8 @@ export async function makeRequest({
   if (Object.keys(headers).length) base.set(headers);
   if (payload) base.send(payload);
 
-  const result = await base;
-  return raw ? extractResponse(result) : result;
+  const result: CustomResponse<T> = await base;
+  return (raw ? extractResponse(result) : result) as MakeRequestReturn<T, R>;
 }
 
 export const sleep = (time = 1000) => {

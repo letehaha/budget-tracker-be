@@ -27,14 +27,14 @@ describe('Accounts controller', () => {
     });
     it('should correctly create account with correct balance for external currency', async () => {
       const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))
-        .currencies[0];
+        .currencies[0]!;
 
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
           initialBalance,
           creditLimit,
-          currencyId: currency!.currencyId,
+          currencyId: currency.currencyId,
         },
         raw: true,
       });
@@ -55,7 +55,7 @@ describe('Accounts controller', () => {
   });
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
-      const res = await helpers.updateAccount({
+      const res = await helpers.updateAccount<helpers.ErrorResponse>({
         id: 1,
       });
 

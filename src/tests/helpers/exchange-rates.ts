@@ -1,5 +1,4 @@
-import { CustomResponse } from '@common/types'; // Adjust the import path as needed
-import { extractResponse, makeRequest } from './common';
+import { makeRequest } from './common';
 import { editUserExchangeRates } from '@root/services/user-exchange-rate';
 
 type ExchangeRatePair = {
@@ -8,23 +7,19 @@ type ExchangeRatePair = {
   rate: number;
 };
 
-type RatesReturnType<T> = T extends true
-  ? Awaited<ReturnType<typeof editUserExchangeRates>>
-  : CustomResponse;
-
-export async function editCurrencyExchangeRate<T extends boolean = false>({
+export async function editCurrencyExchangeRate<R extends boolean | undefined = undefined>({
   pairs,
-  raw = false as T,
+  raw,
 }: {
   pairs: ExchangeRatePair[];
-  raw?: T;
-}): Promise<RatesReturnType<T>> {
-  const result: RatesReturnType<T> = await makeRequest({
+  raw?: R;
+}) {
+  const result = await makeRequest<Awaited<ReturnType<typeof editUserExchangeRates>>, R>({
     method: 'put',
     url: '/user/currency/rates',
     payload: { pairs },
     raw,
   });
 
-  return raw ? extractResponse(result) : result;
+  return result;
 }

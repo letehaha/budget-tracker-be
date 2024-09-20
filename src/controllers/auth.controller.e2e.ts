@@ -1,10 +1,10 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from 'shared-types';
-import { makeRequest } from '@tests/helpers';
+import { makeRequest, ErrorResponse } from '@tests/helpers';
 
 describe('Auth', () => {
   describe('Login', () => {
     it('should return correct error for unexisting user', async () => {
-      const res = await makeRequest({
+      const res = await makeRequest<ErrorResponse>({
         method: 'post',
         url: '/auth/login',
         payload: {

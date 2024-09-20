@@ -34,5 +34,3 @@ export const addUserCurrencies = withTransaction(
     return { currencies: result, alreadyExistingIds: alreadyExistsIds };
   },
 );
-
-export type AddUserCurrenciesReturnType = ReturnType<typeof addUserCurrencies>;

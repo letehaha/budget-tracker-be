@@ -3,8 +3,7 @@ import ExchangeRates from '@models/ExchangeRates.model';
 import Currencies from '@models/Currencies.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
-import type { AddUserCurrenciesReturnType } from '@root/services/currencies/add-user-currency';
-import { CustomResponse } from '@common/types';
+import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
 
 export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency: Currencies })[]> {
   const data = await makeRequest({
@@ -28,27 +27,16 @@ export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): 
   return codes ? data.filter((item) => codes.includes(item.baseCode)) : data;
 }
 
-interface AddUserCurrenciesBaseParams {
-  currencyIds?: number[];
-  currencyCodes?: string[];
-  raw?: true | false;
-}
-export function addUserCurrencies({
-  currencyIds,
-  currencyCodes,
-  raw,
-}: AddUserCurrenciesBaseParams & { raw?: false }): Promise<CustomResponse>;
-export function addUserCurrencies({
-  currencyIds,
-  currencyCodes,
-  raw,
-}: AddUserCurrenciesBaseParams & { raw?: true }): AddUserCurrenciesReturnType;
-export function addUserCurrencies({
+export function addUserCurrencies<R extends boolean | undefined = undefined>({
   currencyIds = [],
   currencyCodes = [],
-  raw = false,
-}: AddUserCurrenciesBaseParams = {}) {
-  return makeRequest({
+  raw,
+}: {
+  currencyIds?: number[];
+  currencyCodes?: string[];
+  raw?: R;
+} = {}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
     method: 'post',
     url: '/user/currencies',
     payload: {
@@ -80,14 +68,14 @@ export function getAllCurrencies(): Promise<Currencies[]> {
   });
 }
 
-export async function updateUserCurrencies<T extends boolean = false>({
+export async function updateUserCurrencies<R extends boolean | undefined = undefined>({
   currencies,
-  raw = false as T,
+  raw,
 }: {
   currencies: { currencyId: number; exchangeRate?: number; liveRateUpdate?: boolean }[];
-  raw?: T;
-}): Promise<T extends true ? Awaited<AddUserCurrenciesReturnType> : CustomResponse> {
-  return makeRequest({
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
     method: 'post',
     url: '/user/currencies',
     payload: { currencies },
