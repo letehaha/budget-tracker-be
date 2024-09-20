@@ -60,7 +60,7 @@ export async function getCurrencies({ userId, ids }: { userId: number; ids?: num
     userId,
   };
 
-  if (ids) where.id = { [Op.in]: ids };
+  if (ids) where.currencyId = { [Op.in]: ids };
 
   return UsersCurrencies.findAll({ where, include: { model: Currencies } });
 }

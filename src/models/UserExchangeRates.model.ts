@@ -1,7 +1,8 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { UserExchangeRatesModel } from 'shared-types';
-import Currencies, { getCurrencies } from './Currencies.model';
+import * as Currencies from './Currencies.model';
+import * as UsersCurrencies from './UsersCurrencies.model';
 import Users from './Users.model';
 import { NotFoundError, ValidationError } from '@js/errors';
 
@@ -21,14 +22,14 @@ export default class UserExchangeRates extends Model {
   @Column({ allowNull: false })
   userId: number;
 
-  @ForeignKey(() => Currencies)
+  @ForeignKey(() => Currencies.default)
   @Column({ allowNull: false })
   baseId: number;
 
   @Column({ allowNull: false })
   baseCode: string;
 
-  @ForeignKey(() => Currencies)
+  @ForeignKey(() => Currencies.default)
   @Column({ allowNull: false })
   quoteId: number;
 
@@ -93,6 +94,7 @@ export async function getRates({
 
   return UserExchangeRates.findAll({
     where,
+    raw: true,
     attributes: { exclude: ['userId'] },
   });
 }
@@ -135,6 +137,7 @@ export async function updateRates({
         baseCode: pairItem.baseCode,
         quoteCode: pairItem.quoteCode,
       },
+      raw: true,
     });
 
     if (foundItem) {
@@ -154,9 +157,21 @@ export async function updateRates({
 
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
-      const currencies = await getCurrencies({
+      const currencies = await Currencies.getCurrencies({
         codes: [pairItem.baseCode, pairItem.quoteCode],
       });
+      const userCurrencies = await UsersCurrencies.getCurrencies({
+        userId,
+        ids: currencies.map((i) => i.id),
+      });
+
+      if (currencies.length !== userCurrencies.length) {
+        throw new NotFoundError({
+          message:
+            'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
+        });
+      }
+
       const baseCurrency = currencies.find((item) => item.code === pairItem.baseCode);
       const quoteCurrency = currencies.find((item) => item.code === pairItem.quoteCode);
 

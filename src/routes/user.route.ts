@@ -7,11 +7,14 @@ import {
   deleteUserCurrency,
   setBaseUserCurrency,
   getCurrenciesExchangeRates,
-  editUserCurrencyExchangeRate,
   updateUser,
   deleteUser,
   removeUserCurrencyExchangeRate,
 } from '@controllers/user.controller';
+import {
+  editCurrencyExchangeRate,
+  editCurrencyExchangeRateSchema,
+} from '@controllers/currencies/edit-currency-exchange-rate';
 import {
   addUserCurrencies,
   addUserCurrenciesSchema,
@@ -38,7 +41,12 @@ router.post(
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
 
 router.put('/currency', authenticateJwt, editUserCurrency);
-router.put('/currency/rates', authenticateJwt, editUserCurrencyExchangeRate);
+router.put(
+  '/currency/rates',
+  authenticateJwt,
+  validateEndpoint(editCurrencyExchangeRateSchema),
+  editCurrencyExchangeRate,
+);
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate);
