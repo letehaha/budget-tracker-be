@@ -3,6 +3,7 @@ import { API_ERROR_CODES } from 'shared-types';
 export enum ERROR_CODES {
   BadRequest = 400,
   Unauthorized = 401,
+  Forbidden = 403,
   NotFoundError = 404,
   ConflictError = 409,
   ValidationError = 422,
@@ -85,6 +86,20 @@ export class ValidationError extends CustomError {
     details?: Record<string, unknown>;
   }) {
     super(ERROR_CODES.ValidationError, code, message, details);
+  }
+}
+
+export class ForbiddenError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.forbidden,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.Forbidden, code, message, details);
   }
 }
 

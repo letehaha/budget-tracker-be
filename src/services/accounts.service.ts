@@ -14,7 +14,7 @@ import * as monobankUsersService from '@services/banks/monobank/users';
 import * as Currencies from '@models/Currencies.model';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { redisClient } from '@root/redis';
-import { NotFoundError, UnexpectedError } from '@js/errors';
+import { ForbiddenError, NotFoundError, UnexpectedError } from '@js/errors';
 import Balances from '@models/Balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
@@ -107,29 +107,43 @@ export const pairMonobankAccount = withTransaction(
       // TODO: setup it later
       // await updateWebhookAxios({ userToken: token });
 
-      const result = await axios({
-        method: 'GET',
-        url: `${hostname}/personal/client-info`,
-        responseType: 'json',
-        headers: {
-          'X-Token': token,
-        },
-      });
-
-      if (!result) {
-        throw new NotFoundError({
-          message:
-            '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.',
+      try {
+        const result = await axios({
+          method: 'GET',
+          url: `${hostname}/personal/client-info`,
+          responseType: 'json',
+          headers: {
+            'X-Token': token,
+          },
         });
+
+        if (!result) {
+          throw new NotFoundError({
+            message:
+              '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.',
+          });
+        }
+
+        clientInfo = result.data;
+
+        await redisClient
+          .multi()
+          .set(redisToken, JSON.stringify(response))
+          .expire(redisToken, 60)
+          .exec();
+      } catch (err) {
+        if (err?.response?.data?.errorDescription === "Unknown 'X-Token'") {
+          throw new ForbiddenError({
+            code: API_ERROR_CODES.monobankTokenInvalid,
+            message: 'Monobank rejected this token!',
+          });
+        } else {
+          throw new ForbiddenError({
+            code: API_ERROR_CODES.monobankTokenInvalid,
+            message: 'Token is invalid!',
+          });
+        }
       }
-
-      clientInfo = result.data;
-
-      await redisClient
-        .multi()
-        .set(redisToken, JSON.stringify(response))
-        .expire(redisToken, 60)
-        .exec();
     } else {
       clientInfo = JSON.parse(response);
     }
