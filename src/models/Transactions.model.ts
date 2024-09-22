@@ -6,7 +6,7 @@ import {
   SORT_DIRECTIONS,
   TransactionModel,
 } from 'shared-types';
-import { Op, Includeable } from 'sequelize';
+import { Op, Includeable, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -329,13 +329,13 @@ export default class Transactions extends Model {
   }
 }
 
-export const getTransactions = async ({
+export const findWithFilters = async ({
   from = 0,
   limit = 20,
   accountType,
-  accountId,
+  accountIds,
   userId,
-  sortDirection = SORT_DIRECTIONS.desc,
+  order = SORT_DIRECTIONS.desc,
   includeUser,
   includeAccount,
   transactionType,
@@ -345,14 +345,18 @@ export const getTransactions = async ({
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  startDate,
+  endDate,
+  amountGte,
+  amountLte,
 }: {
   from: number;
   limit?: number;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
-  accountId?: number;
+  accountIds?: number[];
   userId: number;
-  sortDirection: SORT_DIRECTIONS;
+  order?: SORT_DIRECTIONS;
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
@@ -361,6 +365,10 @@ export const getTransactions = async ({
   isRaw: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  startDate?: string;
+  endDate?: string;
+  amountGte?: number;
+  amountLte?: number;
 }) => {
   const include = prepareTXInclude({
     includeUser,
@@ -370,21 +378,54 @@ export const getTransactions = async ({
     nestedInclude,
   });
 
+  const whereClause: WhereOptions<Transactions> = {
+    userId,
+    ...removeUndefinedKeys({
+      accountType,
+      transactionType,
+      transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
+      refundLinked: excludeRefunds ? false : undefined,
+    }),
+  };
+
+  if (accountIds && accountIds.length > 0) {
+    whereClause.accountId = {
+      [Op.in]: accountIds,
+    };
+  }
+
+  if (startDate || endDate) {
+    whereClause.time = {};
+    if (startDate && endDate) {
+      whereClause.time = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    } else if (startDate) {
+      whereClause.time[Op.gte] = new Date(startDate);
+    } else if (endDate) {
+      whereClause.time[Op.lte] = new Date(endDate);
+    }
+  }
+
+  if (amountGte || amountLte) {
+    whereClause.amount = {};
+    if (amountGte && amountLte) {
+      whereClause.amount = {
+        [Op.between]: [amountGte, amountLte],
+      };
+    } else if (amountGte) {
+      whereClause.amount[Op.gte] = amountGte;
+    } else if (amountLte) {
+      whereClause.amount[Op.lte] = amountLte;
+    }
+  }
+
   const transactions = await Transactions.findAll({
     include,
-    where: {
-      userId,
-      ...removeUndefinedKeys({
-        accountType,
-        accountId,
-        transactionType,
-        transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
-        refundLinked: excludeRefunds ? false : undefined,
-      }),
-    },
+    where: whereClause,
     offset: from,
     limit: limit,
-    order: [['time', sortDirection]],
+    order: [['time', order]],
     raw: isRaw,
   });
 
