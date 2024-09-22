@@ -83,9 +83,9 @@ const groupAndAdjustData = async (params: {
 
     // In case not found refund transactions in current time period, fetch them separately regardless
     // of time period.
-    if (!pair.base) pair.base = await Transactions.findByPk(refund.originalTxId, findByPkParams);
+    if (!pair.base) pair.base = (await Transactions.findByPk(refund.originalTxId, findByPkParams))!;
     if (!pair.refund) {
-      pair.refund = await Transactions.findByPk(refund.refundTxId, findByPkParams);
+      pair.refund = (await Transactions.findByPk(refund.refundTxId, findByPkParams))!;
     }
 
     // We always need to adjust spendings exactly for expense transactions

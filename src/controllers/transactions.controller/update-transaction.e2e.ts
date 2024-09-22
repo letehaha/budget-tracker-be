@@ -44,7 +44,7 @@ describe('Update transaction controller', () => {
     expect(baseTx.accountId).toStrictEqual(accountUAH.id);
     expect(baseTx.amount).toStrictEqual(createdTransaction.amount);
     expect(baseTx.refAmount).toStrictEqual(
-      Math.floor(createdTransaction.amount * currencyRate.rate),
+      Math.floor(createdTransaction.amount * currencyRate!.rate),
     );
   });
   it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
@@ -68,7 +68,7 @@ describe('Update transaction controller', () => {
 
     // Even if the currencyRate between USD and UAH has a huge difference, non-ref
     // tx should always have refAmount same as ref tx in case of transfer
-    expect(oppositeTx.refAmount).toEqual(baseTx.refAmount);
+    expect(oppositeTx!.refAmount).toEqual(baseTx.refAmount);
 
     const { account: accountEUR, currency: currencyEUR } =
       await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
@@ -82,8 +82,8 @@ describe('Update transaction controller', () => {
 
     expect(newOppositeTx).toMatchObject({
       // We only changed account, so amounts should stay same
-      amount: oppositeTx.amount,
-      refAmount: oppositeTx.refAmount,
+      amount: oppositeTx!.amount,
+      refAmount: oppositeTx!.refAmount,
       // accountId and currencyCode are changed
       accountId: accountEUR.id,
       currencyId: currencyEUR.id,
@@ -161,8 +161,8 @@ describe('Update transaction controller', () => {
         raw: true,
       });
 
-      expect(updatedOppositeTx.amount).toEqual(updatedOppositeTx.refAmount);
-      expect(updatedBaseTx.refAmount).toEqual(updatedOppositeTx.refAmount);
+      expect(updatedOppositeTx!.amount).toEqual(updatedOppositeTx!.refAmount);
+      expect(updatedBaseTx.refAmount).toEqual(updatedOppositeTx!.refAmount);
     });
     it('UAH->EUR to USD->EUR, refAmount should be same as amount of USD. Because USD is a ref-currency', async () => {
       const { account: accountEUR } = await helpers.createAccountWithNewCurrency({
@@ -198,8 +198,8 @@ describe('Update transaction controller', () => {
       });
 
       expect(updatedBaseTx.amount).toEqual(updatedBaseTx.refAmount);
-      expect(updatedOppositeTx.amount).toEqual(oppositeTx.amount);
-      expect(updatedOppositeTx.refAmount).toEqual(updatedBaseTx.refAmount);
+      expect(updatedOppositeTx!.amount).toEqual(oppositeTx!.amount);
+      expect(updatedOppositeTx!.refAmount).toEqual(updatedBaseTx.refAmount);
     });
   });
 
@@ -218,11 +218,11 @@ describe('Update transaction controller', () => {
         });
 
         const [baseTx, oppositeTx] = await helpers.updateTransaction({
-          id: externalTransaction.id,
+          id: externalTransaction!.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
             destinationAccountId: accountB.id,
-            destinationAmount: externalTransaction.refAmount,
+            destinationAmount: externalTransaction!.refAmount,
           },
           raw: true,
         });
@@ -239,32 +239,33 @@ describe('Update transaction controller', () => {
           const externalTxBalanceRecord = balanceHistory.find(
             (item) =>
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              item.amount === (externalTransaction.externalData as any).balance,
+              item.amount === (externalTransaction!.externalData as any).balance,
           );
           const newTxBalanceRecord = balanceHistory.find(
             (item) =>
-              item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx.accountId,
+              item.date === externalTxBalanceRecord.date &&
+              item.accountId === oppositeTx!.accountId,
           );
 
           expect(newTxBalanceRecord.amount).toBe(
             expected === 0
               ? 0
-              : oppositeTx.transactionType === TRANSACTION_TYPES.expense
+              : oppositeTx!.transactionType === TRANSACTION_TYPES.expense
                 ? -expected
                 : expected,
           );
         };
 
         expect(baseTx).toMatchObject({
-          amount: externalTransaction.amount,
-          refAmount: externalTransaction.refAmount,
-          accountId: externalTransaction.accountId,
+          amount: externalTransaction!.amount,
+          refAmount: externalTransaction!.refAmount,
+          accountId: externalTransaction!.accountId,
           transferId,
           transactionType: transactionType,
         });
         expect(oppositeTx).toMatchObject({
-          amount: externalTransaction.refAmount,
-          refAmount: externalTransaction.refAmount,
+          amount: externalTransaction!.refAmount,
+          refAmount: externalTransaction!.refAmount,
           transferId,
           accountId: accountB.id,
           transactionType:
@@ -273,11 +274,11 @@ describe('Update transaction controller', () => {
               : TRANSACTION_TYPES.expense,
         });
 
-        await checkBalanceIsCorrect(externalTransaction.refAmount);
+        await checkBalanceIsCorrect(externalTransaction!.refAmount);
 
         // Now update it back to be non-transfer one
         await helpers.updateTransaction({
-          id: externalTransaction.id,
+          id: externalTransaction!.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           },
@@ -291,9 +292,9 @@ describe('Update transaction controller', () => {
         });
 
         // Check that opposite tx is deleted
-        expect(transactionsAfterUpdate.find((i) => i.id === oppositeTx.id)).toBe(undefined);
+        expect(transactionsAfterUpdate.find((i) => i.id === oppositeTx!.id)).toBe(undefined);
         // Check that base tx doesn't have transferId anymore
-        expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id).transferId).toBe(null);
+        expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id)!.transferId).toBe(null);
       },
     );
     it('throws error when trying to make invalid actions', async () => {
@@ -309,13 +310,13 @@ describe('Update transaction controller', () => {
 
       // when trying to update "transactionType" of the external account
       const result_a = await helpers.updateTransaction({
-        id: incomeTransaction.id,
+        id: incomeTransaction!.id,
         payload: { transactionType: TRANSACTION_TYPES.expense },
       });
       expect(result_a.statusCode).toEqual(ERROR_CODES.ValidationError);
 
       const result_b = await helpers.updateTransaction({
-        id: expenseTransaction.id,
+        id: expenseTransaction!.id,
         payload: { transactionType: TRANSACTION_TYPES.income },
       });
       expect(result_b.statusCode).toEqual(ERROR_CODES.ValidationError);
@@ -330,7 +331,7 @@ describe('Update transaction controller', () => {
       // Trying to update some of restricted fields
       for (const field of EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS) {
         const res = await helpers.updateTransaction({
-          id: expenseTransaction.id,
+          id: expenseTransaction!.id,
           payload: { [field]: mockedData[field] },
         });
         expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
@@ -389,11 +390,11 @@ describe('Update transaction controller', () => {
             transferId: expect.toBeAnythingOrNull(),
           });
 
-          expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-          expect(txAfter.transferId).toEqual(expect.any(String));
+          expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+          expect(txAfter!.transferId).toEqual(expect.any(String));
         });
 
-        expect(tx1AfterUpdation.transferId).toBe(tx2AfterUpdation.transferId);
+        expect(tx1AfterUpdation!.transferId).toBe(tx2AfterUpdation!.transferId);
       },
     );
 
@@ -412,10 +413,10 @@ describe('Update transaction controller', () => {
         const tx2 = transactions.find((item) => item.transactionType === oppositeTxType);
 
         const result = await helpers.updateTransaction({
-          id: tx1.id,
+          id: tx1!.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-            destinationTransactionId: tx2.id,
+            destinationTransactionId: tx2!.id,
           },
         });
         expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
@@ -482,15 +483,17 @@ describe('Update transaction controller', () => {
           raw: true,
         });
 
-        const expenseTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.expense);
-        const incomeTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.income);
+        const expenseTx = transactions.find(
+          (t) => t!.transactionType === TRANSACTION_TYPES.expense,
+        );
+        const incomeTx = transactions.find((t) => t!.transactionType === TRANSACTION_TYPES.income);
 
         const result = await helpers.updateTransaction({
           id: tx1.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
             destinationTransactionId:
-              txType === TRANSACTION_TYPES.income ? expenseTx.id : incomeTx.id,
+              txType === TRANSACTION_TYPES.income ? expenseTx!.id : incomeTx!.id,
           },
         });
 
@@ -730,9 +733,9 @@ describe('Update transaction controller', () => {
           const transactions = await helpers.getTransactions({ raw: true });
 
           // Test that previously refunded tx is now not marked as a refund
-          expect(transactions.find((i) => i.id === originalTx1.id).refundLinked).toBe(false);
+          expect(transactions.find((i) => i.id === originalTx1.id)!.refundLinked).toBe(false);
           expect(
-            transactions.find((t) => [refundTx.id, originalTx2.id].includes(t.id)).refundLinked,
+            transactions.find((t) => [refundTx.id, originalTx2.id].includes(t.id))!.refundLinked,
           ).toBe(true);
         },
       );

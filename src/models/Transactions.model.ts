@@ -6,7 +6,7 @@ import {
   SORT_DIRECTIONS,
   TransactionModel,
 } from 'shared-types';
-import { Op } from 'sequelize';
+import { Op, Includeable, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -44,10 +44,10 @@ const prepareTXInclude = ({
   includeAll?: boolean;
   nestedInclude?: boolean;
 }) => {
-  let include = null;
+  let include: Includeable | Includeable[] | null = null;
 
   if (isExist(includeAll)) {
-    include = { all: true, nested: isExist(nestedInclude) };
+    include = { all: true, nested: isExist(nestedInclude) || undefined };
   } else {
     include = [];
 
@@ -98,7 +98,7 @@ export interface TransactionsAttributes {
 @Table({
   timestamps: false,
 })
-export default class Transactions extends Model<TransactionsAttributes> {
+export default class Transactions extends Model {
   @Column({
     unique: true,
     allowNull: false,
@@ -329,13 +329,13 @@ export default class Transactions extends Model<TransactionsAttributes> {
   }
 }
 
-export const getTransactions = async ({
+export const findWithFilters = async ({
   from = 0,
   limit = 20,
   accountType,
-  accountId,
+  accountIds,
   userId,
-  sortDirection = SORT_DIRECTIONS.desc,
+  order = SORT_DIRECTIONS.desc,
   includeUser,
   includeAccount,
   transactionType,
@@ -345,22 +345,30 @@ export const getTransactions = async ({
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  startDate,
+  endDate,
+  amountGte,
+  amountLte,
 }: {
   from: number;
-  limit: number;
-  accountType: ACCOUNT_TYPES;
-  transactionType: string;
-  accountId: number;
+  limit?: number;
+  accountType?: ACCOUNT_TYPES;
+  transactionType?: TRANSACTION_TYPES;
+  accountIds?: number[];
   userId: number;
-  sortDirection: SORT_DIRECTIONS;
-  includeUser: boolean;
-  includeAccount: boolean;
-  includeCategory: boolean;
-  includeAll: boolean;
-  nestedInclude: boolean;
+  order?: SORT_DIRECTIONS;
+  includeUser?: boolean;
+  includeAccount?: boolean;
+  includeCategory?: boolean;
+  includeAll?: boolean;
+  nestedInclude?: boolean;
   isRaw: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  startDate?: string;
+  endDate?: string;
+  amountGte?: number;
+  amountLte?: number;
 }) => {
   const include = prepareTXInclude({
     includeUser,
@@ -370,21 +378,54 @@ export const getTransactions = async ({
     nestedInclude,
   });
 
+  const whereClause: WhereOptions<Transactions> = {
+    userId,
+    ...removeUndefinedKeys({
+      accountType,
+      transactionType,
+      transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
+      refundLinked: excludeRefunds ? false : undefined,
+    }),
+  };
+
+  if (accountIds && accountIds.length > 0) {
+    whereClause.accountId = {
+      [Op.in]: accountIds,
+    };
+  }
+
+  if (startDate || endDate) {
+    whereClause.time = {};
+    if (startDate && endDate) {
+      whereClause.time = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    } else if (startDate) {
+      whereClause.time[Op.gte] = new Date(startDate);
+    } else if (endDate) {
+      whereClause.time[Op.lte] = new Date(endDate);
+    }
+  }
+
+  if (amountGte || amountLte) {
+    whereClause.amount = {};
+    if (amountGte && amountLte) {
+      whereClause.amount = {
+        [Op.between]: [amountGte, amountLte],
+      };
+    } else if (amountGte) {
+      whereClause.amount[Op.gte] = amountGte;
+    } else if (amountLte) {
+      whereClause.amount[Op.lte] = amountLte;
+    }
+  }
+
   const transactions = await Transactions.findAll({
     include,
-    where: {
-      userId,
-      ...removeUndefinedKeys({
-        accountType,
-        accountId,
-        transactionType,
-        transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
-        refundLinked: excludeRefunds ? false : undefined,
-      }),
-    },
+    where: whereClause,
     offset: from,
     limit: limit,
-    order: [['time', sortDirection]],
+    order: [['time', order]],
     raw: isRaw,
   });
 
@@ -517,12 +558,10 @@ type CreateTxRequiredParams = Pick<
   TransactionsAttributes,
   | 'amount'
   | 'refAmount'
-  | 'time'
   | 'userId'
   | 'transactionType'
   | 'paymentType'
   | 'accountId'
-  | 'categoryId'
   | 'currencyId'
   | 'currencyCode'
   | 'accountType'
@@ -532,6 +571,8 @@ type CreateTxOptionalParams = Partial<
   Pick<
     TransactionsAttributes,
     | 'note'
+    | 'time'
+    | 'categoryId'
     | 'refCurrencyCode'
     | 'transferId'
     | 'originalId'
@@ -558,7 +599,7 @@ export interface UpdateTransactionByIdParams {
   userId: number;
   amount?: number;
   refAmount?: number;
-  note?: string;
+  note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
@@ -568,7 +609,7 @@ export interface UpdateTransactionByIdParams {
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  transferId?: string;
+  transferId?: string | null;
   refundLinked?: boolean;
 }
 
@@ -587,7 +628,8 @@ export const updateTransactionById = async (
     individualHooks,
   });
 
-  return getTransactionById({ id, userId });
+  // Return transactions exactly like that. Ading `returning: true` causes balances not being updated
+  return getTransactionById({ id, userId }) as Promise<Transactions>;
 };
 
 export const updateTransactions = (
@@ -619,6 +661,8 @@ export const updateTransactions = (
 
 export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
   const tx = await getTransactionById({ id, userId });
+
+  if (!tx) return true;
 
   if (tx.accountType !== ACCOUNT_TYPES.system) {
     throw new ValidationError({

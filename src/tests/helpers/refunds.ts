@@ -2,7 +2,7 @@ import * as helpers from '@tests/helpers';
 import type { GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 
 export const createSingleRefund = async (
-  payload: { originalTxId: number; refundTxId: number },
+  payload: { originalTxId: number | null; refundTxId: number },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({
@@ -15,7 +15,7 @@ export const createSingleRefund = async (
 };
 
 export const getSingleRefund = async (
-  { originalTxId, refundTxId }: { originalTxId: number; refundTxId: number },
+  { originalTxId, refundTxId }: { originalTxId: number | null; refundTxId: number },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({
@@ -45,7 +45,7 @@ export const getRefundTransactions = async (
 };
 
 export const deleteRefund = async (
-  payload: { originalTxId: number; refundTxId: number },
+  payload: { originalTxId: number | null; refundTxId: number | null },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({

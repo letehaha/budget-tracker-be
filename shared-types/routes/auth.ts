@@ -2,8 +2,8 @@ import { UserModel } from 'shared-types';
 import { BodyPayload } from './index';
 
 export interface AuthLoginBody extends BodyPayload {
-  username: UserModel['username'];
-  password: UserModel['password'];
+  username: string;
+  password: string;
 }
 // Bearer token
 export interface AuthLoginResponse {
@@ -11,8 +11,8 @@ export interface AuthLoginResponse {
 }
 
 export interface AuthRegisterBody extends BodyPayload {
-  username: UserModel['username'];
-  password: UserModel['password'];
+  username: string;
+  password: string;
 }
 export interface AuthRegisterResponse {
   user: UserModel;

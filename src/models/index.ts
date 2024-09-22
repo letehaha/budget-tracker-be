@@ -27,7 +27,7 @@ const sequelize = new Sequelize({
   },
 });
 
-if (['development'].includes(process.env.NODE_ENV)) {
+if (process.env.NODE_ENV === 'defelopment') {
   console.log('DBConfig', DBConfig);
 }
 

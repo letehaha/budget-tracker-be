@@ -3,6 +3,7 @@ import ExchangeRates from '@models/ExchangeRates.model';
 import Currencies from '@models/Currencies.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
+import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
 
 export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency: Currencies })[]> {
   const data = await makeRequest({
@@ -26,27 +27,16 @@ export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): 
   return codes ? data.filter((item) => codes.includes(item.baseCode)) : data;
 }
 
-interface AddUserCurrenciesBaseParams {
-  currencyIds?: number[];
-  currencyCodes?: string[];
-  raw?: true | false;
-}
-export function addUserCurrencies({
-  currencyIds,
-  currencyCodes,
-  raw,
-}: AddUserCurrenciesBaseParams & { raw?: false }): Promise<Response>;
-export function addUserCurrencies({
-  currencyIds,
-  currencyCodes,
-  raw,
-}: AddUserCurrenciesBaseParams & { raw?: true }): Promise<UsersCurrencies[]>;
-export function addUserCurrencies({
+export function addUserCurrencies<R extends boolean | undefined = undefined>({
   currencyIds = [],
   currencyCodes = [],
-  raw = false,
-}: AddUserCurrenciesBaseParams = {}) {
-  return makeRequest({
+  raw,
+}: {
+  currencyIds?: number[];
+  currencyCodes?: string[];
+  raw?: R;
+} = {}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
     method: 'post',
     url: '/user/currencies',
     payload: {
@@ -67,5 +57,28 @@ export function editUserCurrencyExchangeRate({ pairs }: { pairs: UpdateExchangeR
     url: '/user/currency/rates',
     payload: { pairs },
     raw: true,
+  });
+}
+
+export function getAllCurrencies(): Promise<Currencies[]> {
+  return makeRequest({
+    method: 'get',
+    url: '/models/currencies',
+    raw: true,
+  });
+}
+
+export async function updateUserCurrencies<R extends boolean | undefined = undefined>({
+  currencies,
+  raw,
+}: {
+  currencies: { currencyId: number; exchangeRate?: number; liveRateUpdate?: boolean }[];
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
+    method: 'post',
+    url: '/user/currencies',
+    payload: { currencies },
+    raw,
   });
 }

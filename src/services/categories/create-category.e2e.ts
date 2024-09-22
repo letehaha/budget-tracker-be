@@ -14,23 +14,23 @@ describe('Create custom categories and subcategories', () => {
 
   it('should successfully create a custom categories', async () => {
     const parent = rootCategories[0];
-    await helpers.addCustomCategory({ parentId: parent.id, name: CATEGORY_NAME });
+    await helpers.addCustomCategory({ parentId: parent!.id, name: CATEGORY_NAME });
     const newCategory = (await helpers.getCategoriesList()).find((i) => i.name === CATEGORY_NAME);
 
-    expect(newCategory.parentId).toBe(parent.id);
+    expect(newCategory!.parentId).toBe(parent!.id);
   });
 
   it('should successfully create a custom category with color when no parentId', async () => {
     await helpers.addCustomCategory({ name: CATEGORY_NAME, color: CATEGORY_COLOR });
     const newCategory = (await helpers.getCategoriesList()).find((i) => i.name === CATEGORY_NAME);
 
-    expect(newCategory.color).toBe(CATEGORY_COLOR);
+    expect(newCategory!.color).toBe(CATEGORY_COLOR);
   });
 
   it('should allow creating duplicate categories', async () => {
     const parent = rootCategories[0];
-    await helpers.addCustomCategory({ parentId: parent.id, name: CATEGORY_NAME });
-    await helpers.addCustomCategory({ parentId: parent.id, name: CATEGORY_NAME });
+    await helpers.addCustomCategory({ parentId: parent!.id, name: CATEGORY_NAME });
+    await helpers.addCustomCategory({ parentId: parent!.id, name: CATEGORY_NAME });
 
     const newCategories = await helpers.getCategoriesList();
 
@@ -62,11 +62,11 @@ describe('Create custom categories and subcategories', () => {
   it('should use parent color if not provided for subcategory', async () => {
     const parent = rootCategories[0];
     const newCategory = await helpers.addCustomCategory({
-      parentId: parent.id,
+      parentId: parent!.id,
       name: CATEGORY_NAME,
       raw: true,
     });
 
-    expect(newCategory.color).toEqual(parent.color);
+    expect(newCategory.color).toEqual(parent!.color);
   });
 });

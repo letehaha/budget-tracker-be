@@ -3,7 +3,7 @@ import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Currencies from '@models/Currencies.model';
 
 // Round to 5 precision
-const formatRate = (rate) => Math.trunc(rate * 100000) / 100000;
+const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
 
 export async function getExchangeRate({
   userId,
@@ -37,38 +37,36 @@ export async function getExchangeRate({
   quoteId?: number;
   baseCode?: string;
   quoteCode?: string;
-}): Promise<UserExchangeRates.default | ExchangeRates.default> {
-  let pair = { baseCode, quoteCode };
+}): Promise<UserExchangeRates.default | ExchangeRates.default | null> {
+  let pair = { baseCode, quoteCode } as { baseCode: string; quoteCode: string };
 
-  if (!baseCode && !quoteCode) {
+  if (!baseCode || !quoteCode) {
     const { code: base } = await Currencies.getCurrency({ id: Number(baseId) });
     const { code: quote } = await Currencies.getCurrency({ id: Number(quoteId) });
 
     pair = { baseCode: base, quoteCode: quote };
   }
 
-  try {
-    const [userExchangeRate] = await UserExchangeRates.getRates({
-      userId,
-      pair,
-    });
+  const [userExchangeRate] = await UserExchangeRates.getRates({
+    userId,
+    pair: pair,
+  });
 
-    if (userExchangeRate) {
-      // Add `custom` so client can understand which rate is custom
-      return {
-        ...userExchangeRate,
-        rate: formatRate(userExchangeRate.rate),
-        custom: true,
-      };
-    }
-
-    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs([pair]);
-
+  if (userExchangeRate) {
+    // Add `custom` so client can understand which rate is custom
     return {
-      ...exchangeRate,
-      rate: formatRate(exchangeRate.rate),
-    } as ExchangeRates.default;
-  } catch (err) {
-    throw new err();
+      ...userExchangeRate,
+      rate: formatRate(userExchangeRate.rate),
+      custom: true,
+    };
   }
+
+  const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs([pair]);
+
+  return exchangeRate
+    ? ({
+        ...exchangeRate,
+        rate: formatRate(exchangeRate.rate),
+      } as ExchangeRates.default)
+    : null;
 }

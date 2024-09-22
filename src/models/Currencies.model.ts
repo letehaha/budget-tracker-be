@@ -10,18 +10,15 @@ import {
   PrimaryKey,
   BelongsToMany,
 } from 'sequelize-typescript';
-import { CurrencyModel } from 'shared-types';
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 
-interface CurrenciesAttributes extends CurrencyModel {}
-
 @Table({
   timestamps: false,
 })
-export default class Currencies extends Model<CurrenciesAttributes> {
+export default class Currencies extends Model {
   @BelongsToMany(() => Users, {
     as: 'users',
     through: () => UsersCurrencies,
@@ -77,7 +74,7 @@ export async function getCurrency({
   currency?: string;
   number?: number;
   code?: string;
-}): Promise<Currencies> {
+}): Promise<Currencies | null> {
   return Currencies.findOne({
     where: removeUndefinedKeys({ id, currency, number, code }),
     include: [{ model: Users }],
@@ -117,8 +114,16 @@ export async function getCurrencies({
   return Currencies.findAll({ where });
 }
 
-export const createCurrency = async ({ code }) => {
-  const currency = cc.number(code);
+export const createCurrency = async ({ code }: { code: number }) => {
+  const currency = cc.number(String(code));
+
+  if (!currency) {
+    return null;
+  }
+
+  if (!currency) {
+    throw new ValidationError({ message: `Currency with code {code} is not found.` });
+  }
 
   const currencyData = {
     code: currency.code,

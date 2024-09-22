@@ -19,7 +19,7 @@ describe('Monobank integration', () => {
     it('throws error if invalid "token" is passed', async () => {
       const result = await helpers.monobank.callPair();
 
-      expect(result.status).toEqual(ERROR_CODES.NotFoundError);
+      expect(result.status).toEqual(ERROR_CODES.Forbidden);
     });
     it('creates Monobank user and correct accounts with valid token', async () => {
       const mockedClientData = helpers.monobank.mockedClient();
@@ -49,7 +49,7 @@ describe('Monobank integration', () => {
         const rates = await helpers.getCurrenciesRates();
         const rate = rates.find(
           (r) => r.baseCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode],
-        ).rate;
+        )!.rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
         expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));

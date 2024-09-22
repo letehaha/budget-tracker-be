@@ -38,14 +38,20 @@ describe('Balances service', () => {
   });
 
   describe('the balances history table correctly updated when:', () => {
-    const buildAccount = async ({ accountInitialBalance = 0, currencyCode = null } = {}) => {
-      let newCurrency: Currencies = undefined;
+    const buildAccount = async ({
+      accountInitialBalance = 0,
+      currencyCode = null,
+    }: {
+      accountInitialBalance?: number;
+      currencyCode?: string | null;
+    } = {}) => {
+      let newCurrency: Currencies | undefined = undefined;
       let currencyRate = 1;
 
       if (currencyCode) {
         newCurrency = global.MODELS_CURRENCIES.find((item) => item.code === currencyCode);
         await helpers.addUserCurrencies({ currencyCodes: [currencyCode] });
-        currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0].rate;
+        currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0]!.rate;
       }
 
       const account = await helpers.createAccount({
@@ -230,7 +236,7 @@ describe('Balances service', () => {
 
       // Send 3 transactions at different days
       for (const tx of transactionsPayloads) {
-        const response: Transactions[] = await helpers.createTransaction({
+        const response = await helpers.createTransaction({
           payload: {
             ...tx,
             time: tx.time.toISOString(),
@@ -271,7 +277,7 @@ describe('Balances service', () => {
         { ...expense, amount: 50, time: startOfDay(addDays(new Date(), 2)) },
         { ...income, amount: 150, time: new Date() },
       ];
-      const transactionResults = [];
+      const transactionResults: Transactions[] = [];
 
       for (const tx of transactionsPayloads) {
         const response = await helpers.createTransaction({
@@ -282,7 +288,7 @@ describe('Balances service', () => {
           raw: true,
         });
 
-        transactionResults.push(...response);
+        if (response) transactionResults.push(...(response as Transactions[]));
       }
 
       const balanceHistory: Balances[] = await callGetBalanceHistory(accountData.id, true);
@@ -313,7 +319,7 @@ describe('Balances service', () => {
 
       // Update expense transaction
       await helpers.updateTransaction({
-        id: transactionResults[0].id,
+        id: transactionResults[0]!.id,
         payload: { amount: 150 },
       });
 
@@ -333,7 +339,7 @@ describe('Balances service', () => {
 
       // Update income transaction
       await helpers.updateTransaction({
-        id: transactionResults[1].id,
+        id: transactionResults[1]!.id,
         payload: { amount: 350 },
       });
 
@@ -356,7 +362,7 @@ describe('Balances service', () => {
       const { accountData, transactionResults } = await mockBalanceHistory();
 
       await helpers.updateTransaction({
-        id: transactionResults[0].id,
+        id: transactionResults[0]!.id,
         payload: {
           amount: 150,
           time: startOfDay(subDays(new Date(), 4)).toISOString(),
@@ -385,7 +391,7 @@ describe('Balances service', () => {
       });
 
       await helpers.updateTransaction({
-        id: transactionResults[3].id,
+        id: transactionResults[3]!.id,
         payload: {
           amount: 150,
           time: startOfDay(addDays(new Date(), 5)).toISOString(),

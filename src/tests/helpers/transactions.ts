@@ -9,6 +9,7 @@ import {
 import { CreateTransactionBody } from '../../../shared-types/routes';
 import Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
+import { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
 import { makeRequest } from './common';
 import { createAccount } from './account';
 
@@ -41,8 +42,11 @@ export async function createTransaction({
 }: CreateTransactionBasePayload & { raw?: true }): Promise<
   [baseTx: Transactions, oppositeTx?: Transactions]
 >;
-export async function createTransaction({ raw = false, payload = undefined } = {}) {
-  let txPayload: ReturnType<typeof buildTransactionPayload> = payload;
+export async function createTransaction({
+  raw = false,
+  payload = undefined,
+}: CreateTransactionBasePayload & { raw?: boolean } = {}) {
+  let txPayload: ReturnType<typeof buildTransactionPayload> | undefined = payload;
 
   if (payload === undefined) {
     const account = await createAccount({ raw: true });
@@ -95,13 +99,14 @@ export function deleteTransaction({ id }: { id?: number } = {}): Promise<Respons
   });
 }
 
-export function getTransactions(): Promise<Response>;
-export function getTransactions({ raw }: { raw?: false }): Promise<Response>;
-export function getTransactions({ raw }: { raw?: true }): Promise<Transactions[]>;
-export function getTransactions({ raw = false } = {}) {
-  return makeRequest({
+export function getTransactions<R extends boolean | undefined = undefined>({
+  raw,
+  ...rest
+}: { raw?: R } & Partial<Omit<Parameters<typeof apiGetTransactions>[0], 'userId'>> = {}) {
+  return makeRequest<Awaited<ReturnType<typeof apiGetTransactions>>, R>({
     method: 'get',
     url: '/transactions',
+    payload: rest,
     raw,
   });
 }
@@ -120,7 +125,13 @@ export function unlinkTransferTransactions({
   transferIds: string[];
   raw?: true;
 }): Promise<Transactions[]>;
-export function unlinkTransferTransactions({ raw = false, transferIds = [] } = {}) {
+export function unlinkTransferTransactions({
+  raw = false,
+  transferIds = [],
+}: {
+  transferIds: string[];
+  raw?: boolean;
+}) {
   return makeRequest({
     method: 'put',
     url: '/transactions/unlink',

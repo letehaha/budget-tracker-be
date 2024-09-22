@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
+import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE, TransactionModel } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
@@ -15,7 +15,7 @@ describe('Delete transaction controller', () => {
 
     expect(createdTransactions.length).toBe(transactions.length);
 
-    const res = await helpers.deleteTransaction({ id: transactions[0].id });
+    const res = await helpers.deleteTransaction({ id: transactions[0]!.id });
 
     const txsAfterDeletion = await helpers.getTransactions({ raw: true });
 
@@ -23,7 +23,7 @@ describe('Delete transaction controller', () => {
     expect(txsAfterDeletion.length).toBe(0);
   });
   describe('transfer transactions', () => {
-    let transactions = [];
+    let transactions: TransactionModel[] = [];
 
     beforeEach(async () => {
       const currencyA = global.MODELS_CURRENCIES.find((item) => item.code === 'EUR');
@@ -63,7 +63,7 @@ describe('Delete transaction controller', () => {
     });
 
     it('should successfully delete both tx when deleting "from" transaction', async () => {
-      const res = await helpers.deleteTransaction({ id: transactions[0].id });
+      const res = await helpers.deleteTransaction({ id: transactions[0]!.id });
 
       const txsAfterDeletion = await helpers.getTransactions({ raw: true });
 
@@ -71,7 +71,7 @@ describe('Delete transaction controller', () => {
       expect(txsAfterDeletion.length).toBe(0);
     });
     it('should successfully delete both tx when deleting "to" transaction', async () => {
-      const res = await helpers.deleteTransaction({ id: transactions[1].id });
+      const res = await helpers.deleteTransaction({ id: transactions[1]!.id });
 
       const txsAfterDeletion = await helpers.getTransactions({ raw: true });
 
@@ -87,7 +87,7 @@ describe('Delete transaction controller', () => {
         (item) => item.transactionType === TRANSACTION_TYPES.income,
       );
 
-      const res = await helpers.deleteTransaction({ id: incomeTransaction.id });
+      const res = await helpers.deleteTransaction({ id: incomeTransaction!.id });
 
       expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
     });

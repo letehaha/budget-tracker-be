@@ -26,7 +26,8 @@ describe('Accounts controller', () => {
       expect(account.refCreditLimit).toStrictEqual(creditLimit);
     });
     it('should correctly create account with correct balance for external currency', async () => {
-      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))[0];
+      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))
+        .currencies[0]!;
 
       const account = await helpers.createAccount({
         payload: {
@@ -42,19 +43,19 @@ describe('Accounts controller', () => {
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
       expect(account.refInitialBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate.rate),
+        Math.floor(initialBalance * currencyRate!.rate),
       );
       expect(account.currentBalance).toStrictEqual(initialBalance);
       expect(account.refCurrentBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate.rate),
+        Math.floor(initialBalance * currencyRate!.rate),
       );
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate.rate));
+      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate!.rate));
     });
   });
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
-      const res = await helpers.updateAccount({
+      const res = await helpers.updateAccount<helpers.ErrorResponse>({
         id: 1,
       });
 
@@ -132,11 +133,11 @@ describe('Accounts controller', () => {
           currencyCodes: [newCurrency],
           raw: true,
         })
-      )[0];
+      ).currencies[0];
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
-          currencyId: currency.currencyId,
+          currencyId: currency!.currencyId,
         },
         raw: true,
       });

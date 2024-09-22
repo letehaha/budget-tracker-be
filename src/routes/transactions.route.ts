@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import {
-  getTransactions,
   getTransactionById,
   getTransactionsByTransferId,
   createTransaction,
@@ -13,6 +12,10 @@ import {
 } from '@controllers/transactions.controller';
 import { createRefund } from '@controllers/transactions.controller/refunds/create-refund';
 import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
+import {
+  getTransactions,
+  getTransactionsSchema,
+} from '@controllers/transactions.controller/get-transaction';
 import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
 import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
 import { getRefundsForTransactionById } from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
@@ -27,7 +30,7 @@ router.get('/refunds', authenticateJwt, getRefunds);
 router.post('/refund', authenticateJwt, createRefund);
 router.delete('/refund', authenticateJwt, deleteRefund);
 
-router.get('/', authenticateJwt, getTransactions);
+router.get('/', authenticateJwt, validateEndpoint(getTransactionsSchema), getTransactions);
 router.get('/:id', authenticateJwt, getTransactionById);
 router.get('/:id/refunds', authenticateJwt, getRefundsForTransactionById);
 router.get('/transfer/:transferId', authenticateJwt, getTransactionsByTransferId);

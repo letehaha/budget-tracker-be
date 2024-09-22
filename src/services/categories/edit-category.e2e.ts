@@ -31,16 +31,16 @@ describe('Edit custom categories', () => {
       raw: true,
     });
 
-    expect(category.name).toBe(updatedCategory.name);
-    expect(category.color).toBe(updatedCategory.color);
-    expect(category.imageUrl).toBe(updatedCategory.imageUrl);
+    expect(category!.name).toBe(updatedCategory.name);
+    expect(category!.color).toBe(updatedCategory.color);
+    expect(category!.imageUrl).toBe(updatedCategory.imageUrl);
   });
 
   it('should successfully edit a sub-category with all fields', async () => {
     const parent = (await helpers.getCategoriesList())[0];
 
     const subCategory = await helpers.addCustomCategory({
-      parentId: parent.id,
+      parentId: parent!.id,
       name: mockedCategory.name,
       color: mockedCategory.color,
       raw: true,
@@ -51,9 +51,9 @@ describe('Edit custom categories', () => {
       raw: true,
     });
 
-    expect(category.name).toBe(updatedCategory.name);
-    expect(category.color).toBe(updatedCategory.color);
-    expect(category.imageUrl).toBe(updatedCategory.imageUrl);
+    expect(category!.name).toBe(updatedCategory.name);
+    expect(category!.color).toBe(updatedCategory.color);
+    expect(category!.imageUrl).toBe(updatedCategory.imageUrl);
   });
 
   it('should successfully edit a category with only name', async () => {
@@ -63,8 +63,8 @@ describe('Edit custom categories', () => {
       raw: true,
     });
 
-    expect(category.name).toBe(updatedCategory.name);
-    expect(category.color).toBe(mockedCategory.color);
+    expect(category!.name).toBe(updatedCategory.name);
+    expect(category!.color).toBe(mockedCategory.color);
   });
 
   it('should successfully edit a category with only color', async () => {
@@ -74,8 +74,8 @@ describe('Edit custom categories', () => {
       raw: true,
     });
 
-    expect(category.color).toBe(updatedCategory.color);
-    expect(category.name).toBe(mockedCategory.name);
+    expect(category!.color).toBe(updatedCategory.color);
+    expect(category!.name).toBe(mockedCategory.name);
   });
 
   it('should return validation error if no fields provided', async () => {

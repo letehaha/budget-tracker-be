@@ -4,7 +4,8 @@ import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
   it('should return validation error if no data passed', async () => {
-    const res = await helpers.createTransaction({ payload: null, raw: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await helpers.createTransaction({ payload: null as any, raw: false });
 
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
@@ -55,7 +56,7 @@ describe('Create transaction controller', () => {
     expect(baseTx.currencyId).toBe(currency.id);
     expect(baseTx.currencyCode).toBe(currency.code);
     expect(baseTx.amount).toBe(txPayload.amount);
-    expect(baseTx.refAmount).toBe(Math.floor(txPayload.amount * currencyRate.rate));
+    expect(baseTx.refAmount).toBe(Math.floor(txPayload.amount * currencyRate!.rate));
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions[0]);
@@ -84,23 +85,23 @@ describe('Create transaction controller', () => {
     expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
-    expect(oppositeTx.amount).toBe(txPayload.amount);
+    expect(oppositeTx!.amount).toBe(txPayload.amount);
 
     expect(baseTx.accountId).toBe(accountA.id);
-    expect(oppositeTx.accountId).toBe(accountB.id);
+    expect(oppositeTx!.accountId).toBe(accountB.id);
 
     expect(baseTx.refAmount).toBe(txPayload.amount);
-    expect(oppositeTx.refAmount).toBe(txPayload.amount);
+    expect(oppositeTx!.refAmount).toBe(txPayload.amount);
 
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
-    expect(oppositeTx.transferId).toBe(baseTx.transferId);
+    expect(oppositeTx!.transferId).toBe(baseTx.transferId);
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(oppositeTx.transactionType).toBe(
+    expect(oppositeTx!.transactionType).toBe(
       txPayload.transactionType === TRANSACTION_TYPES.expense
         ? TRANSACTION_TYPES.income
         : TRANSACTION_TYPES.expense,
@@ -139,28 +140,28 @@ describe('Create transaction controller', () => {
     expect(baseTx.currencyId).toBe(global.BASE_CURRENCY.id);
     expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
 
-    expect(oppositeTx.currencyId).toBe(currencyB.id);
-    expect(oppositeTx.currencyCode).toBe(currencyB.code);
+    expect(oppositeTx!.currencyId).toBe(currencyB.id);
+    expect(oppositeTx!.currencyCode).toBe(currencyB.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
-    expect(oppositeTx.amount).toBe(DESTINATION_AMOUNT);
+    expect(oppositeTx!.amount).toBe(DESTINATION_AMOUNT);
 
     expect(baseTx.accountId).toBe(accountA.id);
-    expect(oppositeTx.accountId).toBe(accountB.id);
+    expect(oppositeTx!.accountId).toBe(accountB.id);
 
     // if `from` is base account, then `refAmount` stays the same
     expect(baseTx.refAmount).toBe(baseTx.amount);
-    expect(oppositeTx.refAmount).toBe(baseTx.amount);
+    expect(oppositeTx!.refAmount).toBe(baseTx.amount);
 
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
-    expect(oppositeTx.transferId).toBe(baseTx.transferId);
+    expect(oppositeTx!.transferId).toBe(baseTx.transferId);
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(oppositeTx.transactionType).toBe(
+    expect(oppositeTx!.transactionType).toBe(
       txPayload.transactionType === TRANSACTION_TYPES.expense
         ? TRANSACTION_TYPES.income
         : TRANSACTION_TYPES.expense,
@@ -215,28 +216,28 @@ describe('Create transaction controller', () => {
     expect(baseTx.currencyId).toBe(currencyA.id);
     expect(baseTx.currencyCode).toBe(currencyA.code);
 
-    expect(oppositeTx.currencyId).toBe(currencyB.id);
-    expect(oppositeTx.currencyCode).toBe(currencyB.code);
+    expect(oppositeTx!.currencyId).toBe(currencyB.id);
+    expect(oppositeTx!.currencyCode).toBe(currencyB.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
-    expect(oppositeTx.amount).toBe(DESTINATION_AMOUNT);
+    expect(oppositeTx!.amount).toBe(DESTINATION_AMOUNT);
 
     expect(baseTx.accountId).toBe(accountA.id);
-    expect(oppositeTx.accountId).toBe(accountB.id);
+    expect(oppositeTx!.accountId).toBe(accountB.id);
 
     // Secondary (`to`) transfer tx always same `refAmount` as the general (`from`) tx to keep it consistent
-    expect(baseTx.refAmount).toBe(Math.floor(baseTx.amount * currencyRate.rate));
-    expect(oppositeTx.refAmount).toBe(Math.floor(oppositeTx.amount * oppositeCurrencyRate.rate));
+    expect(baseTx.refAmount).toBe(Math.floor(baseTx.amount * currencyRate!.rate));
+    expect(oppositeTx!.refAmount).toBe(Math.floor(oppositeTx!.amount * oppositeCurrencyRate!.rate));
 
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-    expect(oppositeTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(oppositeTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
 
     // Make sure `transferId` is the same for both transactions
     expect(baseTx.transferId).toBe(baseTx.transferId);
-    expect(oppositeTx.transferId).toBe(baseTx.transferId);
+    expect(oppositeTx!.transferId).toBe(baseTx.transferId);
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
-    expect(oppositeTx.transactionType).toBe(
+    expect(oppositeTx!.transactionType).toBe(
       txPayload.transactionType === TRANSACTION_TYPES.expense
         ? TRANSACTION_TYPES.income
         : TRANSACTION_TYPES.expense,
@@ -283,11 +284,11 @@ describe('Create transaction controller', () => {
       const transactions = await helpers.getTransactions({ raw: true });
 
       expect(transactions.length).toBe(2);
-      expect(baseTx.transferId).toBe(oppositeTx.transferId);
-      expect(oppositeTx.amount).toBe(destinationTx.amount);
+      expect(baseTx.transferId).toBe(oppositeTx!.transferId);
+      expect(oppositeTx!.amount).toBe(destinationTx.amount);
       expect(baseTx.amount).toBe(expectedValues.baseTransaction.amount);
       expect(baseTx.transactionType).toBe(TRANSACTION_TYPES.expense);
-      expect(oppositeTx.transactionType).toBe(
+      expect(oppositeTx!.transactionType).toBe(
         expectedValues.destinationTransaction.transactionType,
       );
     });
@@ -309,7 +310,7 @@ describe('Create transaction controller', () => {
         const transferTxPayload = helpers.buildTransactionPayload({
           ...expectedValues,
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationTransactionId: externalTransaction.id,
+          destinationTransactionId: externalTransaction!.id,
         });
 
         const [baseTx, oppositeTx] = await helpers.createTransaction({
@@ -317,8 +318,8 @@ describe('Create transaction controller', () => {
           raw: true,
         });
 
-        expect(baseTx.transferId).toBe(oppositeTx.transferId);
-        expect(oppositeTx.amount).toBe(externalTransaction.amount);
+        expect(baseTx.transferId).toBe(oppositeTx!.transferId);
+        expect(oppositeTx!.amount).toBe(externalTransaction!.amount);
         expect(baseTx.amount).toBe(expectedValues.amount);
       },
     );
@@ -397,7 +398,7 @@ describe('Create transaction controller', () => {
         accountId: accountC.id,
         transactionType: TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: oppositeTx.id,
+        destinationTransactionId: oppositeTx!.id,
       });
 
       const result = await helpers.createTransaction({

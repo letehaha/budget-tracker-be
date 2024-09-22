@@ -37,8 +37,8 @@ export const createTransaction = async (
       amount,
       destinationTransactionId,
       destinationAmount,
-      note,
-      time: new Date(time),
+      note: note || undefined,
+      time: time ? new Date(time) : undefined,
       transactionType,
       paymentType,
       accountId,
@@ -54,12 +54,7 @@ export const createTransaction = async (
     // 1. Amount and destinationAmount with same currency should be equal
     // 2. That transactions here might be created only with system account type
 
-    let data = await transactionsService.createTransaction(params);
-
-    if (data[0].dataValues) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data = data.map((d) => d.dataValues ?? d) as any;
-    }
+    const data = await transactionsService.createTransaction(params);
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,

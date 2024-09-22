@@ -122,7 +122,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       url: '/accounts',
     }),
   );
-  const account = accounts[1];
+  const account = accounts[1]!;
 
   const mockedTransactions = helpers.monobank.mockedTransactions(amount, {
     initialBalance: account.initialBalance,

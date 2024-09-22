@@ -57,7 +57,7 @@ export const getBalanceHistory = withTransaction(
       // first record in the range. This is needed to make sure that we know the
       // balance for each account for the beginning of the date range
       const accountIdsInRange = balancesInRange
-        .filter((item) => item.date === balancesInRange[0].date)
+        .filter((item) => item.date === balancesInRange[0]!.date)
         .map((b) => b.accountId);
 
       // Fetch all accounts for the user

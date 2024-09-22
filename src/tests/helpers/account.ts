@@ -3,6 +3,7 @@ import { ACCOUNT_TYPES, type endpointsTypes, ACCOUNT_CATEGORIES } from 'shared-t
 import Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import { makeRequest } from './common';
+import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
 import { addUserCurrencies, getCurrenciesRates } from './currencies';
 
 export const buildAccountPayload = (
@@ -63,26 +64,11 @@ export function createAccount({ payload = buildAccountPayload(), raw = false } =
   });
 }
 
-export function updateAccount({
-  id,
-  payload,
-  raw,
-}: {
-  id: number;
-  payload?: Partial<BuildAccountPayload>;
-  raw?: false;
-}): Promise<Response>;
-export function updateAccount({
-  id,
-  payload,
-  raw,
-}: {
-  id: number;
-  payload?: Partial<BuildAccountPayload>;
-  raw?: true;
-}): Promise<Accounts>;
-export function updateAccount({ id, payload = {}, raw = false }) {
-  return makeRequest({
+export function updateAccount<
+  T = Awaited<ReturnType<typeof apiUpdateAccount>>,
+  R extends boolean | undefined = undefined,
+>({ id, payload = {}, raw }: { id: number; payload?: Partial<BuildAccountPayload>; raw?: R }) {
+  return makeRequest<T, R>({
     method: 'put',
     url: `/accounts/${id}`,
     payload,

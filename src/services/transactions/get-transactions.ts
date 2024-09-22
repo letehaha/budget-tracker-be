@@ -1,9 +1,10 @@
 import * as Transactions from '@models/Transactions.model';
-import type { GetTransactionsParams } from '@models/transactions';
 import { withTransaction } from '../common';
 
-export const getTransactions = withTransaction(async (params: GetTransactionsParams) => {
-  const data = await Transactions.getTransactions(params);
+export const getTransactions = withTransaction(
+  async (params: Omit<Parameters<typeof Transactions.findWithFilters>[0], 'isRaw'>) => {
+    const data = await Transactions.findWithFilters({ ...params, isRaw: true });
 
-  return data;
-});
+    return data;
+  },
+);

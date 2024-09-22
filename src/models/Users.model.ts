@@ -82,7 +82,7 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserById = async ({ id }: { id: number }): Promise<UserModel> => {
+export const getUserById = async ({ id }: { id: number }): Promise<UserModel | null> => {
   const user = await Users.findOne({
     where: { id },
   });
@@ -121,7 +121,7 @@ export const getUserByCredentials = async ({
 }: {
   username?: string;
   email?: string;
-}): Promise<UserModel> => {
+}): Promise<UserModel | null> => {
   const where: Record<string, unknown> = {};
 
   if (username) where.username = username;
@@ -189,7 +189,7 @@ export const updateUserById = async ({
   avatar?: string;
   totalBalance?: number;
   defaultCategoryId?: number;
-}): Promise<UserModel> => {
+}): Promise<UserModel | null> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};
 

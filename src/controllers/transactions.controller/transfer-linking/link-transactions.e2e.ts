@@ -57,8 +57,8 @@ describe('link transactions between each other', () => {
         transferId: expect.toBeAnythingOrNull(),
       });
 
-      expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-      expect(txAfter.transferId).toEqual(expect.any(String));
+      expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(txAfter!.transferId).toEqual(expect.any(String));
     });
 
     // Check that transactions fetching also returns correct result
@@ -72,8 +72,8 @@ describe('link transactions between each other', () => {
         transferId: expect.toBeAnythingOrNull(),
       });
 
-      expect(txAfter.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-      expect(txAfter.transferId).toEqual(expect.any(String));
+      expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(txAfter!.transferId).toEqual(expect.any(String));
     });
 
     expect(incomeA.transferId).toBe(expenseB.transferId);
@@ -89,7 +89,7 @@ describe('link transactions between each other', () => {
 
     const result = await helpers.linkTransactions({
       payload: {
-        ids: [[tx1.id, tx2.id]],
+        ids: [[tx1!.id, tx2!.id]],
       },
     });
     expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
@@ -153,12 +153,12 @@ describe('link transactions between each other', () => {
         raw: true,
       });
 
-      const expenseTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.expense);
-      const incomeTx = transactions.find((t) => t.transactionType === TRANSACTION_TYPES.income);
+      const expenseTx = transactions.find((t) => t!.transactionType === TRANSACTION_TYPES.expense);
+      const incomeTx = transactions.find((t) => t!.transactionType === TRANSACTION_TYPES.income);
 
       const result = await helpers.linkTransactions({
         payload: {
-          ids: [[tx1.id, txType === TRANSACTION_TYPES.income ? expenseTx.id : incomeTx.id]],
+          ids: [[tx1.id, txType === TRANSACTION_TYPES.income ? expenseTx!.id : incomeTx!.id]],
         },
       });
 

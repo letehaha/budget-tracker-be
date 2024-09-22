@@ -1,15 +1,15 @@
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { UserCurrencyModel } from 'shared-types';
+
 import { removeUndefinedKeys } from '@js/helpers';
 import Users from './Users.model';
 import Currencies from './Currencies.model';
+import { NotFoundError } from '@js/errors';
 
-interface UserCurrencyAttributes extends UserCurrencyModel {}
 @Table({
   timestamps: false,
 })
-export default class UsersCurrencies extends Model<UserCurrencyAttributes> {
+export default class UsersCurrencies extends Model {
   @BelongsTo(() => Users, {
     as: 'user',
     foreignKey: 'userId',
@@ -55,14 +55,15 @@ export default class UsersCurrencies extends Model<UserCurrencyAttributes> {
   isDefaultCurrency: boolean;
 }
 
-export const getCurrencies = ({ userId }: { userId: number }) => {
-  return UsersCurrencies.findAll({
-    where: { userId },
-    include: {
-      model: Currencies,
-    },
-  });
-};
+export async function getCurrencies({ userId, ids }: { userId: number; ids?: number[] }) {
+  const where: Record<string, unknown> = {
+    userId,
+  };
+
+  if (ids) where.currencyId = { [Op.in]: ids };
+
+  return UsersCurrencies.findAll({ where, include: { model: Currencies } });
+}
 
 export const getBaseCurrency = async ({ userId }: { userId: number }) => {
   const data = (await UsersCurrencies.findOne({
@@ -106,7 +107,7 @@ export const getCurrency: getCurrencyOverload = ({
   }) as Promise<UsersCurrencies & { currency: Currencies }>;
 };
 
-export const addCurrency = ({
+export const addCurrency = async ({
   userId,
   currencyId,
   exchangeRate,
@@ -119,6 +120,10 @@ export const addCurrency = ({
   liveRateUpdate?: boolean;
   isDefaultCurrency?: boolean;
 }) => {
+  const currency = await Currencies.findByPk(currencyId);
+  if (!currency) {
+    throw new NotFoundError({ message: 'Currency with provided id does not exist!' });
+  }
   return UsersCurrencies.create(
     {
       userId,

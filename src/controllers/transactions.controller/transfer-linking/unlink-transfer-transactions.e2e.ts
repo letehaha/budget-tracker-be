@@ -83,8 +83,8 @@ describe('Unlink transfer transactions', () => {
     const [updatedA, updatedB] = await helpers.linkTransactions({
       payload: {
         ids: [
-          [expenseExternalTx.id, incomeSystemTx.id],
-          [incomeExternalTx.id, expenseSystemTx.id],
+          [expenseExternalTx!.id, incomeSystemTx.id],
+          [incomeExternalTx!.id, expenseSystemTx.id],
         ],
       },
       raw: true,
@@ -93,28 +93,28 @@ describe('Unlink transfer transactions', () => {
     // Test that after updation only transfer-related fields were changed for each
     // transaction
     expect(expenseExternalTx).toEqual({
-      ...updatedA[0],
+      ...updatedA![0],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
     });
     expect(incomeSystemTx).toEqual({
-      ...updatedA[1],
+      ...updatedA![1],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
     });
     expect(incomeExternalTx).toEqual({
-      ...updatedB[0],
+      ...updatedB![0],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
     });
     expect(expenseSystemTx).toEqual({
-      ...updatedB[1],
+      ...updatedB![1],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
     });
 
     // Now unlink all of them
-    const transferIds = [...updatedA, ...updatedB].map((t) => t.transferId);
+    const transferIds = [...updatedA!, ...updatedB!].map((t) => t.transferId);
 
     const result = await helpers.unlinkTransferTransactions({
       transferIds,
@@ -123,7 +123,7 @@ describe('Unlink transfer transactions', () => {
 
     // After unlinking check that transactions now are COMPLETELY SAME
     [expenseExternalTx, incomeExternalTx, expenseSystemTx, incomeSystemTx].forEach((tx) => {
-      expect(result.find((t) => t.id === tx.id)).toEqual(tx);
+      expect(result.find((t) => t.id === tx!.id)).toEqual(tx);
     });
   });
 });

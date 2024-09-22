@@ -1,14 +1,15 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { UserExchangeRatesModel } from 'shared-types';
-import Currencies, { getCurrencies } from './Currencies.model';
+import * as Currencies from './Currencies.model';
+import * as UsersCurrencies from './UsersCurrencies.model';
 import Users from './Users.model';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
 @Table({ timestamps: true })
-export default class UserExchangeRates extends Model<UserExchangeRatesAttributes> {
+export default class UserExchangeRates extends Model {
   @Column({
     unique: true,
     allowNull: false,
@@ -21,14 +22,14 @@ export default class UserExchangeRates extends Model<UserExchangeRatesAttributes
   @Column({ allowNull: false })
   userId: number;
 
-  @ForeignKey(() => Currencies)
+  @ForeignKey(() => Currencies.default)
   @Column({ allowNull: false })
   baseId: number;
 
   @Column({ allowNull: false })
   baseCode: string;
 
-  @ForeignKey(() => Currencies)
+  @ForeignKey(() => Currencies.default)
   @Column({ allowNull: false })
   quoteId: number;
 
@@ -93,6 +94,7 @@ export async function getRates({
 
   return UserExchangeRates.findAll({
     where,
+    raw: true,
     attributes: { exclude: ['userId'] },
   });
 }
@@ -125,8 +127,8 @@ export async function updateRates({
   pair?: UpdateExchangeRatePair;
   pairs?: UpdateExchangeRatePair[];
 }): Promise<UserExchangeRates[]> {
-  const iterations = pairs ?? [pair];
-  const returningValues = [];
+  const iterations = (pairs ?? [pair]) as UpdateExchangeRatePair[];
+  const returningValues: UserExchangeRates[] = [];
 
   for (const pairItem of iterations) {
     const foundItem = await UserExchangeRates.findOne({
@@ -135,6 +137,7 @@ export async function updateRates({
         baseCode: pairItem.baseCode,
         quoteCode: pairItem.quoteCode,
       },
+      raw: true,
     });
 
     if (foundItem) {
@@ -152,29 +155,45 @@ export async function updateRates({
         },
       );
 
-      returningValues.push(updatedItems[0]);
+      if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
-      const currencies = await getCurrencies({
+      const currencies = await Currencies.getCurrencies({
         codes: [pairItem.baseCode, pairItem.quoteCode],
       });
+      const userCurrencies = await UsersCurrencies.getCurrencies({
+        userId,
+        ids: currencies.map((i) => i.id),
+      });
+
+      if (currencies.length !== userCurrencies.length) {
+        throw new NotFoundError({
+          message:
+            'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
+        });
+      }
+
       const baseCurrency = currencies.find((item) => item.code === pairItem.baseCode);
       const quoteCurrency = currencies.find((item) => item.code === pairItem.quoteCode);
 
-      const res = await UserExchangeRates.create(
-        {
-          userId,
-          rate: pairItem.rate,
-          baseId: baseCurrency.id,
-          baseCode: baseCurrency.code,
-          quoteId: quoteCurrency.id,
-          quoteCode: quoteCurrency.code,
-        },
-        {
-          returning: true,
-        },
-      );
+      if (baseCurrency && quoteCurrency) {
+        const res = await UserExchangeRates.create(
+          {
+            userId,
+            rate: pairItem.rate,
+            baseId: baseCurrency.id,
+            baseCode: baseCurrency.code,
+            quoteId: quoteCurrency.id,
+            quoteCode: quoteCurrency.code,
+          },
+          {
+            returning: true,
+          },
+        );
 
-      returningValues.push(res);
+        returningValues.push(res);
+      } else {
+        throw new NotFoundError({ message: 'Cannot find currencies to update rates for.' });
+      }
     }
   }
 

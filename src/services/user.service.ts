@@ -1,6 +1,6 @@
-import { ACCOUNT_TYPES } from 'shared-types';
+import { ACCOUNT_TYPES, API_ERROR_CODES } from 'shared-types';
 
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Users from '@models/Users.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -8,6 +8,7 @@ import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Accounts from '@models/Accounts.model';
 import { withTransaction } from './common';
+import { addUserCurrencies } from './currencies/add-user-currency';
 
 export const getUser = withTransaction(async (id: number) => {
   const user = await Users.getUserById({ id });
@@ -133,6 +134,10 @@ export const setBaseUserCurrency = withTransaction(
       { baseCode: currency.code, quoteCode: currency.code },
     ]);
 
+    if (!exchangeRate) {
+      throw new ValidationError({ message: 'No exchange rate for current pair!' });
+    }
+
     await addUserCurrencies([
       {
         userId,
@@ -142,35 +147,6 @@ export const setBaseUserCurrency = withTransaction(
     ]);
 
     const result = await setDefaultUserCurrency({ userId, currencyId });
-
-    return result;
-  },
-);
-
-export const addUserCurrencies = withTransaction(
-  async (
-    currencies: {
-      userId: number;
-      currencyId: number;
-      exchangeRate?: number;
-      liveRateUpdate?: boolean;
-    }[],
-  ) => {
-    if (!currencies.length) {
-      throw new ValidationError({ message: 'Currencies list is empty' });
-    }
-
-    const existingCurrencies = await UsersCurrencies.getCurrencies({
-      userId: currencies[0].userId,
-    });
-
-    existingCurrencies.forEach((item) => {
-      const index = currencies.findIndex((currency) => currency.currencyId === item.currencyId);
-
-      if (index >= 0) currencies.splice(index, 1);
-    });
-
-    const result = await Promise.all(currencies.map((item) => UsersCurrencies.addCurrency(item)));
 
     return result;
   },
@@ -273,6 +249,13 @@ export const deleteUserCurrency = withTransaction(
     }
 
     const defaultCurrency = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
+
+    if (!defaultCurrency) {
+      throw new UnexpectedError(
+        API_ERROR_CODES.unexpected,
+        'Cannot delete currency. Default currency is not present in the system',
+      );
+    }
 
     await Transactions.updateTransactions(
       {
