@@ -1,12 +1,5 @@
 import { SecurityPricingModel } from 'shared-types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsTo,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Security from '@models/investments/Security.model';
 
 /**

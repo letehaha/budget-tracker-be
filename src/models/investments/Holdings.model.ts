@@ -1,12 +1,4 @@
-import { HoldingModel } from 'shared-types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import Account from '@models/Accounts.model';
 import Security from '@models/investments/Security.model';
 
@@ -46,7 +38,7 @@ import Security from '@models/investments/Security.model';
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holding extends Model<HoldingModel> {
+export default class Holding extends Model {
   @ForeignKey(() => Account)
   @Column
   accountId: number;

@@ -4,7 +4,7 @@ const INVESTMENT_TRANSACTIONS_NAME = 'InvestmentTransactions';
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -13,7 +13,7 @@ module.exports = {
         'refFees',
         {
           type: Sequelize.DECIMAL(20, 10),
-          allowNull: true
+          allowNull: true,
         },
         { transaction },
       );
@@ -24,20 +24,16 @@ module.exports = {
       throw err;
     }
   },
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeColumn(
-        INVESTMENT_TRANSACTIONS_NAME,
-        'refFees',
-        { transaction },
-      );
+      await queryInterface.removeColumn(INVESTMENT_TRANSACTIONS_NAME, 'refFees', { transaction });
       await transaction.commit();
     } catch (err) {
       console.error(err);
       await transaction.rollback();
       throw err;
     }
-  }
+  },
 };

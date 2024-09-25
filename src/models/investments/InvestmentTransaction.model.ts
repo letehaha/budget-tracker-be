@@ -2,16 +2,8 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   INVESTMENT_TRANSACTION_CATEGORY,
-  InvestmentTransactionModel,
 } from 'shared-types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsTo,
-} from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Account from '@models/Accounts.model';
 import Security from '@models/investments/Security.model';
 
@@ -19,7 +11,7 @@ import Security from '@models/investments/Security.model';
   timestamps: true,
   tableName: 'InvestmentTransactions',
 })
-export default class InvestmentTransaction extends Model<InvestmentTransactionModel> {
+export default class InvestmentTransaction extends Model {
   @Column({
     unique: true,
     allowNull: false,

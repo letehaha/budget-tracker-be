@@ -2,10 +2,7 @@ import { Router } from 'express';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { authenticateJwt } from '@middlewares/passport';
 // import { marketDataService } from '@services/investments/market-data.service';
-import {
-  syncSecuritiesData,
-  loadSecuritiesList,
-} from '@services/investments/securities.service';
+import { syncSecuritiesData, loadSecuritiesList } from '@services/investments/securities.service';
 import {
   createInvestmentTransaction,
   getInvestmentTransactions,
@@ -24,16 +21,7 @@ router.post('/holdings', authenticateJwt, createHolding);
 router.post('/transaction', authenticateJwt, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { id: userId } = req.user as any;
-  const {
-    accountId,
-    securityId,
-    transactionType,
-    date,
-    name,
-    quantity,
-    price,
-    fees,
-  } = req.body;
+  const { accountId, securityId, transactionType, date, name, quantity, price, fees } = req.body;
 
   const data = await createInvestmentTransaction({
     userId,
@@ -59,8 +47,8 @@ router.get('/transactions', authenticateJwt, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { id: userId } = req.user as any;
   const { accountId, securityId } = req.query as {
-    accountId?: string;
-    securityId?: string;
+    accountId: string;
+    securityId: string;
   };
 
   const data = await getInvestmentTransactions({

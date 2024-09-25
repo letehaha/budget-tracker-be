@@ -1,44 +1,24 @@
-import { GenericSequelizeModelAttributes } from '@common/types';
-import { connection } from '@models/index';
 import Accounts from '@models/Accounts.model';
 import Users from '@models/Users.model';
 import Holdings from '@models/investments/Holdings.model';
+import { withTransaction } from '@root/services/common';
 
-export async function loadHoldingsList(
-  { userId }: { userId: number },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
+export const loadHoldingsList = withTransaction(async ({ userId }: { userId: number }) => {
+  const holdings = await Holdings.findAll({
+    include: [
+      {
+        model: Accounts,
+        required: true,
+        where: { userId }, // Direct filtering by userId on the Account
+        include: [
+          {
+            model: Users,
+            required: true,
+          },
+        ],
+      },
+    ],
+  });
 
-  try {
-    const holdings = await Holdings.findAll({
-      include: [
-        {
-          model: Accounts,
-          required: true,
-          where: { userId }, // Direct filtering by userId on the Account
-          include: [
-            {
-              model: Users,
-              required: true,
-            },
-          ],
-        },
-      ],
-      transaction,
-    });
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
-    return holdings;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw err;
-  }
-}
+  return holdings;
+});

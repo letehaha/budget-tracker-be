@@ -5,9 +5,7 @@ import { UnwrapPromise, UnwrapArray } from '@common/types';
 import { requestsUtils, logger } from '@js/utils';
 
 type ITickersResults = UnwrapArray<
-  UnwrapPromise<
-    ReturnType<ReturnType<typeof restClient>['reference']['tickers']>
-  >['results']
+  UnwrapPromise<ReturnType<ReturnType<typeof restClient>['reference']['tickers']>>['results']
 >;
 
 export type TickersResponse = (ITickersResults & {
@@ -66,103 +64,105 @@ export class PolygonMarketDataService {
     });
 
     // Only get tickers for exchanges, not TRF or SIP
-    const exchanges = allExchanges.results.filter(
-      (exchange) => exchange.type === 'exchange',
-    );
+    const exchanges = allExchanges.results.filter((exchange) => exchange.type === 'exchange');
 
     const tickers: TickersResponse = [];
 
     for (const exchange of exchanges) {
-      const exchangeTickers: TickersResponse =
-        await requestsUtils.paginateWithNextUrl({
-          pageSize: 1000,
-          delay: this.shouldRateLimit
-            ? {
-                onDelay: (message: string) => logger.info(message),
-                milliseconds: this.reateLimit,
-              }
-            : undefined,
-          fetchData: async (limit, nextCursor) => {
-            try {
-              console.log(`loop over: ${exchange.name}, ${exchange.mic}`);
-              const { results, next_url } = await requestsUtils.withRetry(
-                () =>
-                  this.api.reference.tickers({
-                    market: 'stocks',
-                    exchange: exchange.mic,
-                    cursor: nextCursor,
-                    limit: limit,
-                  }),
-                {
-                  maxRetries: 1,
-                  delay: this.shouldRateLimit ? this.reateLimit : 0,
-                },
-              );
-              console.log('results', results);
-              const tickersWithExchange = results.map((ticker) => {
-                return {
-                  ...ticker,
-                  exchangeAcronym: exchange.acronymstring ?? '',
-                  exchangeMic: exchange.mic ?? '',
-                  exchangeName: exchange.name,
-                };
-              });
-              return { data: tickersWithExchange, nextUrl: next_url };
-            } catch (err) {
-              logger.error('Error while fetching tickers', err);
-
-              return { data: [], nextUrl: undefined };
+      const exchangeTickers: TickersResponse = await requestsUtils.paginateWithNextUrl({
+        pageSize: 1000,
+        delay: this.shouldRateLimit
+          ? {
+              onDelay: (message: string) => logger.info(message),
+              milliseconds: this.reateLimit,
             }
-          },
-        });
+          : undefined,
+        fetchData: async (limit, nextCursor) => {
+          try {
+            console.log(`loop over: ${exchange.name}, ${exchange.mic}`);
+            const { results, next_url } = await requestsUtils.withRetry(
+              () =>
+                this.api.reference.tickers({
+                  market: 'stocks',
+                  exchange: exchange.mic,
+                  cursor: nextCursor,
+                  limit: limit,
+                }),
+              {
+                maxRetries: 1,
+                delay: this.shouldRateLimit ? this.reateLimit : 0,
+              },
+            );
+            console.log('results', results);
+            const tickersWithExchange = results.map((ticker) => {
+              return {
+                ...ticker,
+                exchangeAcronym: exchange.acronymstring ?? '',
+                exchangeMic: exchange.mic ?? '',
+                exchangeName: exchange.name,
+              };
+            });
+            return { data: tickersWithExchange, nextUrl: next_url };
+          } catch (err) {
+            logger.error('Error while fetching tickers', err);
+
+            return { data: [], nextUrl: undefined };
+          }
+        },
+      });
       tickers.push(...exchangeTickers);
     }
     return tickers;
   }
 
   async getEndOfDayPricing<
-    TSecurity extends Pick<
-      SecurityModel,
-      'id' | 'symbol' | 'assetClass' | 'currencyCode'
-    >,
-  >(
-    securities: TSecurity[],
-    allPricing: IAggs,
-  ): Promise<EndOfDayPricing<TSecurity>[]> {
+    TSecurity extends Pick<SecurityModel, 'id' | 'symbol' | 'assetClass' | 'currencyCode'>,
+  >(securities: TSecurity[], allPricing: IAggs): Promise<EndOfDayPricing<TSecurity>[]> {
     // Create a map for efficient lookup of securities by their ticker symbol
     const securitiesMap = new Map(
-      securities.map((security) => [
-        getPolygonTicker(security)?.ticker,
-        security,
-      ]),
+      securities.map((security) => [getPolygonTicker(security)?.ticker, security]),
     );
 
-    const data = (allPricing.results || [])
-      .filter(
-        ({ t, c, T }) =>
-          t !== null &&
-          c !== null &&
-          securitiesMap.has(T) &&
-          securitiesMap.get(T)?.assetClass === 'stocks',
-      )
-      .map((pricing) => ({
-        security: securitiesMap.get(pricing.T),
-        pricing: {
-          ticker: pricing.T,
-          price: pricing.c,
-          change: pricing.c - pricing.o,
-          changePct: ((pricing.c - pricing.o) / pricing.o) * 100,
-          updatedAt: new Date(pricing.t),
-        },
-      }));
+    const data: EndOfDayPricing<TSecurity>[] = [];
+
+    for (const pricing of allPricing.results || []) {
+      const { t, c, T } = pricing;
+
+      if (
+        t !== null &&
+        c !== null &&
+        T !== undefined &&
+        securitiesMap.has(T) &&
+        securitiesMap.get(T)?.assetClass === 'stocks'
+      ) {
+        if (pricing.c == null || pricing.o == null) {
+          logger.error(
+            `Missing pricing data for ticker ${T}: ${JSON.stringify(pricing)}. Date ${new Date()}`,
+          );
+          continue;
+        }
+
+        const pricingC = pricing.c;
+        const pricingO = pricing.o;
+
+        data.push({
+          security: securitiesMap.get(T)!,
+          pricing: {
+            ticker: T,
+            price: pricingC,
+            change: pricingC - pricingO,
+            changePct: ((pricingC - pricingO) / pricingO) * 100,
+            updatedAt: pricing.t ? new Date(pricing.t) : new Date(),
+          },
+        });
+      }
+    }
 
     return data;
   }
 }
 
-export const marketDataService = new PolygonMarketDataService(
-  process.env.POLYGON_API_KEY,
-);
+export const marketDataService = new PolygonMarketDataService(process.env.POLYGON_API_KEY!);
 
 class PolygonTicker {
   constructor(
@@ -187,10 +187,7 @@ export function getPolygonTicker({
   assetClass,
   currencyCode,
   symbol,
-}: Pick<
-  SecurityModel,
-  'assetClass' | 'currencyCode' | 'symbol'
->): PolygonTicker | null {
+}: Pick<SecurityModel, 'assetClass' | 'currencyCode' | 'symbol'>): PolygonTicker | null {
   if (!symbol) return null;
 
   switch (assetClass) {

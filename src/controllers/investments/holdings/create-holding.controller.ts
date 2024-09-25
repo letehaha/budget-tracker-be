@@ -5,8 +5,7 @@ import { errorHandler } from '@controllers/helpers';
 
 export const createHolding = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
-  const { accountId, securityId }: { accountId: number; securityId: number } =
-    req.body;
+  const { accountId, securityId }: { accountId: number; securityId: number } = req.body;
 
   try {
     const holding = await holdingsService.createHolding({

@@ -53,15 +53,15 @@ export async function paginateWithNextUrl<TData>({
   const result: TData[] = [];
 
   while (hasNextPage) {
-    const response: { data: TData[]; nextUrl: string | undefined } =
-      await fetchData(pageSize, nextCursor);
+    const response: { data: TData[]; nextUrl: string | undefined } = await fetchData(
+      pageSize,
+      nextCursor,
+    );
     const data = response.data;
     const nextUrl: string | undefined = response.nextUrl ?? undefined;
 
     try {
-      nextCursor = nextUrl
-        ? new URL(nextUrl).searchParams.get('cursor') ?? undefined
-        : undefined;
+      nextCursor = nextUrl ? new URL(nextUrl).searchParams.get('cursor') ?? undefined : undefined;
     } catch {
       nextCursor = undefined;
     }

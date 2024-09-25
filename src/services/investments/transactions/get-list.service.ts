@@ -1,21 +1,18 @@
-import { GenericSequelizeModelAttributes } from '@common/types';
-import { connection } from '@models/index';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Accounts from '@models/Accounts.model';
 import { removeUndefinedKeys } from '@js/helpers';
+import { withTransaction } from '@root/services/common';
 
-export async function getInvestmentTransactions(
-  {
+export const getInvestmentTransactions = withTransaction(
+  async ({
     accountId,
     securityId,
     userId,
-  }: { accountId?: number; securityId?: number; userId: number },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
-
-  try {
+  }: {
+    accountId?: number;
+    securityId?: number;
+    userId: number;
+  }) => {
     const result = await InvestmentTransaction.findAll({
       where: removeUndefinedKeys({ accountId, securityId }),
       include: [
@@ -27,19 +24,8 @@ export async function getInvestmentTransactions(
           attributes: [],
         },
       ],
-      transaction,
     });
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
     return result;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw err;
-  }
-}
+  },
+);

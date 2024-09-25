@@ -1,29 +1,24 @@
-import { GenericSequelizeModelAttributes } from '@common/types';
-import { connection } from '@models/index';
-
 import Account from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import Security from '@models/investments/Security.model';
 import { ValidationError } from '@js/errors';
+import { withTransaction } from '@root/services/common';
 
-export async function createHolding(
-  {
+export const createHolding = withTransaction(
+  async ({
     userId,
     accountId,
     securityId,
-  }: { userId: number; accountId: number; securityId: number },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
-
-  try {
+  }: {
+    userId: number;
+    accountId: number;
+    securityId: number;
+  }) => {
     const account = await Account.findOne({
       where: {
         id: accountId,
         userId,
       },
-      transaction,
     });
 
     if (!account) {
@@ -34,7 +29,6 @@ export async function createHolding(
 
     const security = await Security.findOne({
       where: { id: securityId },
-      transaction,
     });
 
     if (!security) {
@@ -54,19 +48,8 @@ export async function createHolding(
         costBasis: '0',
         refCostBasis: '0',
       },
-      transaction,
     });
 
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-
     return holding;
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw err;
-  }
-}
+  },
+);

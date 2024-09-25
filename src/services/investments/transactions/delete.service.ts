@@ -1,9 +1,8 @@
 import { TRANSACTION_TYPES, InvestmentTransactionModel } from 'shared-types';
-import { GenericSequelizeModelAttributes } from '@common/types';
-import { connection } from '@models/index';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Holding from '@models/investments/Holdings.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { withTransaction } from '@root/services/common';
 
 type DeletionParams = Pick<InvestmentTransactionModel, 'id'>;
 
@@ -13,19 +12,15 @@ type DeletionParams = Pick<InvestmentTransactionModel, 'id'>;
  * 2. Update holdings `quantity`, recalculate holdings `value` and `costBasis` based on new amount
  * 3. Update account balance
  */
-export async function deleteInvestmentTransaction(
-  { params, userId }: { params: DeletionParams; userId: number },
-  { transaction }: GenericSequelizeModelAttributes = {},
-) {
-  const isTxPassedFromAbove = transaction !== undefined;
-  transaction = transaction ?? (await connection.sequelize.transaction());
-
-  try {
+export const deleteInvestmentTransaction = withTransaction(
+  async ({ params, userId }: { params: DeletionParams; userId: number }) => {
     const currentTx = await InvestmentTransaction.findByPk(params.id);
+
+    // If no transaction found - nothing to delete
+    if (!currentTx) return undefined;
 
     await InvestmentTransaction.destroy({
       where: { id: currentTx.id },
-      transaction,
     });
 
     const currentHolding = await Holding.findOne({
@@ -33,8 +28,10 @@ export async function deleteInvestmentTransaction(
         accountId: currentTx.accountId,
         securityId: currentTx.securityId,
       },
-      transaction,
     });
+
+    // If no holding found - nothing to update
+    if (!currentHolding) return undefined;
 
     const newQuantity =
       currentTx.transactionType === TRANSACTION_TYPES.income
@@ -69,7 +66,7 @@ export async function deleteInvestmentTransaction(
           parseFloat(currentTx.refAmount) +
           parseFloat(currentTx.refFees);
 
-    await Holding.update(
+    const [, [updatedHolding]] = await Holding.update(
       {
         value: String(newValue),
         refValue: String(newRefValue),
@@ -82,48 +79,27 @@ export async function deleteInvestmentTransaction(
           accountId: currentHolding.accountId,
           securityId: currentHolding.securityId,
         },
-        transaction,
+        returning: true,
       },
     );
-
-    const updatedHolding = await Holding.findOne({
-      where: {
-        accountId: currentHolding.accountId,
-        securityId: currentHolding.securityId,
-      },
-      transaction,
-    });
 
     // Recalculate account balance
 
     // TODO: maybe not "old costBasis - new costBasis", but "old value - new value"?
+    if (!updatedHolding) return undefined;
+
     const costBasisDiff =
-      parseFloat(currentHolding.costBasis) -
-      parseFloat(updatedHolding.costBasis);
+      parseFloat(currentHolding.costBasis) - parseFloat(updatedHolding.costBasis);
     const refCostBasisDiff =
-      parseFloat(currentHolding.refCostBasis) -
-      parseFloat(updatedHolding.refCostBasis);
+      parseFloat(currentHolding.refCostBasis) - parseFloat(updatedHolding.refCostBasis);
 
-    await updateAccountBalanceForChangedTx(
-      {
-        userId,
-        accountId: currentTx.accountId,
-        transactionType: currentTx.transactionType,
-        // We store amounts in Account as integer, so need to mutiply that by 100
-        prevAmount: Math.floor(costBasisDiff * 100),
-        prevRefAmount: Math.floor(refCostBasisDiff * 100),
-      },
-      { transaction },
-    );
-
-    if (!isTxPassedFromAbove) {
-      await transaction.commit();
-    }
-  } catch (err) {
-    if (!isTxPassedFromAbove) {
-      await transaction.rollback();
-    }
-
-    throw err;
-  }
-}
+    await updateAccountBalanceForChangedTx({
+      userId,
+      accountId: currentTx.accountId,
+      transactionType: currentTx.transactionType,
+      // We store amounts in Account as integer, so need to mutiply that by 100
+      prevAmount: Math.floor(costBasisDiff * 100),
+      prevRefAmount: Math.floor(refCostBasisDiff * 100),
+    });
+  },
+);

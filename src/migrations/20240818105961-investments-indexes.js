@@ -15,7 +15,7 @@ const SECURITY_PRICINGS_INDEX_NAME = 'security_pricing_name';
  */
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -32,7 +32,7 @@ module.exports = {
           fields: ['accountId', 'date'],
           name: INVESTMENT_TRANSACTIONS_INDEX_NAME,
         },
-        { transaction }
+        { transaction },
       );
 
       await queryInterface.addIndex(
@@ -41,7 +41,7 @@ module.exports = {
           fields: ['date'],
           name: SECURITY_PRICINGS_INDEX_NAME,
         },
-        { transaction }
+        { transaction },
       );
 
       await transaction.commit();
@@ -52,25 +52,21 @@ module.exports = {
     }
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      await queryInterface.removeConstraint(
-        SECURITIES_NAME,
-        UNIQUE_SECURITIES_INDEX_NAME,
-        { transaction },
-      );
+      await queryInterface.removeConstraint(SECURITIES_NAME, UNIQUE_SECURITIES_INDEX_NAME, {
+        transaction,
+      });
       await queryInterface.removeIndex(
         INVESTMENT_TRANSACTIONS_NAME,
         INVESTMENT_TRANSACTIONS_INDEX_NAME,
         { transaction },
       );
-      await queryInterface.removeIndex(
-        SECURITY_PRICINGS_NAME,
-        SECURITY_PRICINGS_INDEX_NAME,
-        { transaction },
-      );
+      await queryInterface.removeIndex(SECURITY_PRICINGS_NAME, SECURITY_PRICINGS_INDEX_NAME, {
+        transaction,
+      });
 
       await transaction.commit();
     } catch (err) {
@@ -78,5 +74,5 @@ module.exports = {
       await transaction.rollback();
       throw err;
     }
-  }
+  },
 };

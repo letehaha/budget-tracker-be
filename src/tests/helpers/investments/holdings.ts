@@ -2,10 +2,7 @@ import type { Response } from 'express';
 import { makeRequest } from '@tests/helpers';
 import * as holdingsService from '@services/investments/holdings';
 
-type CreateHoldingPayload = Omit<
-  Parameters<typeof holdingsService.createHolding>[0],
-  'userId'
->;
+type CreateHoldingPayload = Omit<Parameters<typeof holdingsService.createHolding>[0], 'userId'>;
 
 export function createHolding({
   payload,

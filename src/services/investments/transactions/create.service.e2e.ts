@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from 'shared-types';
-import { faker } from '@faker-js/faker';
+import { isSameDay, isBefore } from 'date-fns';
 import * as helpers from '@tests/helpers';
 
 describe('Create investment transaction service', () => {
@@ -7,9 +7,24 @@ describe('Create investment transaction service', () => {
     - creates income transaction;
     - updates related holding;
     - updates related account balance;
+    - updates balance changes history;
   `, async () => {
     const mockedSecurity = global.SECURITIES_LIST[0];
     const account = await helpers.createAccount({ raw: true });
+
+    console.log('mockedSecurity', mockedSecurity);
+
+    const balances = await helpers.makeRequest({
+      method: 'get',
+      url: '/stats/balance-history',
+      payload: {
+        accountId: account.id,
+      },
+      raw: true,
+    });
+
+    console.log('balances', balances);
+    console.log('new tex date: ', new Date());
 
     await helpers.createHolding({
       payload: {
@@ -19,9 +34,10 @@ describe('Create investment transaction service', () => {
     });
 
     const transactionValues = {
-      quantity: faker.number.int({ min: 0.1, max: 1000.15 }),
-      price: faker.number.int({ min: 0.1, max: 1000.15 }),
-      fees: faker.number.int({ min: 0.1, max: 1000.15 }),
+      quantity: 10,
+      price: 25.1,
+      fees: 0.25,
+      date: new Date('2024-05-25'),
     };
 
     await helpers.makeRequest({
@@ -31,7 +47,6 @@ describe('Create investment transaction service', () => {
         accountId: account.id,
         securityId: mockedSecurity.id,
         transactionType: TRANSACTION_TYPES.income,
-        date: new Date(),
         ...transactionValues,
       },
     });
@@ -58,14 +73,10 @@ describe('Create investment transaction service', () => {
     expect(transactions.length).toBe(1);
 
     const [holding] = holdings;
-    expect(+holding.quantity).toBe(transactionValues.quantity);
-    expect(+holding.value).toBe(
-      transactionValues.quantity * transactionValues.price,
-    );
-    const costBasis =
-      transactionValues.quantity * transactionValues.price +
-      transactionValues.fees;
-    expect(+holding.costBasis).toBe(costBasis);
+    expect(+holding!.quantity).toBe(transactionValues.quantity);
+    expect(+holding!.value).toBe(transactionValues.quantity * transactionValues.price);
+    const costBasis = transactionValues.quantity * transactionValues.price + transactionValues.fees;
+    expect(+holding!.costBasis).toBe(costBasis);
 
     const [transaction] = transactions;
 
@@ -76,7 +87,26 @@ describe('Create investment transaction service', () => {
     expect(+transaction.amount).toBe(txAmount);
 
     // account data is always integer, so multiplied by 100
-    expect(accountUpdated.currentBalance).toBe(txAmount * 100);
+    const expectedAccountBalance = txAmount * 100;
+    expect(accountUpdated.currentBalance).toBe(expectedAccountBalance);
+
+    const updatedBalances = await helpers.makeRequest({
+      method: 'get',
+      url: '/stats/balance-history',
+      payload: {
+        accountId: accountUpdated.id,
+      },
+      raw: true,
+    });
+
+    console.log('updatedBalances', updatedBalances);
+    expect(updatedBalances.length).toBe(2);
+    expect(
+      updatedBalances.find((item) => isSameDay(new Date(item.date), transactionValues.date)).amount,
+    ).toBe(expectedAccountBalance);
+    expect(
+      updatedBalances.find((item) => isBefore(new Date(item.date), transactionValues.date)).amount,
+    ).toBe(0);
   });
   it.todo(
     'correctly works for non-base currency (ref values are correct for tx, holdings, and account balance)',
@@ -85,14 +115,8 @@ describe('Create investment transaction service', () => {
   it.todo('after creation, statistics are updated correctly');
 
   describe('failure cases', () => {
-    it.todo(
-      'throws when trying to create transaction when holding does not exist',
-    );
-    it.todo(
-      'throws when trying to create transaction when account does not exist',
-    );
-    it.todo(
-      'throws when trying to create transaction when security does not exist',
-    );
+    it.todo('throws when trying to create transaction when holding does not exist');
+    it.todo('throws when trying to create transaction when account does not exist');
+    it.todo('throws when trying to create transaction when security does not exist');
   });
 });

@@ -1,9 +1,5 @@
 import _ from 'lodash';
-import {
-  paginate,
-  withRetry,
-  paginateWithNextUrl,
-} from './requests-calling.utils';
+import { paginate, withRetry, paginateWithNextUrl } from './requests-calling.utils';
 
 describe('paginate', () => {
   it.each`
@@ -30,11 +26,7 @@ describe('paginate', () => {
 
       expect(mockFetchData).toHaveBeenCalledTimes(fetchCalls);
       _.range(fetchCalls).map((i) => {
-        expect(mockFetchData).toHaveBeenNthCalledWith(
-          i + 1,
-          i * pageSize,
-          pageSize,
-        );
+        expect(mockFetchData).toHaveBeenNthCalledWith(i + 1, i * pageSize, pageSize);
       });
     },
   );
@@ -85,9 +77,7 @@ describe('withRetry', () => {
 
     const mockOnError = jest.fn((_err, attempt) => attempt < exitAfterAttempts);
 
-    expect(
-      withRetry(mock, { maxRetries, onError: mockOnError }),
-    ).rejects.toThrow();
+    expect(withRetry(mock, { maxRetries, onError: mockOnError })).rejects.toThrow();
     expect(mock).toHaveBeenCalledTimes(exitAfterAttempts + 1);
     expect(mockOnError).toHaveBeenCalledTimes(exitAfterAttempts + 1);
   });
