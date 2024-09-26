@@ -109,9 +109,7 @@ export const linkTransactions = withTransaction(
 
       return result;
     } catch (err) {
-      if (process.env.NODE_ENV !== 'test') {
-        logger.error(err);
-      }
+      logger.error(err);
       throw err;
     }
   },

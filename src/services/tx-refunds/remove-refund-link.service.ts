@@ -42,9 +42,7 @@ export const removeRefundLink = withTransaction(
         `Refund link between transactions ${originalTxId} and ${refundTxId} removed successfully`,
       );
     } catch (e) {
-      if (process.env.NODE_ENV !== 'test') {
-        logger.error('Error removing refund link:', e);
-      }
+      logger.error('Error removing refund link:', e);
       throw e;
     }
   },

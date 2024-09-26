@@ -273,9 +273,7 @@ export const createTransaction = withTransaction(
 
       return transactions;
     } catch (e) {
-      if (process.env.NODE_ENV !== 'test') {
-        logger.error(e);
-      }
+      logger.error(e);
       throw e;
     }
   },

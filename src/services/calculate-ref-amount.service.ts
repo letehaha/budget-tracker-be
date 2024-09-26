@@ -75,9 +75,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 
     return isNegative ? refAmount * -1 : refAmount;
   } catch (e) {
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(e);
-    }
+    logger.error(e);
     throw e;
   }
 }

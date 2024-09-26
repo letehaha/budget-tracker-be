@@ -81,9 +81,7 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
       ),
     );
   } catch (e) {
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(e);
-    }
+    logger.error(e);
     throw e;
   }
 });

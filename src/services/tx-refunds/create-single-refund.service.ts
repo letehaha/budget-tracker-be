@@ -151,9 +151,7 @@ export const createSingleRefund = withTransaction(
 
       return refundTransaction;
     } catch (e) {
-      if (process.env.NODE_ENV !== 'test') {
-        logger.error(e);
-      }
+      logger.error(e);
       throw e;
     }
   },

@@ -1,6 +1,12 @@
 import winston, { format, transports } from 'winston';
 
 const createWinstonLogger = () => {
+  if (process.env.NODE_ENV === 'test') {
+    return winston.createLogger({
+      silent: true,
+    });
+  }
+
   return winston.createLogger({
     level: 'info',
     format: format.combine(
