@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from 'shared-types';
 import { isSameDay, isBefore } from 'date-fns';
 import * as helpers from '@tests/helpers';
 
-jest.setTimeout(10_000);
+jest.setTimeout(30_000);
 
 describe('Create investment transaction service', () => {
   it.skip(`

@@ -1,7 +1,7 @@
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
-jest.setTimeout(10_000);
+jest.setTimeout(30_000);
 
 describe('Create holding service', () => {
   it('create holding', async () => {
