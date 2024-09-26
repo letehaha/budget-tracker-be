@@ -3,7 +3,7 @@ import { ACCOUNT_TYPES, type endpointsTypes, ACCOUNT_CATEGORIES } from 'shared-t
 import Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import { makeRequest } from './common';
-import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
+import { updateAccount as apiUpdateAccount } from '@root/services/accounts';
 import { addUserCurrencies, getCurrenciesRates } from './currencies';
 
 export const buildAccountPayload = (

@@ -7,7 +7,7 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import Security from '@models/investments/Security.model';
 import Holding from '@models/investments/Holdings.model';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import Currencies from '@models/Currencies.model';
 import { logger } from '@js/utils';
 import { ValidationError } from '@js/errors';

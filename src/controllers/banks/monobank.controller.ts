@@ -536,7 +536,7 @@ export const refreshAccounts = async (req, res) => {
 
           if (existingAccount) {
             promises.push(
-              accountsService.updateAccount({
+              accountsServiceNew.updateAccount({
                 id: existingAccount.id,
                 currentBalance: account.balance,
                 creditLimit: account.creditLimit,

@@ -1,7 +1,7 @@
 import { TRANSACTION_TYPES, InvestmentTransactionModel } from 'shared-types';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Holding from '@models/investments/Holdings.model';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import { withTransaction } from '@root/services/common';
 
 type DeletionParams = Pick<InvestmentTransactionModel, 'id'>;

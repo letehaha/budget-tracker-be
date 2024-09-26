@@ -23,7 +23,7 @@ import {
 } from 'sequelize-typescript';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
