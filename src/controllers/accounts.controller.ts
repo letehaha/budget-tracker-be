@@ -6,6 +6,7 @@ import {
 } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
+import * as accountsServiceNew from '@services/accounts';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import { ValidationError, NotFoundError, Unauthorized } from '@js/errors';
@@ -15,7 +16,7 @@ export const getAccounts = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
-    const accounts = await accountsService.getAccounts({ userId });
+    const accounts = await accountsServiceNew.getAccounts({ userId });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -31,7 +32,7 @@ export const getAccountById = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
 
   try {
-    const account = await accountsService.getAccountById({ userId, id });
+    const account = await accountsServiceNew.getAccountById({ userId, id });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -60,7 +61,7 @@ export const createAccount = async (req, res) => {
       });
     }
 
-    const account = await accountsService.createAccount({
+    const account = await accountsServiceNew.createAccount({
       accountCategory,
       currencyId,
       name,

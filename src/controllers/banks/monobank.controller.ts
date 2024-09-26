@@ -18,6 +18,7 @@ import { CustomResponse } from '@common/types';
 import { redisClient } from '@root/redis';
 
 import * as accountsService from '@services/accounts.service';
+import * as accountsServiceNew from '@services/accounts';
 import * as transactionsService from '@services/transactions';
 import * as usersService from '@services/user.service';
 import * as monobankUsersService from '@services/banks/monobank/users';
@@ -359,7 +360,7 @@ export const loadTransactions = async (req, res: CustomResponse) => {
     }
 
     // Check mono account exist
-    const account = await accountsService.getAccountById({
+    const account = await accountsServiceNew.getAccountById({
       id: Number(accountId),
       userId: Number(systemUserId),
     });
@@ -524,7 +525,7 @@ export const refreshAccounts = async (req, res) => {
         await redisClient.set(token, 'true');
         await redisClient.expire(token, 60);
 
-        const existingAccounts = await accountsService.getAccountsByExternalIds({
+        const existingAccounts = await accountsServiceNew.getAccountsByExternalIds({
           userId: monoUser.systemUserId,
           externalIds: clientInfo.accounts.map((item) => item.id),
         });
@@ -559,7 +560,7 @@ export const refreshAccounts = async (req, res) => {
 
         await Promise.all(promises);
 
-        const accounts = await accountsService.getAccounts({
+        const accounts = await accountsServiceNew.getAccounts({
           userId: monoUser.systemUserId,
           type: ACCOUNT_TYPES.monobank,
         });

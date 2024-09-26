@@ -2,7 +2,6 @@ import axios from 'axios';
 import config from 'config';
 import {
   TRANSACTION_TYPES,
-  AccountModel,
   ExternalMonobankClientInfoResponse,
   MonobankUserModel,
   ACCOUNT_TYPES,
@@ -20,20 +19,7 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
 import { redisKeyFormatter } from '@common/lib/redis';
 
-export const getAccounts = withTransaction(
-  async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> =>
-    Accounts.getAccounts(payload),
-);
-
-export const getAccountsByExternalIds = withTransaction(
-  async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
-    Accounts.getAccountsByExternalIds(payload),
-);
-
-export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountModel | null> =>
-    Accounts.getAccountById(payload),
-);
+import { getAccountById, createAccount } from '@services/accounts';
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
 
@@ -168,31 +154,6 @@ export const pairMonobankAccount = withTransaction(
     ).accounts = clientInfo.accounts;
 
     return user;
-  },
-);
-
-export const createAccount = withTransaction(
-  async (
-    payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
-  ): Promise<AccountModel | null> => {
-    const { userId, creditLimit, currencyId, initialBalance } = payload;
-    const refCreditLimit = await calculateRefAmount({
-      userId: userId,
-      amount: creditLimit,
-      baseId: currencyId,
-    });
-
-    const refInitialBalance = await calculateRefAmount({
-      userId,
-      amount: initialBalance,
-      baseId: currencyId,
-    });
-
-    return Accounts.createAccount({
-      ...payload,
-      refCreditLimit,
-      refInitialBalance,
-    });
   },
 );
 
