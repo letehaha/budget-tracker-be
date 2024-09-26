@@ -14,6 +14,7 @@ import { type UpdateTransactionParams } from './types';
 import { removeUndefinedKeys } from '@js/helpers';
 import * as refundsService from '@services/tx-refunds';
 import { withTransaction } from '../common';
+import { deleteTransaction } from './delete-transaction';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -303,9 +304,10 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
   ).find((item) => Number(item.id) !== Number(newData.id));
 
   if (notBaseTransaction) {
-    await Transactions.deleteTransactionById({
+    await deleteTransaction({
       id: notBaseTransaction.id,
       userId: notBaseTransaction.userId,
+      skipExtraChecks: true,
     });
   }
 

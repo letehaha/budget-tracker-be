@@ -369,6 +369,8 @@ export async function updateAccountBalanceForChangedTxImpl({
     currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
     refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
   });
+
+  // TODO: call Balances service to update balances
 }
 
 export const updateAccountBalanceForChangedTx = withTransaction(

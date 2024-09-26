@@ -25,8 +25,8 @@ describe('Create investment transaction service', () => {
       raw: true,
     });
 
-    console.log('balances', balances);
-    console.log('new tex date: ', new Date());
+    // has initial balance record
+    expect(balances.length).toBe(1);
 
     await helpers.createHolding({
       payload: {
@@ -75,21 +75,19 @@ describe('Create investment transaction service', () => {
     expect(transactions.length).toBe(1);
 
     const [holding] = holdings;
-    expect(+holding!.quantity).toBe(transactionValues.quantity);
-    expect(+holding!.value).toBe(transactionValues.quantity * transactionValues.price);
-    const costBasis = transactionValues.quantity * transactionValues.price + transactionValues.fees;
-    expect(+holding!.costBasis).toBe(costBasis);
+    expect(Number(holding!.quantity)).toBe(transactionValues.quantity);
+    expect(Number(holding!.value)).toBe(251);
+    expect(Number(holding!.costBasis)).toBe(251.25);
 
     const [transaction] = transactions;
 
-    expect(+transaction.fees).toBe(transactionValues.fees);
-    expect(+transaction.quantity).toBe(transactionValues.quantity);
-    expect(+transaction.price).toBe(transactionValues.price);
-    const txAmount = transactionValues.quantity * transactionValues.price;
-    expect(+transaction.amount).toBe(txAmount);
+    expect(Number(transaction.fees)).toBe(transactionValues.fees);
+    expect(Number(transaction.quantity)).toBe(transactionValues.quantity);
+    expect(Number(transaction.price)).toBe(transactionValues.price);
+    expect(Number(transaction.amount)).toBe(251);
 
     // account data is always integer, so multiplied by 100
-    const expectedAccountBalance = txAmount * 100;
+    const expectedAccountBalance = 251 * 100;
     expect(accountUpdated.currentBalance).toBe(expectedAccountBalance);
 
     const updatedBalances = await helpers.makeRequest({

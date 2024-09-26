@@ -324,8 +324,6 @@ export default class Transactions extends Model {
         currencyId,
       });
     }
-
-    await Balances.handleTransactionChange({ data: instance, isDelete: true });
   }
 }
 

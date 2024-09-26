@@ -100,22 +100,18 @@ export default class Balances extends Model {
   static async handleTransactionChange({
     data,
     prevData,
-    isDelete = false,
   }: {
     data: Transactions;
     prevData?: Transactions;
-    isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount =
+    const amount =
       data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
     if (data.accountType === ACCOUNT_TYPES.system) {
-      if (isDelete) {
-        amount = -amount; // Reverse the amount if it's a deletion
-      } else if (prevData) {
+      if (prevData) {
         const originalDate = new Date(prevData.time);
         const originalAmount =
           prevData.transactionType === TRANSACTION_TYPES.income
@@ -183,7 +179,7 @@ export default class Balances extends Model {
   }
 
   // Update the balance for a specific system account and date
-  private static async updateRecord({
+  public static async updateRecord({
     accountId,
     date,
     amount,
