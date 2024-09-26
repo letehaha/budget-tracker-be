@@ -1,9 +1,13 @@
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
+jest.setTimeout(10_000);
+
 describe('Create holding service', () => {
   it('create holding', async () => {
-    const mockedSecurity = global.SECURITIES_LIST[0];
+    await helpers.syncSecuritiesData();
+    const securities = await helpers.getSecuritiesList({ raw: true });
+    const mockedSecurity = securities[0]!;
     const account = await helpers.createAccount({ raw: true });
 
     await helpers.createHolding({
@@ -22,7 +26,9 @@ describe('Create holding service', () => {
 
   describe('failure flows', () => {
     it('throws when trying to create holding for non-existing account', async () => {
-      const mockedSecurity = global.SECURITIES_LIST[0];
+      await helpers.syncSecuritiesData();
+      const securities = await helpers.getSecuritiesList({ raw: true });
+      const mockedSecurity = securities[0]!;
 
       const result = await helpers.createHolding({
         payload: {
@@ -34,6 +40,7 @@ describe('Create holding service', () => {
       expect(result.status).toEqual(ERROR_CODES.ValidationError);
     });
     it('throws when trying to create holding for non-existing security', async () => {
+      await helpers.syncSecuritiesData();
       const account = await helpers.createAccount({ raw: true });
 
       const result = await helpers.createHolding({

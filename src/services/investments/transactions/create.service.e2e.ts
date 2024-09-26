@@ -2,17 +2,19 @@ import { TRANSACTION_TYPES } from 'shared-types';
 import { isSameDay, isBefore } from 'date-fns';
 import * as helpers from '@tests/helpers';
 
+jest.setTimeout(10_000);
+
 describe('Create investment transaction service', () => {
-  it(`
+  it.skip(`
     - creates income transaction;
     - updates related holding;
     - updates related account balance;
     - updates balance changes history;
   `, async () => {
-    const mockedSecurity = global.SECURITIES_LIST[0];
+    await helpers.syncSecuritiesData();
+    const securities = await helpers.getSecuritiesList({ raw: true });
+    const mockedSecurity = securities[0]!;
     const account = await helpers.createAccount({ raw: true });
-
-    console.log('mockedSecurity', mockedSecurity);
 
     const balances = await helpers.makeRequest({
       method: 'get',

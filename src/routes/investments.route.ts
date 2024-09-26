@@ -2,7 +2,10 @@ import { Router } from 'express';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { authenticateJwt } from '@middlewares/passport';
 // import { marketDataService } from '@services/investments/market-data.service';
-import { syncSecuritiesData, loadSecuritiesList } from '@services/investments/securities.service';
+
+import { checkSecuritiesSyncingStatus } from '@controllers/investments/securities/check-syncing-status';
+import { syncSecuritiesData } from '@controllers/investments/securities/sync-data';
+import { loadSecuritiesList } from '@services/investments/securities/get-securities-list';
 import {
   createInvestmentTransaction,
   getInvestmentTransactions,
@@ -71,13 +74,9 @@ router.get('/transactions', authenticateJwt, async (req, res) => {
 // router.delete('/holdings/:id');
 
 // curl http://127.0.0.1:8081/api/v1/investing/securities/sync
-router.get('/securities/sync', async (req, res) => {
-  await syncSecuritiesData();
+router.get('/securities/sync', authenticateJwt, syncSecuritiesData);
+router.get('/securities/sync-status', authenticateJwt, checkSecuritiesSyncingStatus);
 
-  return res.status(200).json({
-    status: API_RESPONSE_STATUS.success,
-  });
-});
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.get('/securities/:query?', async (req: any, res) => {
   const { query } = req.query;

@@ -27,7 +27,6 @@ global.BASE_CURRENCY = null;
 global.BASE_CURRENCY_CODE = 'USD';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
-global.SECURITIES_LIST = null;
 
 async function dropAllEnums(sequelize) {
   // Get all ENUM types
@@ -105,19 +104,6 @@ beforeEach(async () => {
 
       global.MODELS_CURRENCIES = currencies;
       global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
-    }
-
-    if (!global.SECURITIES_LIST) {
-      await makeRequest({
-        method: 'get',
-        url: '/investing/securities/sync',
-      });
-      const securities = await makeRequest({
-        method: 'get',
-        url: '/investing/securities',
-        raw: true,
-      });
-      global.SECURITIES_LIST = securities;
     }
 
     await makeRequest({

@@ -1,72 +1,113 @@
 import { SECURITY_PROVIDER, ASSET_CLASS, SecurityModel, SecurityPricingModel } from 'shared-types';
 import { differenceInMinutes, differenceInSeconds, format, subDays } from 'date-fns';
-import { Op, literal, type Order } from 'sequelize';
+import type { IAggs } from '@polygon.io/client-js';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/Security.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import chunk from 'lodash/chunk';
-import { marketDataService, type TickersResponse } from './market-data.service';
+import { marketDataService, type TickersResponse } from '../market-data.service';
 
-import tickersMock from './mocks/tickers-mock.json';
-import type { IAggs } from '@polygon.io/client-js';
-import tickersPricesMock from './mocks/tickers-prices-mock.json';
-import { withTransaction } from '../common';
+import tickersMock from '../mocks/tickers-mock.json';
+import tickersPricesMock from '../mocks/tickers-prices-mock.json';
+import { withTransaction } from '@services/common';
+import { redisKeyFormatter } from '@common/lib/redis';
+import { redisClient } from '@root/redis';
+import { loadSecuritiesList } from './get-securities-list';
+import { LockedError } from '@js/errors';
 
 const IS_TEST_ENV = process.env.NODE_ENV === 'test';
 
-export const loadSecuritiesList = withTransaction(
-  async <T extends keyof SecurityModel>({
-    attributes,
-    query,
-  }: { attributes?: T[]; query?: string } = {}): Promise<Pick<SecurityModel, T>[]> => {
-    let where: Record<string, unknown> = {};
-    let order: Order | undefined = undefined;
+const SECURITIES_REDIS_SYNC_LOCK_KEY = redisKeyFormatter('sync-securities-sync-locked');
+const SECURITIES_REDIS_LAST_SYNC_KEY = redisKeyFormatter('sync-securities-data-last-sync');
+const SECURITIES_REDIS_KEY_VALUE = 'true';
+export const SECURITIES_LOCK_TIME_SECONDS = 12 * 60 * 60; // 12 hours
 
-    if (query) {
-      where = {
-        [Op.or]: [{ name: { [Op.iLike]: `%${query}%` } }, { symbol: { [Op.iLike]: `%${query}%` } }],
-      };
-      order = [
-        [
-          literal(
-            `CASE
-            WHEN "symbol" = '${query}' THEN 1
-            WHEN "name" = '${query}' THEN 2
-            WHEN "symbol" ILIKE '${query}%' THEN 3
-            WHEN "name" ILIKE '${query}%' THEN 4
-            ELSE 5
-          END`,
-          ),
-          'ASC',
-        ],
-        ['name', 'ASC'],
-        ['symbol', 'ASC'],
-      ];
+function getNextSyncTime(lastSyncDate: string): Date {
+  const lastSync = new Date(lastSyncDate);
+  const nextSyncTime = new Date(lastSync.getTime() + SECURITIES_LOCK_TIME_SECONDS * 1000);
+  return nextSyncTime;
+}
+
+const securitiesLocker = {
+  async lock() {
+    await redisClient.set(SECURITIES_REDIS_SYNC_LOCK_KEY, SECURITIES_REDIS_KEY_VALUE);
+    await redisClient.set(SECURITIES_REDIS_LAST_SYNC_KEY, new Date().toISOString());
+    await redisClient.expire(SECURITIES_REDIS_LAST_SYNC_KEY, SECURITIES_LOCK_TIME_SECONDS);
+  },
+  async release() {
+    await redisClient.del(SECURITIES_REDIS_SYNC_LOCK_KEY);
+  },
+  async isSyncing() {
+    const result = await redisClient.get(SECURITIES_REDIS_SYNC_LOCK_KEY);
+    return result === SECURITIES_REDIS_KEY_VALUE;
+  },
+  async getLastSyncTime() {
+    return await redisClient.get(SECURITIES_REDIS_LAST_SYNC_KEY);
+  },
+  async isAllowedToSyncAgain() {
+    const lastSyncTime = await this.getLastSyncTime();
+    const isCurrentlySyncing = await this.isSyncing();
+    const currentTime = new Date().toISOString();
+
+    if (isCurrentlySyncing) {
+      logger.warn('Sync securities data is already in progress, skipping');
+      return false;
+    }
+    if (
+      lastSyncTime &&
+      differenceInSeconds(new Date(currentTime), new Date(lastSyncTime)) <
+        SECURITIES_LOCK_TIME_SECONDS
+    ) {
+      logger.warn('Sync securities data is locked, skipping');
+      return false;
     }
 
-    const securities = (await Securities.findAll({
-      where,
-      order,
-      attributes,
-    })) as unknown as Pick<SecurityModel, T>[];
+    // release lock just in case to avoid false locking
+    await this.release();
+    await redisClient.del(SECURITIES_REDIS_LAST_SYNC_KEY);
 
-    return securities;
+    return true;
   },
-);
+};
 
 export const syncSecuritiesData = withTransaction(async () => {
-  logger.info('Started syncing all securities data.');
+  try {
+    const isAllowedToSync = await securitiesLocker.isAllowedToSyncAgain();
+    if (!isAllowedToSync) {
+      throw new LockedError({ message: 'Sync securities data is already in progress.' });
+    }
 
-  await syncSecuritiesList();
+    await securitiesLocker.lock();
 
-  logger.info('Started syncing all securities prices data.');
+    await syncSecuritiesList();
+    await syncSecuritiesPricing();
 
-  await syncSecuritiesPricing();
+    await securitiesLocker.release();
 
-  logger.info('Finished syncing all securities data.');
+    logger.info('Finished syncing all securities data.');
+  } catch (err) {
+    if (!(err instanceof LockedError)) {
+      // release if any error except LockedError occurs to avoid deadlocks
+      await securitiesLocker.release();
+    }
+    logger.error('Error syncing securities data.', err);
+    throw err;
+  }
 });
 
-export const syncSecuritiesList = withTransaction(async () => {
+export const checkSecuritiesSyncingStatus = async () => {
+  const isCurrentlySyncing = await securitiesLocker.isSyncing();
+  const lastSyncTime = await securitiesLocker.getLastSyncTime();
+  const nextSyncTime = lastSyncTime ? getNextSyncTime(lastSyncTime) : null;
+
+  return {
+    isCurrentlySyncing,
+    lastSyncTime,
+    nextSyncTime,
+  };
+};
+
+const syncSecuritiesList = withTransaction(async () => {
   if (!process.env.POLYGON_API_KEY && !IS_TEST_ENV) {
     logger.warn('No Polygon API key found, skipping sync');
     return;
@@ -94,6 +135,7 @@ export const syncSecuritiesList = withTransaction(async () => {
   if (!tickers.length) return;
 
   let counter = 0;
+
   for (const chunkedData of chunk(tickers, 1)) {
     counter++;
     try {
@@ -148,7 +190,7 @@ export const syncSecuritiesList = withTransaction(async () => {
   return tickers;
 });
 
-export const syncSecuritiesPricing = withTransaction(async () => {
+const syncSecuritiesPricing = withTransaction(async () => {
   if (!process.env.POLYGON_API_KEY && !IS_TEST_ENV) {
     logger.warn('No polygon API key found, skipping sync');
     return;
