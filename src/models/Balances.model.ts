@@ -1,15 +1,9 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
-
-interface GetTotalBalanceHistoryPayload {
-  startDate: Date;
-  endDate: Date;
-  accountIds: number[];
-}
 
 @Table({ timestamps: true })
 export default class Balances extends Model {
@@ -38,35 +32,6 @@ export default class Balances extends Model {
 
   @BelongsTo(() => Accounts)
   account: Accounts;
-
-  // Method to calculate the total balance across all accounts
-  static async getTotalBalance({ userId }: { userId: number }): Promise<number> {
-    const userAccounts = await Accounts.findAll({ where: { userId: userId } });
-    const accountIds = userAccounts.map((account) => account.id);
-
-    const result = await Balances.sum('amount', {
-      where: { accountId: accountIds },
-    });
-
-    return result || 0;
-  }
-
-  // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(
-    payload: GetTotalBalanceHistoryPayload,
-  ): Promise<BalanceModel[]> {
-    const { startDate, endDate, accountIds } = payload;
-    return Balances.findAll({
-      where: {
-        date: {
-          [Op.between]: [startDate, endDate],
-        },
-        accountId: accountIds,
-      },
-      order: [['date', 'ASC']],
-      include: [Accounts],
-    });
-  }
 
   // Transactions might have positive and negative amount
   // ### Transaction creation

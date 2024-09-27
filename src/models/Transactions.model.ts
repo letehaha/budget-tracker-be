@@ -6,7 +6,7 @@ import {
   SORT_DIRECTIONS,
   TransactionModel,
 } from 'shared-types';
-import { Op, Includeable, WhereOptions } from 'sequelize';
+import { Op, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -20,7 +20,7 @@ import {
   DataType,
   BelongsTo,
 } from 'sequelize-typescript';
-import { isExist, removeUndefinedKeys } from '@js/helpers';
+import { removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
 import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import Users from '@models/Users.model';
@@ -28,35 +28,6 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
-
-// TODO: replace with scopes
-const prepareTXInclude = ({
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
-}: {
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
-  let include: Includeable | Includeable[] | null = null;
-
-  if (isExist(includeAll)) {
-    include = { all: true, nested: isExist(nestedInclude) || undefined };
-  } else {
-    include = [];
-
-    if (isExist(includeUser)) include.push({ model: Users });
-    if (isExist(includeAccount)) include.push({ model: Accounts });
-    if (isExist(includeCategory)) include.push({ model: Categories });
-  }
-
-  return include;
-};
 
 export interface TransactionsAttributes {
   id: number;
@@ -254,8 +225,7 @@ export default class Transactions extends Model {
 
   @AfterUpdate
   static async updateAccountBalanceAfterUpdate(instance: Transactions) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newData: Transactions = (instance as any).dataValues;
+    const newData: Transactions = instance.dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevData: Transactions = (instance as any)._previousDataValues;
     const isAccountChanged = newData.accountId !== prevData.accountId;
@@ -316,12 +286,7 @@ export const findWithFilters = async ({
   accountIds,
   userId,
   order = SORT_DIRECTIONS.desc,
-  includeUser,
-  includeAccount,
   transactionType,
-  includeCategory,
-  includeAll,
-  nestedInclude,
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
@@ -337,11 +302,6 @@ export const findWithFilters = async ({
   accountIds?: number[];
   userId: number;
   order?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
   isRaw: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
@@ -350,14 +310,6 @@ export const findWithFilters = async ({
   amountGte?: number;
   amountLte?: number;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
-
   const whereClause: WhereOptions<Transactions> = {
     userId,
     ...removeUndefinedKeys({
@@ -401,7 +353,6 @@ export const findWithFilters = async ({
   }
 
   const transactions = await Transactions.findAll({
-    include,
     where: whereClause,
     offset: from,
     limit: limit,
@@ -435,62 +386,24 @@ export const getTransactionBySomeId = ({
 export const getTransactionById = ({
   id,
   userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
 }: {
   id: number;
   userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
 }): Promise<Transactions | null> => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
-
   return Transactions.findOne({
     where: { id, userId },
-    include,
   });
 };
 
 export const getTransactionsByTransferId = ({
   transferId,
   userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
 }: {
   transferId: number;
   userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
-
   return Transactions.findAll({
     where: { transferId, userId },
-    include,
   });
 };
 
@@ -498,29 +411,11 @@ export const getTransactionsByArrayOfField = async <T extends keyof TransactionM
   fieldValues,
   fieldName,
   userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
 }: {
   fieldValues: TransactionModel[T][];
   fieldName: T;
   userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
-
   const transactions = await Transactions.findAll({
     where: {
       [fieldName]: {
@@ -528,7 +423,6 @@ export const getTransactionsByArrayOfField = async <T extends keyof TransactionM
       },
       userId,
     },
-    include,
   });
 
   return transactions;

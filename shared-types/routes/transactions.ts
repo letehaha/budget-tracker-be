@@ -3,11 +3,6 @@ import { QueryPayload } from './index';
 
 export interface GetTransactionsQuery extends QueryPayload {
   sort?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
   limit?: number;
   from?: number;
   type?: TRANSACTION_TYPES;

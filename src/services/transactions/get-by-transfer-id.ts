@@ -5,28 +5,10 @@ export const getTransactionsByTransferId = withTransaction(
   async ({
     transferId,
     userId,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  }: {
-    transferId: number;
-    userId: number;
-    includeUser?: boolean;
-    includeAccount?: boolean;
-    includeCategory?: boolean;
-    includeAll?: boolean;
-    nestedInclude?: boolean;
-  }) => {
+  }: Parameters<typeof Transactions.getTransactionsByTransferId>[0]) => {
     const data = await Transactions.getTransactionsByTransferId({
       transferId,
       userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
     });
 
     return data;

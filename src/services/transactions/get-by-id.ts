@@ -2,31 +2,10 @@ import * as Transactions from '@models/Transactions.model';
 import { withTransaction } from '../common';
 
 export const getTransactionById = withTransaction(
-  async ({
-    id,
-    userId,
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  }: {
-    id: number;
-    userId: number;
-    includeUser?: boolean;
-    includeAccount?: boolean;
-    includeCategory?: boolean;
-    includeAll?: boolean;
-    nestedInclude?: boolean;
-  }) => {
+  async ({ id, userId }: Parameters<typeof Transactions.getTransactionById>[0]) => {
     const data = await Transactions.getTransactionById({
       id,
       userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
     });
 
     return data;
