@@ -7,8 +7,6 @@ import RefundTransactions from '@models/RefundTransactions.model';
 import { logger } from '@js/utils/logger';
 import { ValidationError } from '@js/errors';
 import { withTransaction } from '@services/common';
-
-import { updateBalanceOnTxDelete } from '@services/account-balances/update-balance-on-tx-delete';
 import { updateAccountBalanceForChangedTx } from '../accounts';
 
 export const deleteTransaction = withTransaction(async (params: Params): Promise<void> => {
@@ -38,12 +36,8 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
         prevAmount: transaction.amount,
         prevRefAmount: transaction.refAmount,
         transactionType: transaction.transactionType,
-      });
-      await updateBalanceOnTxDelete({
-        accountId: transaction.accountId,
-        transactionType: transaction.transactionType,
-        prevRefAmount: transaction.refAmount,
         time: new Date(transaction.time).toISOString(),
+        updateBalancesTable: true,
       });
     } else {
       if (refundLinked) {
@@ -58,12 +52,8 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
           prevAmount: transaction.amount,
           prevRefAmount: transaction.refAmount,
           transactionType: transaction.transactionType,
-        });
-        await updateBalanceOnTxDelete({
-          accountId: transaction.accountId,
-          transactionType: transaction.transactionType,
-          prevRefAmount: transaction.refAmount,
           time: new Date(transaction.time).toISOString(),
+          updateBalancesTable: true,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
         const transferTransactions = await Transactions.getTransactionsByArrayOfField({
@@ -86,12 +76,8 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
                 prevAmount: tx.amount,
                 prevRefAmount: tx.refAmount,
                 transactionType: tx.transactionType,
-              }),
-              updateBalanceOnTxDelete({
-                accountId: tx.accountId,
-                transactionType: tx.transactionType,
-                prevRefAmount: tx.refAmount,
                 time: new Date(tx.time).toISOString(),
+                updateBalancesTable: true,
               }),
             ])
             .flat(),
