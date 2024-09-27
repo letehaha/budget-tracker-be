@@ -1,22 +1,7 @@
 import { TRANSACTION_TYPES } from 'shared-types';
 import * as Accounts from '@models/Accounts.model';
 import { withTransaction } from '@services/common';
-
 import { getAccountById } from '@services/accounts';
-
-const calculateNewBalance = (amount: number, previousAmount: number, currentBalance: number) => {
-  if (amount > previousAmount) {
-    return currentBalance + (amount - previousAmount);
-  } else if (amount < previousAmount) {
-    return currentBalance - (previousAmount - amount);
-  }
-
-  return currentBalance;
-};
-
-const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {
-  return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
-};
 
 // interface updateAccountBalanceRequiredFields {
 //   accountId: number;
@@ -72,7 +57,7 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //   prevTransactionType: TRANSACTION_TYPES;
 // }): Promise<void>;
 
-export async function updateAccountBalanceForChangedTxImpl({
+async function updateAccountBalanceForChangedTxImpl({
   accountId,
   userId,
   transactionType,
@@ -81,8 +66,17 @@ export async function updateAccountBalanceForChangedTxImpl({
   refAmount = 0,
   prevRefAmount = 0,
   prevTransactionType = transactionType,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}: any): Promise<void> {
+}: {
+  accountId: number;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  amount?: number;
+  prevAmount?: number;
+  refAmount?: number;
+  prevRefAmount?: number;
+  prevTransactionType?: TRANSACTION_TYPES;
+  currencyId?: number;
+}): Promise<void> {
   const account = await getAccountById({ id: accountId, userId });
 
   if (!account) return undefined;
@@ -118,3 +112,17 @@ export async function updateAccountBalanceForChangedTxImpl({
 export const updateAccountBalanceForChangedTx = withTransaction(
   updateAccountBalanceForChangedTxImpl,
 );
+
+const calculateNewBalance = (amount: number, previousAmount: number, currentBalance: number) => {
+  if (amount > previousAmount) {
+    return currentBalance + (amount - previousAmount);
+  } else if (amount < previousAmount) {
+    return currentBalance - (previousAmount - amount);
+  }
+
+  return currentBalance;
+};
+
+const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {
+  return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
+};

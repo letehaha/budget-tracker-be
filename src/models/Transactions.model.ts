@@ -12,7 +12,6 @@ import {
   BeforeCreate,
   AfterCreate,
   AfterUpdate,
-  BeforeDestroy,
   BeforeUpdate,
   Column,
   Model,
@@ -307,23 +306,6 @@ export default class Transactions extends Model {
     } as Transactions;
 
     await Balances.handleTransactionChange({ data: newData, prevData: originalData });
-  }
-
-  @BeforeDestroy
-  static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
-      instance;
-
-    if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx({
-        userId,
-        accountId,
-        prevAmount: amount,
-        prevRefAmount: refAmount,
-        transactionType,
-        currencyId,
-      });
-    }
   }
 }
 

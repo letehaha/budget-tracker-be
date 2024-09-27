@@ -9,6 +9,7 @@ import { ValidationError } from '@js/errors';
 import { withTransaction } from '@services/common';
 
 import { updateBalanceOnTxDelete } from '@services/account-balances/update-balance-on-tx-delete';
+import { updateAccountBalanceForChangedTx } from '../accounts';
 
 export const deleteTransaction = withTransaction(async (params: Params): Promise<void> => {
   const { id, userId, skipExtraChecks } = params;
@@ -29,11 +30,21 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
       });
     }
 
-    const updateBalancesTable: Transactions.default[] = [];
-
     if (skipExtraChecks) {
       await Transactions.deleteTransactionById({ id, userId });
-      updateBalancesTable.push(transaction);
+      await updateAccountBalanceForChangedTx({
+        userId,
+        accountId: transaction.accountId,
+        prevAmount: transaction.amount,
+        prevRefAmount: transaction.refAmount,
+        transactionType: transaction.transactionType,
+      });
+      await updateBalanceOnTxDelete({
+        accountId: transaction.accountId,
+        transactionType: transaction.transactionType,
+        prevRefAmount: transaction.refAmount,
+        time: new Date(transaction.time).toISOString(),
+      });
     } else {
       if (refundLinked) {
         await unlinkRefundTransaction(id);
@@ -41,7 +52,19 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
 
       if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
         await Transactions.deleteTransactionById({ id, userId });
-        updateBalancesTable.push(transaction);
+        await updateAccountBalanceForChangedTx({
+          userId,
+          accountId: transaction.accountId,
+          prevAmount: transaction.amount,
+          prevRefAmount: transaction.refAmount,
+          transactionType: transaction.transactionType,
+        });
+        await updateBalanceOnTxDelete({
+          accountId: transaction.accountId,
+          transactionType: transaction.transactionType,
+          prevRefAmount: transaction.refAmount,
+          time: new Date(transaction.time).toISOString(),
+        });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
         const transferTransactions = await Transactions.getTransactionsByArrayOfField({
           fieldValues: [transferId],
@@ -51,35 +74,32 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
 
         await Promise.all(
           // For the each transaction with the same "transferId" delete transaction
-          transferTransactions.map((tx) =>
-            Transactions.deleteTransactionById({
-              id: tx.id,
-              userId: tx.userId,
-            }),
-          ),
+          transferTransactions
+            .map((tx) => [
+              Transactions.deleteTransactionById({
+                id: tx.id,
+                userId: tx.userId,
+              }),
+              updateAccountBalanceForChangedTx({
+                userId: tx.userId,
+                accountId: tx.accountId,
+                prevAmount: tx.amount,
+                prevRefAmount: tx.refAmount,
+                transactionType: tx.transactionType,
+              }),
+              updateBalanceOnTxDelete({
+                accountId: tx.accountId,
+                transactionType: tx.transactionType,
+                prevRefAmount: tx.refAmount,
+                time: new Date(tx.time).toISOString(),
+              }),
+            ])
+            .flat(),
         );
-        updateBalancesTable.push(...transferTransactions);
       } else {
         logger.info('No "transferId" exists for the transfer transaction type.');
       }
     }
-
-    if (process.env.NODE_ENV !== 'production') {
-      if (!updateBalancesTable.length) {
-        throw new Error("There's no transactions to update in the balances table");
-      }
-    }
-
-    await Promise.all(
-      updateBalancesTable.map((tx) =>
-        updateBalanceOnTxDelete({
-          accountId: tx.accountId,
-          transactionType: tx.transactionType,
-          prevRefAmount: tx.refAmount,
-          time: new Date(tx.time).toISOString(),
-        }),
-      ),
-    );
   } catch (e) {
     logger.error(e);
     throw e;
