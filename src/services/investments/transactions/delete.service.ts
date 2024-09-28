@@ -3,6 +3,7 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import Holding from '@models/investments/Holdings.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import { withTransaction } from '@root/services/common';
+import Accounts from '@models/Accounts.model';
 
 type DeletionParams = Pick<InvestmentTransactionModel, 'id'>;
 
@@ -88,6 +89,13 @@ export const deleteInvestmentTransaction = withTransaction(
     // TODO: maybe not "old costBasis - new costBasis", but "old value - new value"?
     if (!updatedHolding) return undefined;
 
+    const account = (await Accounts.findOne({
+      where: {
+        id: currentTx.accountId,
+        userId,
+      },
+    }))!;
+
     const costBasisDiff =
       parseFloat(currentHolding.costBasis) - parseFloat(updatedHolding.costBasis);
     const refCostBasisDiff =
@@ -100,6 +108,8 @@ export const deleteInvestmentTransaction = withTransaction(
       // We store amounts in Account as integer, so need to mutiply that by 100
       prevAmount: Math.floor(costBasisDiff * 100),
       prevRefAmount: Math.floor(refCostBasisDiff * 100),
+      accountType: account.type,
+      time: new Date(currentTx.date).toISOString(),
     });
   },
 );

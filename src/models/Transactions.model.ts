@@ -220,6 +220,8 @@ export default class Transactions extends Model {
           prevRefAmount: prevData.refAmount,
           transactionType: prevData.transactionType,
           currencyId: prevData.currencyId,
+          accountType: newData.accountType,
+          time: new Date(prevData.time).toISOString(),
         });
 
         // Update new tx
@@ -230,6 +232,8 @@ export default class Transactions extends Model {
           refAmount: newData.refAmount,
           transactionType: newData.transactionType,
           currencyId: newData.currencyId,
+          accountType: newData.accountType,
+          time: new Date(newData.time).toISOString(),
         });
       } else {
         await updateAccountBalanceForChangedTx({
@@ -242,6 +246,8 @@ export default class Transactions extends Model {
           transactionType: newData.transactionType,
           prevTransactionType: prevData.transactionType,
           currencyId: newData.currencyId,
+          accountType: newData.accountType,
+          time: new Date(newData.time).toISOString(),
         });
       }
     }

@@ -10,36 +10,10 @@ export async function updateBalanceOnTxCreate({
   refAmount,
   time,
   externalData,
-  // prevAccountId,
-  // prevTransactionType,
-  // prevRefAmount,
-  // prevTime,
 }: Params) {
   const amount = transactionType === TRANSACTION_TYPES.income ? refAmount : refAmount * -1;
   const date = new Date(time);
   date.setHours(0, 0, 0, 0);
-
-  // if (prevData) {
-  //   const originalDate = new Date(prevData.time);
-  //   const originalAmount =
-  //     prevData.transactionType === TRANSACTION_TYPES.income
-  //       ? prevData.refAmount
-  //       : prevData.refAmount * -1;
-  //   originalDate.setHours(0, 0, 0, 0);
-
-  //   if (
-  //     accountId !== prevData.accountId ||
-  //     +date !== +originalDate ||
-  //     data.transactionType !== prevData.transactionType ||
-  //     amount
-  //   ) {
-  //     await BalancesModel.default.updateRecord({
-  //       accountId: prevData.accountId,
-  //       date: originalDate,
-  //       amount: -originalAmount,
-  //     });
-  //   }
-  // }
 
   if (accountType === ACCOUNT_TYPES.system) {
     await BalancesModel.default.updateRecord({
@@ -81,9 +55,4 @@ interface Params {
   refAmount: number;
   time: string;
   externalData?: TransactionsAttributes['externalData'];
-  prevAccountId?: number;
-  prevTransactionType?: TRANSACTION_TYPES;
-  prevRefAmount?: number;
-  prevTime?: Date;
-  isDelete?: boolean;
 }

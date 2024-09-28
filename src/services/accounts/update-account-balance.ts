@@ -31,8 +31,8 @@ export const updateAccountBalanceForChangedTx = withTransaction(
     prevTransactionType?: TRANSACTION_TYPES;
     currencyId?: number;
     updateBalancesTable?: boolean;
-    time?: string;
-    accountType?: ACCOUNT_TYPES;
+    time: string;
+    accountType: ACCOUNT_TYPES;
     externalData?: TransactionsAttributes['externalData'];
   }): Promise<void> => {
     const account = await getAccountById({ id: accountId, userId });
@@ -61,8 +61,7 @@ export const updateAccountBalanceForChangedTx = withTransaction(
     //   newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
     // }
 
-    // if transaction creation and account type not system, skip calling for account updation
-    if (!(transactionCreation && accountType !== ACCOUNT_TYPES.system)) {
+    if (accountType === ACCOUNT_TYPES.system) {
       await Accounts.updateAccountById({
         id: accountId,
         userId,
@@ -71,7 +70,7 @@ export const updateAccountBalanceForChangedTx = withTransaction(
       });
     }
 
-    if (updateBalancesTable && time) {
+    if (updateBalancesTable) {
       if (transactionDeletion) {
         await updateBalanceOnTxDelete({
           accountId,

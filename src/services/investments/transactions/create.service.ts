@@ -12,6 +12,7 @@ import Currencies from '@models/Currencies.model';
 import { logger } from '@js/utils';
 import { ValidationError } from '@js/errors';
 import { withTransaction } from '@root/services/common';
+import Accounts from '@models/Accounts.model';
 
 type CreationParams = Pick<
   InvestmentTransactionModel,
@@ -128,6 +129,13 @@ export const createInvestmentTransaction = withTransaction(
         where: { code: security.currencyCode },
       });
 
+      const account = (await Accounts.findOne({
+        where: {
+          id: params.accountId,
+          userId,
+        },
+      }))!;
+
       await updateAccountBalanceForChangedTx({
         userId,
         accountId: params.accountId,
@@ -136,6 +144,8 @@ export const createInvestmentTransaction = withTransaction(
         amount: Math.floor((parseFloat(currentHolding.costBasis) + amount) * 100),
         refAmount: Math.floor((parseFloat(currentHolding.refCostBasis) + refAmount) * 100),
         currencyId: currency!.id,
+        accountType: account.type,
+        time: new Date(params.date).toISOString(),
       });
 
       return result;
