@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from 'shared-types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
@@ -535,7 +535,266 @@ describe('Balances service', () => {
       const updatedHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
       expect(updatedHistory[0].amount).toBe(initialBalance - expenseAmount);
     });
-    it.todo('creation transfer transactions');
+
+    describe('transfer transactions', () => {
+      const checkBalanceHistory = async (list: { id: number; amounts: number[] }[]) => {
+        const histories = await Promise.all(list.map((i) => callGetBalanceHistory(i.id, true)));
+
+        histories.forEach((history, index) => {
+          const amounts = list[index]!.amounts;
+          expect(history.length).toBe(amounts.length);
+          expect(history.every((record, index) => record.amount === amounts[index])).toBe(true);
+        });
+      };
+
+      it('transfers between accounts with the same currency', async () => {
+        const accountA = await helpers.createAccount({
+          payload: {
+            ...helpers.buildAccountPayload(),
+            initialBalance: 1000,
+          },
+          raw: true,
+        });
+        const accountB = await helpers.createAccount({
+          payload: {
+            ...helpers.buildAccountPayload(),
+            initialBalance: 100,
+          },
+          raw: true,
+        });
+
+        const transferPayload = {
+          ...helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            amount: 200,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 200,
+          destinationAccountId: accountB.id,
+        };
+
+        /**
+         * 1. Create transfer in the same date as account creation
+         */
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: transferPayload,
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        // Since we added transaction in the SAME DATE as account created,
+        // records amount won't be changed
+        await checkBalanceHistory([
+          { id: accountA.id, amounts: [1000 - 200] },
+          { id: accountB.id, amounts: [100 + 200] },
+        ]);
+
+        /**
+         * 2. Create transfer on the day BEFORE account creation
+         */
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: {
+                ...transferPayload,
+                time: subDays(new Date(), 2).toISOString(),
+              },
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        // Since we added transaction BEFORE account creation, we will now have 3 records:
+        // 1. Initial balance
+        // 2. Transfer on the day before account creation
+        // 3. Transfer on the same day as account creation from the step 1
+        await checkBalanceHistory([
+          { id: accountA.id, amounts: [1000, 800, 600] },
+          { id: accountB.id, amounts: [100, 300, 500] },
+        ]);
+
+        /**
+         * 2. Create transfer on the day AFTER account creation
+         */
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: {
+                ...transferPayload,
+                time: addDays(new Date(), 2).toISOString(),
+                // Swap source and destination accounts to make transfer in another direction to add
+                // more randomness to the test
+                accountId: accountB.id,
+                destinationAccountId: accountA.id,
+              },
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        // Since we added transaction BEFORE account creation, we will now have 3 records:
+        // 1. Initial balance
+        // 2. Transfer on the day BEFORE account creation
+        // 3. Transfer on the SAME day as account creation from the step 1
+        // 4. Transfer on the day AFTER account creation
+        await checkBalanceHistory([
+          { id: accountA.id, amounts: [1000, 800, 600, 800] },
+          { id: accountB.id, amounts: [100, 300, 500, 300] },
+        ]);
+      });
+
+      it('transfers between accounts with different currencies', async () => {
+        const { currencies } = await helpers.addUserCurrencies({
+          currencyCodes: ['EUR', 'GBP'],
+          raw: true,
+        });
+        const eurCurrency = currencies[0]!;
+        const gbpCurrency = currencies[1]!;
+        // Set static rates to make test data predictable
+        const pairs = [
+          { baseCode: 'EUR', quoteCode: 'GBP', rate: 0.84 },
+          { baseCode: 'GBP', quoteCode: 'EUR', rate: 1.2 },
+          { baseCode: 'USD', quoteCode: 'EUR', rate: 0.9 },
+          { baseCode: 'EUR', quoteCode: 'USD', rate: 1.12 },
+          { baseCode: 'USD', quoteCode: 'GBP', rate: 0.75 },
+          { baseCode: 'GBP', quoteCode: 'USD', rate: 1.34 },
+        ];
+        await helpers.editCurrencyExchangeRate({ pairs });
+
+        const euroRate = pairs.find(
+          (pair) => pair.baseCode === 'EUR' && pair.quoteCode === 'USD',
+        )!.rate;
+        const gbpRate = pairs.find(
+          (pair) => pair.baseCode === 'GBP' && pair.quoteCode === 'USD',
+        )!.rate;
+        const fromEuro = (amount: number) => Math.floor(amount * euroRate);
+        const fromGbp = (amount: number) => Math.floor(amount * gbpRate);
+        const initialBalance = {
+          eur: {
+            amount: 15000,
+            refAmount: fromEuro(15000), // 16800,
+          },
+          gbp: {
+            amount: 7500,
+            refAmount: fromGbp(7500), // 10050,
+          },
+        };
+
+        const accountA = await helpers.createAccount({
+          payload: {
+            ...helpers.buildAccountPayload(),
+            initialBalance: initialBalance.eur.amount,
+            currencyId: eurCurrency.currencyId,
+          },
+          raw: true,
+        });
+        const accountB = await helpers.createAccount({
+          payload: {
+            ...helpers.buildAccountPayload(),
+            initialBalance: initialBalance.gbp.amount,
+            currencyId: gbpCurrency.currencyId,
+          },
+          raw: true,
+        });
+
+        await checkBalanceHistory([
+          { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
+          { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
+        ]);
+
+        const transferPayload = {
+          ...helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 1500,
+          destinationAccountId: accountB.id,
+        };
+
+        // 1. Same day transfer
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: transferPayload,
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        await checkBalanceHistory([
+          { id: accountA.id, amounts: [initialBalance.eur.refAmount - fromEuro(2000)] },
+          { id: accountB.id, amounts: [initialBalance.gbp.refAmount + fromGbp(1500)] },
+        ]);
+        // 2. Day AFTER account creation
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: {
+                ...transferPayload,
+                time: addDays(new Date(), 3).toISOString(),
+                amount: 5000,
+                destinationAmount: 4000,
+              },
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        await checkBalanceHistory([
+          {
+            id: accountA.id,
+            amounts: [
+              initialBalance.eur.refAmount - fromEuro(2000),
+              initialBalance.eur.refAmount - fromEuro(2000) - fromEuro(5000),
+            ],
+          },
+          {
+            id: accountB.id,
+            amounts: [
+              initialBalance.gbp.refAmount + fromGbp(1500),
+              initialBalance.gbp.refAmount + fromGbp(1500) + fromGbp(4000),
+            ],
+          },
+        ]);
+        // // 3. Day BEFORE account creation
+        expect(
+          (
+            await helpers.createTransaction({
+              payload: {
+                ...transferPayload,
+                time: subDays(new Date(), 3).toISOString(),
+                accountId: accountB.id,
+                destinationAccountId: accountA.id,
+                amount: 1000,
+                destinationAmount: 1500,
+              },
+            })
+          ).statusCode,
+        ).toBe(200);
+
+        await checkBalanceHistory([
+          {
+            id: accountA.id,
+            amounts: [
+              initialBalance.eur.refAmount,
+              initialBalance.eur.refAmount + fromEuro(1500),
+              initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000),
+              initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000) - fromEuro(5000),
+            ],
+          },
+          {
+            id: accountB.id,
+            amounts: [
+              initialBalance.gbp.refAmount,
+              initialBalance.gbp.refAmount - fromGbp(1000),
+              initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500),
+              initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500) + fromGbp(4000),
+            ],
+          },
+        ]);
+      });
+    });
     it.todo('updating expense/income => transfer => expense/income');
   });
 });

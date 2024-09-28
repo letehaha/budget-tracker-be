@@ -128,10 +128,6 @@ export default class Balances extends Model {
             ? existingRecordForTheDate.amount
             : (balance as number);
 
-        // existingRecordForTheDate.amount = balance
-        // ? Math.max(existingRecordForTheDate.amount, balance)
-        // : existingRecordForTheDate.amount;
-
         await existingRecordForTheDate.save();
       } else {
         await this.create({
@@ -197,14 +193,14 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date: subDays(new Date(date), 1),
-          amount: account!.initialBalance,
+          amount: account!.refInitialBalance,
         });
 
         // (2) Then we create a record for that transaction
         await this.create({
           accountId,
           date,
-          amount: account!.initialBalance + amount,
+          amount: account!.refInitialBalance + amount,
         });
         // }
       } else {
@@ -222,7 +218,6 @@ export default class Balances extends Model {
       await balanceForTxDate.save();
     }
 
-    // if (Balances.sequelize) {
     // Update the amount of all balances for the account that come after the date
     await this.update(
       { amount: Balances.sequelize!.literal(`amount + ${amount}`) },
@@ -235,7 +230,6 @@ export default class Balances extends Model {
         },
       },
     );
-    // }
   }
 
   static async handleAccountChange({
