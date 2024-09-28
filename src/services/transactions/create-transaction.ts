@@ -20,6 +20,8 @@ import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
 import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
 import { withTransaction } from '../common';
+// import { updateBalanceOnTxCreate } from '../account-balances/update-balance-on-tx-create';
+import { updateAccountBalanceForChangedTx } from '../accounts';
 
 type CreateOppositeTransactionParams = [
   creationParams: CreateTransactionParams | UpdateTransactionParams,
@@ -134,7 +136,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 
   baseTx = updatedBaseTransaction;
 
-  const oppositeTx = await Transactions.createTransaction({
+  const oppositeTx = (await Transactions.createTransaction({
     userId: baseTransaction.userId,
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
@@ -153,6 +155,18 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     refCurrencyCode: defaultUserCurrency.currency.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
     transferId,
+  }))!;
+
+  await updateAccountBalanceForChangedTx({
+    userId,
+    accountId: oppositeTx.accountId,
+    amount: oppositeTx.amount,
+    refAmount: oppositeTx.refAmount,
+    transactionType: oppositeTx.transactionType,
+    currencyId: oppositeTx.currencyId,
+    accountType: oppositeTx.accountType,
+    time: new Date(oppositeTx.time).toISOString(),
+    updateBalancesTable: true,
   });
 
   return { baseTx, oppositeTx: oppositeTx! };
@@ -212,7 +226,29 @@ export const createTransaction = withTransaction(
         });
       }
 
-      const baseTransaction = await Transactions.createTransaction(generalTxParams);
+      const baseTransaction = (await Transactions.createTransaction(generalTxParams))!;
+
+      await updateAccountBalanceForChangedTx({
+        userId,
+        accountId: baseTransaction.accountId,
+        amount: baseTransaction.amount,
+        refAmount: baseTransaction.refAmount,
+        transactionType: baseTransaction.transactionType,
+        currencyId: baseTransaction.currencyId,
+        time: new Date(baseTransaction.time).toISOString(),
+        accountType: baseTransaction.accountType,
+        externalData: baseTransaction.externalData,
+        updateBalancesTable: true,
+      });
+
+      // await updateBalanceOnTxCreate({
+      //   accountId: baseTransaction.accountId,
+      //   accountType: baseTransaction.accountType,
+      //   transactionType: baseTransaction.transactionType,
+      //   refAmount: baseTransaction.refAmount,
+      //   time: new Date(baseTransaction.time).toISOString(),
+      //   externalData: baseTransaction.externalData,
+      // });
 
       let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [
         baseTransaction!,

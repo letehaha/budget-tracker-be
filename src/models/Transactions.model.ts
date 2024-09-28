@@ -10,7 +10,6 @@ import { Op, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
-  AfterCreate,
   AfterUpdate,
   BeforeUpdate,
   Column,
@@ -202,25 +201,6 @@ export default class Transactions extends Model {
         });
       }
     }
-  }
-
-  @AfterCreate
-  static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
-      instance;
-
-    if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx({
-        userId,
-        accountId,
-        amount,
-        refAmount,
-        transactionType,
-        currencyId,
-      });
-    }
-
-    await Balances.handleTransactionChange({ data: instance });
   }
 
   @AfterUpdate
