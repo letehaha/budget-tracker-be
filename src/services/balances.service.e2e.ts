@@ -4,6 +4,7 @@ import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Currencies from '@models/Currencies.model';
 import * as helpers from '@tests/helpers';
+import UsersCurrencies from '@models/UsersCurrencies.model';
 
 const callGetBalanceHistory = async (accountId, raw = false) => {
   const result = await helpers.makeRequest({
@@ -644,14 +645,7 @@ describe('Balances service', () => {
         ]);
       });
 
-      it('transfers between accounts with different currencies', async () => {
-        const { currencies } = await helpers.addUserCurrencies({
-          currencyCodes: ['EUR', 'GBP'],
-          raw: true,
-        });
-        const eurCurrency = currencies[0]!;
-        const gbpCurrency = currencies[1]!;
-        // Set static rates to make test data predictable
+      describe('different currencies', () => {
         const pairs = [
           { baseCode: 'EUR', quoteCode: 'GBP', rate: 0.84 },
           { baseCode: 'GBP', quoteCode: 'EUR', rate: 1.2 },
@@ -660,7 +654,19 @@ describe('Balances service', () => {
           { baseCode: 'USD', quoteCode: 'GBP', rate: 0.75 },
           { baseCode: 'GBP', quoteCode: 'USD', rate: 1.34 },
         ];
-        await helpers.editCurrencyExchangeRate({ pairs });
+        let eurCurrency: UsersCurrencies;
+        let gbpCurrency: UsersCurrencies;
+
+        beforeEach(async () => {
+          const { currencies } = await helpers.addUserCurrencies({
+            currencyCodes: ['EUR', 'GBP'],
+            raw: true,
+          });
+          eurCurrency = currencies[0]!;
+          gbpCurrency = currencies[1]!;
+          // Set static rates to make test data predictable
+          await helpers.editCurrencyExchangeRate({ pairs });
+        });
 
         const euroRate = pairs.find(
           (pair) => pair.baseCode === 'EUR' && pair.quoteCode === 'USD',
@@ -670,131 +676,444 @@ describe('Balances service', () => {
         )!.rate;
         const fromEuro = (amount: number) => Math.floor(amount * euroRate);
         const fromGbp = (amount: number) => Math.floor(amount * gbpRate);
-        const initialBalance = {
-          eur: {
-            amount: 15000,
-            refAmount: fromEuro(15000), // 16800,
-          },
-          gbp: {
-            amount: 7500,
-            refAmount: fromGbp(7500), // 10050,
-          },
-        };
 
-        const accountA = await helpers.createAccount({
-          payload: {
-            ...helpers.buildAccountPayload(),
-            initialBalance: initialBalance.eur.amount,
-            currencyId: eurCurrency.currencyId,
-          },
-          raw: true,
+        it('transfers between accounts with different currencies', async () => {
+          const initialBalance = {
+            eur: {
+              amount: 15000,
+              refAmount: fromEuro(15000), // 16800,
+            },
+            gbp: {
+              amount: 7500,
+              refAmount: fromGbp(7500), // 10050,
+            },
+          };
+
+          const accountA = await helpers.createAccount({
+            payload: {
+              ...helpers.buildAccountPayload(),
+              initialBalance: initialBalance.eur.amount,
+              currencyId: eurCurrency.currencyId,
+            },
+            raw: true,
+          });
+          const accountB = await helpers.createAccount({
+            payload: {
+              ...helpers.buildAccountPayload(),
+              initialBalance: initialBalance.gbp.amount,
+              currencyId: gbpCurrency.currencyId,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
+            { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
+          ]);
+
+          const transferPayload = {
+            ...helpers.buildTransactionPayload({
+              accountId: accountA.id,
+              amount: 2000,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 1500,
+            destinationAccountId: accountB.id,
+          };
+
+          // 1. Same day transfer
+          expect(
+            (
+              await helpers.createTransaction({
+                payload: transferPayload,
+              })
+            ).statusCode,
+          ).toBe(200);
+
+          await checkBalanceHistory([
+            { id: accountA.id, amounts: [initialBalance.eur.refAmount - fromEuro(2000)] },
+            { id: accountB.id, amounts: [initialBalance.gbp.refAmount + fromGbp(1500)] },
+          ]);
+          // 2. Day AFTER account creation
+          expect(
+            (
+              await helpers.createTransaction({
+                payload: {
+                  ...transferPayload,
+                  time: addDays(new Date(), 3).toISOString(),
+                  amount: 5000,
+                  destinationAmount: 4000,
+                },
+              })
+            ).statusCode,
+          ).toBe(200);
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000) - fromEuro(5000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount + fromGbp(1500),
+                initialBalance.gbp.refAmount + fromGbp(1500) + fromGbp(4000),
+              ],
+            },
+          ]);
+          // // 3. Day BEFORE account creation
+          expect(
+            (
+              await helpers.createTransaction({
+                payload: {
+                  ...transferPayload,
+                  time: subDays(new Date(), 3).toISOString(),
+                  accountId: accountB.id,
+                  destinationAccountId: accountA.id,
+                  amount: 1000,
+                  destinationAmount: 1500,
+                },
+              })
+            ).statusCode,
+          ).toBe(200);
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount + fromEuro(1500),
+                initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000),
+                initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000) - fromEuro(5000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount - fromGbp(1000),
+                initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500),
+                initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500) + fromGbp(4000),
+              ],
+            },
+          ]);
         });
-        const accountB = await helpers.createAccount({
-          payload: {
-            ...helpers.buildAccountPayload(),
-            initialBalance: initialBalance.gbp.amount,
-            currencyId: gbpCurrency.currencyId,
-          },
-          raw: true,
+        it(`[update transfers between accounts with different currencies]
+          - account creation with custom initial balance
+          - create transfer on the day prior account creation
+          - update transfer amount to another value
+          - convert transfer into expense, and back into transfer
+          - convert transfer into income, and back into transfer
+          – convert transfer into out_of_wallet, and back into transfer
+          - delete transfer
+        `, async () => {
+          const initialBalance = {
+            eur: {
+              amount: 0,
+              refAmount: fromEuro(0),
+            },
+            gbp: {
+              amount: 1000,
+              refAmount: fromGbp(1000),
+            },
+          };
+
+          const accountA = await helpers.createAccount({
+            payload: {
+              ...helpers.buildAccountPayload(),
+              initialBalance: initialBalance.eur.amount,
+              currencyId: eurCurrency.currencyId,
+            },
+            raw: true,
+          });
+          const accountB = await helpers.createAccount({
+            payload: {
+              ...helpers.buildAccountPayload(),
+              initialBalance: initialBalance.gbp.amount,
+              currencyId: gbpCurrency.currencyId,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
+            { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
+          ]);
+
+          const transferPayload = {
+            ...helpers.buildTransactionPayload({
+              accountId: accountA.id,
+              amount: 2000,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 1500,
+            destinationAccountId: accountB.id,
+            time: subDays(new Date(), 3).toISOString(),
+          };
+
+          const [baseTx] = await helpers.createTransaction({
+            payload: transferPayload,
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                // Duplicated because of how the system works.
+                // Check `#updateRecord` for more details
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount + fromGbp(1500),
+                initialBalance.gbp.refAmount + fromGbp(1500),
+              ],
+            },
+          ]);
+
+          // Now, update transfer transaction by increasing the amount
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              destinationAmount: 2000,
+              destinationAccountId: accountB.id,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount + fromGbp(2000),
+                initialBalance.gbp.refAmount + fromGbp(2000),
+              ],
+            },
+          ]);
+
+          // Tranfer -> expense
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transactionType: TRANSACTION_TYPES.expense,
+              transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                // System doesn't remove same records, but simply updates them
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+              ],
+            },
+          ]);
+
+          // Expense -> transfer
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+              destinationAmount: 1500,
+              destinationAccountId: accountB.id,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount + fromGbp(1500),
+                initialBalance.gbp.refAmount + fromGbp(1500),
+              ],
+            },
+          ]);
+
+          // Transfer -> income
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transactionType: TRANSACTION_TYPES.income,
+              transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount + fromEuro(2000),
+                initialBalance.eur.refAmount + fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+              ],
+            },
+          ]);
+
+          // Income -> transfer
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transactionType: TRANSACTION_TYPES.expense,
+              transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+              destinationAmount: 1200,
+              destinationAccountId: accountB.id,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount + fromGbp(1200),
+                initialBalance.gbp.refAmount + fromGbp(1200),
+              ],
+            },
+          ]);
+
+          // Transfer between accounts -> transfer out of wallet
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+              ],
+            },
+          ]);
+
+          // Transfer out of wallet -> transfer between accounts
+          await helpers.updateTransaction({
+            id: baseTx.id,
+            payload: {
+              transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+              destinationAmount: 1300,
+              destinationAccountId: accountB.id,
+            },
+            raw: true,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount - fromEuro(2000),
+                initialBalance.eur.refAmount - fromEuro(2000),
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount + fromGbp(1300),
+                initialBalance.gbp.refAmount + fromGbp(1300),
+              ],
+            },
+          ]);
+
+          // Delete transfer at all
+          await helpers.deleteTransaction({
+            id: baseTx.id,
+          });
+
+          await checkBalanceHistory([
+            {
+              id: accountA.id,
+              amounts: [
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount,
+                initialBalance.eur.refAmount,
+              ],
+            },
+            {
+              id: accountB.id,
+              amounts: [
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+                initialBalance.gbp.refAmount,
+              ],
+            },
+          ]);
         });
-
-        await checkBalanceHistory([
-          { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
-          { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
-        ]);
-
-        const transferPayload = {
-          ...helpers.buildTransactionPayload({
-            accountId: accountA.id,
-            amount: 2000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 1500,
-          destinationAccountId: accountB.id,
-        };
-
-        // 1. Same day transfer
-        expect(
-          (
-            await helpers.createTransaction({
-              payload: transferPayload,
-            })
-          ).statusCode,
-        ).toBe(200);
-
-        await checkBalanceHistory([
-          { id: accountA.id, amounts: [initialBalance.eur.refAmount - fromEuro(2000)] },
-          { id: accountB.id, amounts: [initialBalance.gbp.refAmount + fromGbp(1500)] },
-        ]);
-        // 2. Day AFTER account creation
-        expect(
-          (
-            await helpers.createTransaction({
-              payload: {
-                ...transferPayload,
-                time: addDays(new Date(), 3).toISOString(),
-                amount: 5000,
-                destinationAmount: 4000,
-              },
-            })
-          ).statusCode,
-        ).toBe(200);
-
-        await checkBalanceHistory([
-          {
-            id: accountA.id,
-            amounts: [
-              initialBalance.eur.refAmount - fromEuro(2000),
-              initialBalance.eur.refAmount - fromEuro(2000) - fromEuro(5000),
-            ],
-          },
-          {
-            id: accountB.id,
-            amounts: [
-              initialBalance.gbp.refAmount + fromGbp(1500),
-              initialBalance.gbp.refAmount + fromGbp(1500) + fromGbp(4000),
-            ],
-          },
-        ]);
-        // // 3. Day BEFORE account creation
-        expect(
-          (
-            await helpers.createTransaction({
-              payload: {
-                ...transferPayload,
-                time: subDays(new Date(), 3).toISOString(),
-                accountId: accountB.id,
-                destinationAccountId: accountA.id,
-                amount: 1000,
-                destinationAmount: 1500,
-              },
-            })
-          ).statusCode,
-        ).toBe(200);
-
-        await checkBalanceHistory([
-          {
-            id: accountA.id,
-            amounts: [
-              initialBalance.eur.refAmount,
-              initialBalance.eur.refAmount + fromEuro(1500),
-              initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000),
-              initialBalance.eur.refAmount + fromEuro(1500) - fromEuro(2000) - fromEuro(5000),
-            ],
-          },
-          {
-            id: accountB.id,
-            amounts: [
-              initialBalance.gbp.refAmount,
-              initialBalance.gbp.refAmount - fromGbp(1000),
-              initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500),
-              initialBalance.gbp.refAmount - fromGbp(1000) + fromGbp(1500) + fromGbp(4000),
-            ],
-          },
-        ]);
       });
     });
-    it.todo('updating expense/income => transfer => expense/income');
   });
 });
