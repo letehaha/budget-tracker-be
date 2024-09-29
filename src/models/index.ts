@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize-typescript';
 import config from 'config';
 import cls from 'cls-hooked';
+import { initAssociations } from './associations';
 
 export const namespace = cls.createNamespace('budget-tracker-namespace');
 Sequelize.useCLS(namespace);
@@ -25,7 +26,10 @@ const sequelize = new Sequelize({
     max: 50,
     evict: 10000,
   },
+  // typeValidation: true,
 });
+
+initAssociations(sequelize);
 
 if (process.env.NODE_ENV === 'defelopment') {
   console.log('DBConfig', DBConfig);

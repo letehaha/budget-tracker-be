@@ -8,18 +8,12 @@ export const getTransactionById = async (req, res: CustomResponse) => {
   try {
     const { id } = req.params;
     const { id: userId } = req.user;
-    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
 
     if (id === undefined) throw new ValidationError({ message: 'id should exist.' });
 
     const data = await transactionsService.getTransactionById({
       id,
       userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
     });
 
     return res.status(200).json({
@@ -35,7 +29,6 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
   try {
     const { transferId } = req.params;
     const { id: userId } = req.user;
-    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
 
     if (transferId === undefined)
       throw new ValidationError({ message: '"transferId" is required.' });
@@ -43,11 +36,6 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
     const data = await transactionsService.getTransactionsByTransferId({
       transferId,
       userId,
-      includeUser,
-      includeAccount,
-      includeCategory,
-      includeAll,
-      nestedInclude,
     });
 
     return res.status(200).json({

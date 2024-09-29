@@ -12,6 +12,7 @@ export enum API_ERROR_CODES {
   conflict = 'CONFLICT',
   forbidden = 'FORBIDDEN',
   BadRequest = 'BAD_REQUEST',
+  locked = 'LOCKED',
 
   // auth
   unauthorized = 'UNAUTHENTICATED',
