@@ -15,6 +15,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import * as refundsService from '@services/tx-refunds';
 import { withTransaction } from '../common';
 import { deleteTransaction } from './delete-transaction';
+import { updateAccountBalanceForChangedTx } from '@services/accounts';
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
   'amount',
@@ -210,6 +211,25 @@ const makeBasicBaseTxUpdation = async (
 
   const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams);
 
+  await updateAccountBalanceForChangedTx({
+    userId: baseTransaction.userId,
+    accountId: baseTransaction.accountId,
+    amount: baseTransaction.amount,
+    refAmount: baseTransaction.refAmount,
+    transactionType: baseTransaction.transactionType,
+    time: new Date(baseTransaction.time).toISOString(),
+
+    prevAccountId: prevData.accountId,
+    prevAmount: prevData.amount,
+    prevRefAmount: prevData.refAmount,
+    prevTransactionType: prevData.transactionType,
+    prevTime: new Date(prevData.time).toISOString(),
+
+    currencyId: baseTransaction.currencyId,
+    accountType: baseTransaction.accountType,
+    updateBalancesTable: false,
+  });
+
   return baseTransaction;
 };
 
@@ -282,6 +302,24 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   baseTransaction = updatedBaseTransaction;
 
   const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams);
+  await updateAccountBalanceForChangedTx({
+    userId,
+    accountId: oppositeTx.accountId,
+    amount: destinationTransaction.amount,
+    refAmount: destinationTransaction.refAmount,
+    transactionType: destinationTransaction.transactionType,
+    time: new Date(destinationTransaction.time).toISOString(),
+
+    prevAccountId: destinationTransaction.accountId,
+    prevAmount: oppositeTx.amount,
+    prevRefAmount: oppositeTx.refAmount,
+    prevTransactionType: oppositeTx.transactionType,
+    prevTime: new Date(oppositeTx.time).toISOString(),
+
+    currencyId: destinationTransaction.currencyId,
+    accountType: destinationTransaction.accountType,
+    updateBalancesTable: false,
+  });
 
   return { baseTx: baseTransaction, oppositeTx: destinationTransaction };
 };

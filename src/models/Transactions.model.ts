@@ -21,7 +21,6 @@ import {
 } from 'sequelize-typescript';
 import { removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
-import { updateAccountBalanceForChangedTx } from '@services/accounts';
 import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
@@ -208,49 +207,6 @@ export default class Transactions extends Model {
     const newData: Transactions = instance.dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevData: Transactions = (instance as any)._previousDataValues;
-    const isAccountChanged = newData.accountId !== prevData.accountId;
-
-    if (newData.accountType === ACCOUNT_TYPES.system) {
-      if (isAccountChanged) {
-        // Update old tx
-        await updateAccountBalanceForChangedTx({
-          userId: prevData.userId,
-          accountId: prevData.accountId,
-          prevAmount: prevData.amount,
-          prevRefAmount: prevData.refAmount,
-          transactionType: prevData.transactionType,
-          currencyId: prevData.currencyId,
-          accountType: newData.accountType,
-          time: new Date(prevData.time).toISOString(),
-        });
-
-        // Update new tx
-        await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
-          accountId: newData.accountId,
-          amount: newData.amount,
-          refAmount: newData.refAmount,
-          transactionType: newData.transactionType,
-          currencyId: newData.currencyId,
-          accountType: newData.accountType,
-          time: new Date(newData.time).toISOString(),
-        });
-      } else {
-        await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
-          accountId: newData.accountId,
-          amount: newData.amount,
-          prevAmount: prevData.amount,
-          refAmount: newData.refAmount,
-          prevRefAmount: prevData.refAmount,
-          transactionType: newData.transactionType,
-          prevTransactionType: prevData.transactionType,
-          currencyId: newData.currencyId,
-          accountType: newData.accountType,
-          time: new Date(newData.time).toISOString(),
-        });
-      }
-    }
 
     const originalData = {
       accountId: prevData.accountId,

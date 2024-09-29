@@ -76,6 +76,7 @@ describe('Update account service', () => {
     expect(accountUpdateBalance.currentBalance).toBe(-500);
     expect(accountUpdateBalance.refCurrentBalance).toBe(-500);
   });
+
   it('updates account correctly with non-default user currency', async () => {
     const newCurrency = 'UAH';
     const currency = (
