@@ -37,7 +37,6 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
         prevRefAmount: transaction.refAmount,
         transactionType: transaction.transactionType,
         time: new Date(transaction.time).toISOString(),
-        updateBalancesTable: true,
         accountType: transaction.accountType,
       });
     } else {
@@ -54,7 +53,6 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
           prevRefAmount: transaction.refAmount,
           transactionType: transaction.transactionType,
           time: new Date(transaction.time).toISOString(),
-          updateBalancesTable: true,
           accountType: transaction.accountType,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
@@ -79,7 +77,6 @@ export const deleteTransaction = withTransaction(async (params: Params): Promise
                 prevRefAmount: tx.refAmount,
                 transactionType: tx.transactionType,
                 time: new Date(tx.time).toISOString(),
-                updateBalancesTable: true,
                 accountType: tx.accountType,
               }),
             ])

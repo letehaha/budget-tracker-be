@@ -227,7 +227,6 @@ const makeBasicBaseTxUpdation = async (
 
     currencyId: baseTransaction.currencyId,
     accountType: baseTransaction.accountType,
-    updateBalancesTable: false,
   });
 
   return baseTransaction;
@@ -304,13 +303,13 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams);
   await updateAccountBalanceForChangedTx({
     userId,
-    accountId: oppositeTx.accountId,
+    accountId: destinationTransaction.accountId,
     amount: destinationTransaction.amount,
     refAmount: destinationTransaction.refAmount,
     transactionType: destinationTransaction.transactionType,
     time: new Date(destinationTransaction.time).toISOString(),
 
-    prevAccountId: destinationTransaction.accountId,
+    prevAccountId: oppositeTx.accountId,
     prevAmount: oppositeTx.amount,
     prevRefAmount: oppositeTx.refAmount,
     prevTransactionType: oppositeTx.transactionType,
@@ -318,7 +317,6 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
     currencyId: destinationTransaction.currencyId,
     accountType: destinationTransaction.accountType,
-    updateBalancesTable: false,
   });
 
   return { baseTx: baseTransaction, oppositeTx: destinationTransaction };

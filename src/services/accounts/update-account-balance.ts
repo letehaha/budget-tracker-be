@@ -18,25 +18,25 @@ export const updateAccountBalanceForChangedTx = withTransaction(
     refAmount = 0,
     prevRefAmount = 0,
     prevTransactionType = transactionType,
-    updateBalancesTable = false,
     time,
     prevTime = time,
     accountType,
     externalData,
   }: {
     accountId: number;
-    prevAccountId?: number;
-    userId: number;
-    transactionType: TRANSACTION_TYPES;
     amount?: number;
-    prevAmount?: number;
     refAmount?: number;
+    transactionType: TRANSACTION_TYPES;
+    time: string;
+
+    prevAccountId?: number;
+    prevAmount?: number;
     prevRefAmount?: number;
     prevTransactionType?: TRANSACTION_TYPES;
-    currencyId?: number;
-    updateBalancesTable?: boolean;
-    time: string;
     prevTime?: string;
+
+    userId: number;
+    currencyId?: number;
     accountType: ACCOUNT_TYPES;
     externalData?: TransactionsAttributes['externalData'];
   }): Promise<void> => {
@@ -75,15 +75,31 @@ export const updateAccountBalanceForChangedTx = withTransaction(
       });
     }
 
-    if (updateBalancesTable) {
-      if (transactionDeletion) {
+    if (transactionDeletion) {
+      await updateBalanceOnTxDelete({
+        accountId,
+        transactionType: transactionType,
+        prevRefAmount,
+        time: new Date(time).toISOString(),
+      });
+    } else if (transactionCreation) {
+      await updateBalanceOnTxCreate({
+        accountId,
+        accountType,
+        transactionType,
+        refAmount,
+        time: new Date(time).toISOString(),
+        externalData,
+      });
+    } else if (transactionUpdation && prevAccountId) {
+      if (accountId !== prevAccountId) {
         await updateBalanceOnTxDelete({
-          accountId,
-          transactionType: transactionType,
+          accountId: prevAccountId,
+          transactionType: prevTransactionType,
           prevRefAmount,
-          time: new Date(time).toISOString(),
+          time: new Date(prevTime).toISOString(),
         });
-      } else if (transactionCreation) {
+        // Update new tx
         await updateBalanceOnTxCreate({
           accountId,
           accountType,
@@ -92,43 +108,25 @@ export const updateAccountBalanceForChangedTx = withTransaction(
           time: new Date(time).toISOString(),
           externalData,
         });
-      } else if (transactionUpdation && prevAccountId) {
-        if (accountId !== prevAccountId) {
-          await updateBalanceOnTxDelete({
-            accountId: prevAccountId,
-            transactionType: transactionType,
-            prevRefAmount,
-            time: new Date(time).toISOString(),
-          });
-          // Update new tx
-          await updateBalanceOnTxCreate({
+      } else {
+        await updateBalanceOnTxUpdate({
+          data: {
             accountId,
             accountType,
             transactionType,
             refAmount,
             time: new Date(time).toISOString(),
             externalData,
-          });
-        } else {
-          await updateBalanceOnTxUpdate({
-            data: {
-              accountId,
-              accountType,
-              transactionType,
-              refAmount,
-              time: new Date(time).toISOString(),
-              externalData,
-            },
-            prevData: {
-              accountId,
-              accountType,
-              transactionType: prevTransactionType,
-              refAmount: prevRefAmount,
-              time: new Date(prevTime).toISOString(),
-              externalData,
-            },
-          });
-        }
+          },
+          prevData: {
+            accountId: prevAccountId,
+            accountType,
+            transactionType: prevTransactionType,
+            refAmount: prevRefAmount,
+            time: new Date(prevTime).toISOString(),
+            externalData,
+          },
+        });
       }
     }
   },

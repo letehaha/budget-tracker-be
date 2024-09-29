@@ -10,7 +10,7 @@ import { Op, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
-  AfterUpdate,
+  // AfterUpdate,
   BeforeUpdate,
   Column,
   Model,
@@ -25,7 +25,7 @@ import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
-import Balances from '@models/Balances.model';
+// import Balances from '@models/Balances.model';
 
 export interface TransactionsAttributes {
   id: number;
@@ -202,23 +202,23 @@ export default class Transactions extends Model {
     }
   }
 
-  @AfterUpdate
-  static async updateAccountBalanceAfterUpdate(instance: Transactions) {
-    const newData: Transactions = instance.dataValues;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const prevData: Transactions = (instance as any)._previousDataValues;
+  // @AfterUpdate
+  // static async updateAccountBalanceAfterUpdate(instance: Transactions) {
+  //   const newData: Transactions = instance.dataValues;
+  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //   const prevData: Transactions = (instance as any)._previousDataValues;
 
-    const originalData = {
-      accountId: prevData.accountId,
-      amount: prevData.amount,
-      refAmount: prevData.refAmount,
-      time: prevData.time,
-      transactionType: prevData.transactionType,
-      currencyId: prevData.currencyId,
-    } as Transactions;
+  //   const originalData = {
+  //     accountId: prevData.accountId,
+  //     amount: prevData.amount,
+  //     refAmount: prevData.refAmount,
+  //     time: prevData.time,
+  //     transactionType: prevData.transactionType,
+  //     currencyId: prevData.currencyId,
+  //   } as Transactions;
 
-    await Balances.handleTransactionChange({ data: newData, prevData: originalData });
-  }
+  //   await Balances.handleTransactionChange({ data: newData, prevData: originalData });
+  // }
 }
 
 export const findWithFilters = async ({

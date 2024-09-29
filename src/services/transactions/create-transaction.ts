@@ -166,7 +166,6 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     currencyId: oppositeTx.currencyId,
     accountType: oppositeTx.accountType,
     time: new Date(oppositeTx.time).toISOString(),
-    updateBalancesTable: true,
   });
 
   return { baseTx, oppositeTx: oppositeTx! };
@@ -238,7 +237,6 @@ export const createTransaction = withTransaction(
         time: new Date(baseTransaction.time).toISOString(),
         accountType: baseTransaction.accountType,
         externalData: baseTransaction.externalData,
-        updateBalancesTable: true,
       });
 
       // await updateBalanceOnTxCreate({

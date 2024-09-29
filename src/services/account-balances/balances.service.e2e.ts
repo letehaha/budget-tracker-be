@@ -35,7 +35,7 @@ describe('Balances service', () => {
     const result = helpers.extractResponse(balancesHistory);
 
     expect(balancesHistory.statusCode).toEqual(200);
-    expect(result[0].amount).toEqual(account.initialBalance);
+    expect(result[0].amount).toEqual(account.refInitialBalance);
   });
 
   describe('the balances history table and account balance correctly updated when:', () => {
@@ -299,7 +299,7 @@ describe('Balances service', () => {
         // have +1 record to represent initialBalance
         {
           date: format(subDays(new Date(), 3), 'yyyy-MM-dd'),
-          amount: accountData.initialBalance,
+          amount: accountData.refInitialBalance,
         },
         { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 950 },
         { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1150 },
@@ -329,7 +329,7 @@ describe('Balances service', () => {
       expect(newBalanceHistory1).toStrictEqual([
         {
           date: format(subDays(new Date(), 3), 'yyyy-MM-dd'),
-          amount: accountData.initialBalance,
+          amount: accountData.refInitialBalance,
         },
         { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 850 },
         { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1050 },
@@ -349,7 +349,7 @@ describe('Balances service', () => {
       expect(newBalanceHistory2).toStrictEqual([
         {
           date: format(subDays(new Date(), 3), 'yyyy-MM-dd'),
-          amount: accountData.initialBalance,
+          amount: accountData.refInitialBalance,
         },
         { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 850 },
         { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1200 },
@@ -365,9 +365,9 @@ describe('Balances service', () => {
       await helpers.updateTransaction({
         id: transactionResults[0]!.id,
         payload: {
+          transactionType: TRANSACTION_TYPES.income,
           amount: 150,
           time: startOfDay(subDays(new Date(), 4)).toISOString(),
-          transactionType: TRANSACTION_TYPES.income,
         },
       });
 
@@ -407,7 +407,7 @@ describe('Balances service', () => {
       expect(newBalanceHistory2).toStrictEqual([
         {
           date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
-          amount: accountData.initialBalance,
+          amount: accountData.refInitialBalance,
           accountId: accountData.id,
         },
         {
@@ -437,7 +437,7 @@ describe('Balances service', () => {
         },
         {
           date: format(new Date(), 'yyyy-MM-dd'),
-          amount: oneMoreAccountData.initialBalance,
+          amount: oneMoreAccountData.refInitialBalance,
           accountId: oneMoreAccountData.id,
         },
         {
