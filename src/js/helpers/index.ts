@@ -3,9 +3,9 @@ export const removeUndefinedKeys = <T>(obj: T): T => {
   for (const key in obj) {
     if (
       obj[key] === undefined ||
-      (typeof obj[key] === 'number' && isNaN(obj[key] as number)) ||
+      (typeof obj[key] === 'number' && isNaN(Number(obj[key]))) ||
       // Test for Invalid Date object
-      (obj[key] instanceof Date && isNaN(obj[key] as number))
+      (obj[key] instanceof Date && isNaN(Number(obj[key])))
     ) {
       delete obj[key];
     }
