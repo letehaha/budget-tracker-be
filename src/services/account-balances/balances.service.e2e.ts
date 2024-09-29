@@ -38,7 +38,7 @@ describe('Balances service', () => {
     expect(result[0].amount).toEqual(account.initialBalance);
   });
 
-  describe('the balances history table correctly updated when:', () => {
+  describe('the balances history table and account balance correctly updated when:', () => {
     const buildAccount = async ({
       accountInitialBalance = 0,
       currencyCode = null,
@@ -538,11 +538,16 @@ describe('Balances service', () => {
     });
 
     describe('transfer transactions', () => {
-      const checkBalanceHistory = async (list: { id: number; amounts: number[] }[]) => {
+      const checkBalances = async (list: { id: number; amounts: number[] }[]) => {
         const histories = await Promise.all(list.map((i) => callGetBalanceHistory(i.id, true)));
+        const accounts = await Promise.all(
+          list.map((i) => helpers.getAccount({ id: i.id, raw: true })),
+        );
 
         histories.forEach((history, index) => {
           const amounts = list[index]!.amounts;
+          // current account balance should be the same as the latest record in the Balances table
+          expect(accounts[index]!.refCurrentBalance).toBe(amounts[amounts.length - 1]);
           expect(history.length).toBe(amounts.length);
           expect(history.every((record, index) => record.amount === amounts[index])).toBe(true);
         });
@@ -588,7 +593,7 @@ describe('Balances service', () => {
 
         // Since we added transaction in the SAME DATE as account created,
         // records amount won't be changed
-        await checkBalanceHistory([
+        await checkBalances([
           { id: accountA.id, amounts: [1000 - 200] },
           { id: accountB.id, amounts: [100 + 200] },
         ]);
@@ -611,7 +616,7 @@ describe('Balances service', () => {
         // 1. Initial balance
         // 2. Transfer on the day before account creation
         // 3. Transfer on the same day as account creation from the step 1
-        await checkBalanceHistory([
+        await checkBalances([
           { id: accountA.id, amounts: [1000, 800, 600] },
           { id: accountB.id, amounts: [100, 300, 500] },
         ]);
@@ -639,7 +644,7 @@ describe('Balances service', () => {
         // 2. Transfer on the day BEFORE account creation
         // 3. Transfer on the SAME day as account creation from the step 1
         // 4. Transfer on the day AFTER account creation
-        await checkBalanceHistory([
+        await checkBalances([
           { id: accountA.id, amounts: [1000, 800, 600, 800] },
           { id: accountB.id, amounts: [100, 300, 500, 300] },
         ]);
@@ -706,7 +711,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
             { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
           ]);
@@ -731,7 +736,7 @@ describe('Balances service', () => {
             ).statusCode,
           ).toBe(200);
 
-          await checkBalanceHistory([
+          await checkBalances([
             { id: accountA.id, amounts: [initialBalance.eur.refAmount - fromEuro(2000)] },
             { id: accountB.id, amounts: [initialBalance.gbp.refAmount + fromGbp(1500)] },
           ]);
@@ -749,7 +754,7 @@ describe('Balances service', () => {
             ).statusCode,
           ).toBe(200);
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -781,7 +786,7 @@ describe('Balances service', () => {
             ).statusCode,
           ).toBe(200);
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -839,7 +844,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             { id: accountA.id, amounts: [initialBalance.eur.refAmount] },
             { id: accountB.id, amounts: [initialBalance.gbp.refAmount] },
           ]);
@@ -861,7 +866,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -892,7 +897,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -921,7 +926,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -952,7 +957,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -981,7 +986,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -1012,7 +1017,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -1040,7 +1045,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -1070,7 +1075,7 @@ describe('Balances service', () => {
             raw: true,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
@@ -1094,7 +1099,7 @@ describe('Balances service', () => {
             id: baseTx.id,
           });
 
-          await checkBalanceHistory([
+          await checkBalances([
             {
               id: accountA.id,
               amounts: [
