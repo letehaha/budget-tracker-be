@@ -1,11 +1,12 @@
 import { TRANSACTION_TYPES } from 'shared-types';
-import { isSameDay, isBefore } from 'date-fns';
+import { format } from 'date-fns';
 import * as helpers from '@tests/helpers';
+import { ERROR_CODES } from '@js/errors';
 
 jest.setTimeout(30_000);
 
 describe('Create investment transaction service', () => {
-  it.skip(`
+  it(`
     - creates income transaction;
     - updates related holding;
     - updates related account balance;
@@ -39,12 +40,10 @@ describe('Create investment transaction service', () => {
       quantity: 10,
       price: 25.1,
       fees: 0.25,
-      date: new Date('2024-05-25'),
+      date: new Date('2024-05-25').toISOString(),
     };
 
-    await helpers.makeRequest({
-      method: 'post',
-      url: '/investing/transaction',
+    await helpers.createInvestmentTransaction({
       payload: {
         accountId: account.id,
         securityId: mockedSecurity.id,
@@ -99,14 +98,13 @@ describe('Create investment transaction service', () => {
       raw: true,
     });
 
-    console.log('updatedBalances', updatedBalances);
-    expect(updatedBalances.length).toBe(2);
-    expect(
-      updatedBalances.find((item) => isSameDay(new Date(item.date), transactionValues.date)).amount,
-    ).toBe(expectedAccountBalance);
-    expect(
-      updatedBalances.find((item) => isBefore(new Date(item.date), transactionValues.date)).amount,
-    ).toBe(0);
+    expect(updatedBalances.length).toBe(3);
+    expect(updatedBalances).toStrictEqual([
+      { date: '2024-05-24', amount: 0 },
+      { date: '2024-05-25', amount: expectedAccountBalance },
+      // Since account was created today, the balance should be updated for today too
+      { date: format(new Date(), 'yyyy-MM-dd'), amount: expectedAccountBalance },
+    ]);
   });
   it.todo(
     'correctly works for non-base currency (ref values are correct for tx, holdings, and account balance)',
@@ -115,8 +113,58 @@ describe('Create investment transaction service', () => {
   it.todo('after creation, statistics are updated correctly');
 
   describe('failure cases', () => {
-    it.todo('throws when trying to create transaction when holding does not exist');
-    it.todo('throws when trying to create transaction when account does not exist');
-    it.todo('throws when trying to create transaction when security does not exist');
+    it(`throws when trying to create transaction when:
+        - holding does not exist
+        - account does not exist
+        - security does not exist
+    `, async () => {
+      await helpers.syncSecuritiesData();
+      const securities = await helpers.getSecuritiesList({ raw: true });
+      const mockedSecurity = securities[0]!;
+      const account = await helpers.createAccount({ raw: true });
+      const basePayload = {
+        accountId: account.id,
+        securityId: mockedSecurity.id,
+        transactionType: TRANSACTION_TYPES.income,
+        quantity: 10,
+        date: new Date().toISOString(),
+        price: 25.1,
+        fees: 0.25,
+      };
+
+      expect(
+        (
+          await helpers.createInvestmentTransaction({
+            payload: {
+              ...basePayload,
+              accountId: account.id,
+              securityId: mockedSecurity.id,
+            },
+          })
+        ).statusCode,
+      ).toBe(ERROR_CODES.ValidationError);
+
+      expect(
+        (
+          await helpers.createInvestmentTransaction({
+            payload: {
+              ...basePayload,
+              accountId: 10101010101,
+            },
+          })
+        ).statusCode,
+      ).toBe(ERROR_CODES.ValidationError);
+
+      expect(
+        (
+          await helpers.createInvestmentTransaction({
+            payload: {
+              ...basePayload,
+              securityId: 10000000,
+            },
+          })
+        ).statusCode,
+      ).toBe(ERROR_CODES.ValidationError);
+    });
   });
 });

@@ -294,7 +294,7 @@ export interface InvestmentTransactionModel {
    * A descriptive name or title for the investment transaction, providing a
    * quick overview of the transaction's nature. Same as `note` in `Transactions`
    */
-  name: string;
+  name: string | null;
   /**
    * The monetary value involved in the transaction. Depending on the context,
    * this could represent the cost, sale proceeds, or other financial values

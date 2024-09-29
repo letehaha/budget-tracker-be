@@ -1,15 +1,17 @@
 import { Router } from 'express';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { authenticateJwt } from '@middlewares/passport';
+import { validateEndpoint } from '@middlewares/validations';
 // import { marketDataService } from '@services/investments/market-data.service';
 
 import { checkSecuritiesSyncingStatus } from '@controllers/investments/securities/check-syncing-status';
 import { syncSecuritiesData } from '@controllers/investments/securities/sync-data';
 import { loadSecuritiesList } from '@services/investments/securities/get-securities-list';
+import { getInvestmentTransactions } from '@services/investments/transactions';
 import {
   createInvestmentTransaction,
-  getInvestmentTransactions,
-} from '@services/investments/transactions';
+  createInvestmentTransactionSchema,
+} from '@controllers/investments/transactions/create-transaction';
 
 import { createHolding, loadHoldings } from '@controllers/investments/holdings';
 
@@ -21,30 +23,12 @@ const router = Router({});
 router.get('/holdings', authenticateJwt, loadHoldings);
 router.post('/holdings', authenticateJwt, createHolding);
 
-router.post('/transaction', authenticateJwt, async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { id: userId } = req.user as any;
-  const { accountId, securityId, transactionType, date, name, quantity, price, fees } = req.body;
-
-  const data = await createInvestmentTransaction({
-    userId,
-    params: {
-      accountId,
-      securityId,
-      transactionType,
-      date,
-      name,
-      quantity,
-      price,
-      fees,
-    },
-  });
-
-  return res.status(200).json({
-    status: API_RESPONSE_STATUS.success,
-    response: data,
-  });
-});
+router.post(
+  '/transaction',
+  authenticateJwt,
+  validateEndpoint(createInvestmentTransactionSchema),
+  createInvestmentTransaction,
+);
 
 router.get('/transactions', authenticateJwt, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

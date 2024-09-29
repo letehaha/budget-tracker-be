@@ -16,7 +16,7 @@ import Accounts from '@models/Accounts.model';
 
 type CreationParams = Pick<
   InvestmentTransactionModel,
-  'accountId' | 'securityId' | 'transactionType' | 'date' | 'name' | 'quantity' | 'price' | 'fees'
+  'accountId' | 'securityId' | 'transactionType' | 'date' | 'quantity' | 'price' | 'fees'
 >;
 
 /**
@@ -27,7 +27,13 @@ type CreationParams = Pick<
  * 4. Update Balances table
  */
 export const createInvestmentTransaction = withTransaction(
-  async ({ params, userId }: { params: CreationParams; userId: number }) => {
+  async ({
+    params,
+    userId,
+  }: {
+    params: CreationParams & { name?: string | null };
+    userId: number;
+  }) => {
     try {
       const security = await Security.findOne({
         where: {
