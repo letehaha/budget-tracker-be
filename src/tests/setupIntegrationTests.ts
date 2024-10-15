@@ -11,7 +11,7 @@ jest.mock('axios');
 const umzug = new Umzug({
   migrations: {
     // The params that get passed to the migrations
-    params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
+    params: [connection.sequelize!.getQueryInterface(), connection.sequelize!.constructor],
     // The path to the migrations directory
     path: path.join(__dirname, '../migrations'),
     // The pattern that determines whether files are migrations
@@ -65,7 +65,7 @@ beforeEach(async () => {
       const result = await redisClient.hello();
       return !!result;
     });
-    await connection.sequelize.drop({ cascade: true });
+    await connection.sequelize!.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
     const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
     if (workerKeys.length) {
@@ -114,7 +114,8 @@ beforeEach(async () => {
   } catch (err) {
     console.log(err);
   }
-}, 10_000);
+  // we need to load secruties, and it takes some time, so default 5_000 not enough even for mocked data
+}, 15_000);
 
 afterAll(async () => {
   try {

@@ -9,3 +9,6 @@ export * from './categories';
 export * from './currencies';
 export * from './transactions';
 export * from './exchange-rates';
+export * from './investments/holdings';
+export * from './investments/securities';
+export * from './investments/transactions';
