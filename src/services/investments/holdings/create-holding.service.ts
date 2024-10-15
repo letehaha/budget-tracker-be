@@ -1,3 +1,4 @@
+import { ACCOUNT_CATEGORIES } from 'shared-types';
 import Account from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import Security from '@models/investments/Security.model';
@@ -24,6 +25,12 @@ export const createHolding = withTransaction(
     if (!account) {
       throw new ValidationError({
         message: 'Account does not belong to the user or does not exist.',
+      });
+    }
+
+    if (account.accountCategory !== ACCOUNT_CATEGORIES.investment) {
+      throw new ValidationError({
+        message: `Holding can only be created for investment accounts. Create account with category ${ACCOUNT_CATEGORIES.investment} first.`,
       });
     }
 

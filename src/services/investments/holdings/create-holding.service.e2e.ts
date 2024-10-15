@@ -1,3 +1,4 @@
+import { ACCOUNT_CATEGORIES } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
@@ -8,14 +9,22 @@ describe('Create holding service', () => {
     await helpers.syncSecuritiesData();
     const securities = await helpers.getSecuritiesList({ raw: true });
     const mockedSecurity = securities[0]!;
-    const account = await helpers.createAccount({ raw: true });
+    const account = await helpers.createAccount({
+      payload: {
+        ...helpers.buildAccountPayload(),
+        accountCategory: ACCOUNT_CATEGORIES.investment,
+      },
+      raw: true,
+    });
 
-    await helpers.createHolding({
+    const response = await helpers.createHolding({
       payload: {
         accountId: account.id,
         securityId: mockedSecurity.id,
       },
     });
+
+    expect(response.statusCode).toBe(200);
 
     const holdings = await helpers.getHoldings({
       raw: true,
@@ -25,6 +34,33 @@ describe('Create holding service', () => {
   });
 
   describe('failure flows', () => {
+    it('cannot create holding for non-investment account', async () => {
+      await helpers.syncSecuritiesData();
+      const securities = await helpers.getSecuritiesList({ raw: true });
+      const mockedSecurity = securities[0]!;
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          accountCategory: ACCOUNT_CATEGORIES.general,
+        },
+        raw: true,
+      });
+
+      const response = await helpers.createHolding({
+        payload: {
+          accountId: account.id,
+          securityId: mockedSecurity.id,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+
+      const holdings = await helpers.getHoldings({
+        raw: true,
+      });
+
+      expect(holdings.length).toBe(0);
+    });
     it('throws when trying to create holding for non-existing account', async () => {
       await helpers.syncSecuritiesData();
       const securities = await helpers.getSecuritiesList({ raw: true });
