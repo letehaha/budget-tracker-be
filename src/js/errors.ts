@@ -7,6 +7,7 @@ export enum ERROR_CODES {
   NotFoundError = 404,
   ConflictError = 409,
   ValidationError = 422,
+  Locked = 423,
   TooManyRequests = 429,
   UnexpectedError = 500,
 }
@@ -112,5 +113,19 @@ export class UnexpectedError extends CustomError {
 export class TooManyRequests extends CustomError {
   constructor(code: API_ERROR_CODES, message: string) {
     super(ERROR_CODES.TooManyRequests, code, message);
+  }
+}
+
+export class LockedError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.locked,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.Locked, code, message, details);
   }
 }

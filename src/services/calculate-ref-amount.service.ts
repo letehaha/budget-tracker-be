@@ -27,6 +27,7 @@ import { withTransaction } from './common';
  * const refAmountByIds = await calculateRefAmount({ amount: 100, userId: 42, baseId: 1, quoteId: 2 });
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
+// TODO: allow to pass multiple amounts
 async function calculateRefAmountImpl(params: Params): Promise<number> {
   let { baseCode, quoteCode } = params;
   const { baseId, quoteId, userId, amount } = params;
@@ -69,14 +70,14 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
     });
     const rate = result.rate;
 
+    console.log('rate', rate);
+
     const isNegative = amount < 0;
     const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate);
 
     return isNegative ? refAmount * -1 : refAmount;
   } catch (e) {
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(e);
-    }
+    logger.error(e);
     throw e;
   }
 }

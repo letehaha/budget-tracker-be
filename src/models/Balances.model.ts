@@ -1,15 +1,9 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES } from 'shared-types';
 import { subDays } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
-
-interface GetTotalBalanceHistoryPayload {
-  startDate: Date;
-  endDate: Date;
-  accountIds: number[];
-}
 
 @Table({ timestamps: true })
 export default class Balances extends Model {
@@ -38,35 +32,6 @@ export default class Balances extends Model {
 
   @BelongsTo(() => Accounts)
   account: Accounts;
-
-  // Method to calculate the total balance across all accounts
-  static async getTotalBalance({ userId }: { userId: number }): Promise<number> {
-    const userAccounts = await Accounts.findAll({ where: { userId: userId } });
-    const accountIds = userAccounts.map((account) => account.id);
-
-    const result = await Balances.sum('amount', {
-      where: { accountId: accountIds },
-    });
-
-    return result || 0;
-  }
-
-  // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(
-    payload: GetTotalBalanceHistoryPayload,
-  ): Promise<BalanceModel[]> {
-    const { startDate, endDate, accountIds } = payload;
-    return Balances.findAll({
-      where: {
-        date: {
-          [Op.between]: [startDate, endDate],
-        },
-        accountId: accountIds,
-      },
-      order: [['date', 'ASC']],
-      include: [Accounts],
-    });
-  }
 
   // Transactions might have positive and negative amount
   // ### Transaction creation
@@ -100,22 +65,18 @@ export default class Balances extends Model {
   static async handleTransactionChange({
     data,
     prevData,
-    isDelete = false,
   }: {
     data: Transactions;
     prevData?: Transactions;
-    isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount =
+    const amount =
       data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
     if (data.accountType === ACCOUNT_TYPES.system) {
-      if (isDelete) {
-        amount = -amount; // Reverse the amount if it's a deletion
-      } else if (prevData) {
+      if (prevData) {
         const originalDate = new Date(prevData.time);
         const originalAmount =
           prevData.transactionType === TRANSACTION_TYPES.income
@@ -167,10 +128,6 @@ export default class Balances extends Model {
             ? existingRecordForTheDate.amount
             : (balance as number);
 
-        // existingRecordForTheDate.amount = balance
-        // ? Math.max(existingRecordForTheDate.amount, balance)
-        // : existingRecordForTheDate.amount;
-
         await existingRecordForTheDate.save();
       } else {
         await this.create({
@@ -183,7 +140,7 @@ export default class Balances extends Model {
   }
 
   // Update the balance for a specific system account and date
-  private static async updateRecord({
+  public static async updateRecord({
     accountId,
     date,
     amount,
@@ -236,14 +193,14 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date: subDays(new Date(date), 1),
-          amount: account!.initialBalance,
+          amount: account!.refInitialBalance,
         });
 
         // (2) Then we create a record for that transaction
         await this.create({
           accountId,
           date,
-          amount: account!.initialBalance + amount,
+          amount: account!.refInitialBalance + amount,
         });
         // }
       } else {
@@ -261,7 +218,6 @@ export default class Balances extends Model {
       await balanceForTxDate.save();
     }
 
-    // if (Balances.sequelize) {
     // Update the amount of all balances for the account that come after the date
     await this.update(
       { amount: Balances.sequelize!.literal(`amount + ${amount}`) },
@@ -274,7 +230,6 @@ export default class Balances extends Model {
         },
       },
     );
-    // }
   }
 
   static async handleAccountChange({

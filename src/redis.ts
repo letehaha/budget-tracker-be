@@ -14,16 +14,15 @@ export const redisClient = createClient({
   },
 });
 
-console.time('connect-to-redis');
-redisClient
-  .connect()
-  .then(() => {
-    console.log('App connected to Redis! Took: ');
-    console.timeEnd('connect-to-redis');
-  })
-  .catch((err) => {
-    console.error('Cannot connect to Redis!', err);
-  });
+// console.time('connect-to-redis');
+redisClient.connect();
+// .then(() => {
+//   console.log('App connected to Redis! Took: ');
+//   console.timeEnd('connect-to-redis');
+// })
+// .catch((err) => {
+//   console.error('Cannot connect to Redis!', err);
+// });
 
 redisClient.on('error', (error: Error) => {
   logger.error({ message: 'Redis Client Error', error });
