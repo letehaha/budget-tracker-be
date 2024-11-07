@@ -67,7 +67,7 @@ export const deleteInvestmentTransaction = withTransaction(
           parseFloat(currentTx.refAmount) +
           parseFloat(currentTx.refFees);
 
-    const [, [updatedHolding]] = await Holding.update(
+    const [, updatedHoldings] = await Holding.update(
       {
         value: String(newValue),
         refValue: String(newRefValue),
@@ -83,11 +83,13 @@ export const deleteInvestmentTransaction = withTransaction(
         returning: true,
       },
     );
+    // TODO: when holding quantity turns to 0, make 0 all other fields too.
+    // `costBasis` cannot be positive or negative when `quantity` is 0
+    const updatedHolding = updatedHoldings[0]!;
 
     // Recalculate account balance
 
     // TODO: maybe not "old costBasis - new costBasis", but "old value - new value"?
-    if (!updatedHolding) return undefined;
 
     const account = (await Accounts.findOne({
       where: {

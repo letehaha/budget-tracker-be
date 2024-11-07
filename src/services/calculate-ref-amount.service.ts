@@ -70,6 +70,8 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
     });
     const rate = result.rate;
 
+    console.log('rate', rate);
+
     const isNegative = amount < 0;
     const refAmount = amount === 0 ? 0 : Math.floor(Math.abs(amount) * rate);
 

@@ -41,6 +41,12 @@ export const createInvestmentTransaction = withTransaction(
         },
       });
 
+      const initialAccount = (await Accounts.findOne({
+        where: { id: params.accountId, userId },
+      }))!;
+
+      console.log('initialAccount_balance', initialAccount.currentBalance);
+
       if (!security) {
         throw new ValidationError({
           message: `Security with id ${params.securityId} does not exist.`,
@@ -75,6 +81,10 @@ export const createInvestmentTransaction = withTransaction(
             ? INVESTMENT_TRANSACTION_CATEGORY.buy
             : INVESTMENT_TRANSACTION_CATEGORY.sell,
       };
+
+      // NFLX-USD – security, but base currency is UAH, means that transaction will have
+      // amount in USD, and refAmount in {baseCurrency} (UAH)
+      // Investment account strictly has currencyCode as baseCurrency
       const amount = parseFloat(params.quantity) * parseFloat(params.price);
       const refAmount = await calculateRefAmount({
         amount,
@@ -102,23 +112,40 @@ export const createInvestmentTransaction = withTransaction(
         refFees: String(refFees),
       });
 
-      const newQuantity = parseFloat(currentHolding.quantity) + parseFloat(params.quantity);
-      const value = newQuantity * parseFloat(params.price);
+      console.log('result', result);
 
-      const refValue = await calculateRefAmount({
-        amount: value,
+      const newQuantity =
+        result.category === INVESTMENT_TRANSACTION_CATEGORY.buy
+          ? parseFloat(currentHolding.quantity) + parseFloat(params.quantity)
+          : parseFloat(currentHolding.quantity) - parseFloat(params.quantity);
+
+      const newHoldingValue = newQuantity * parseFloat(params.price);
+
+      console.log('newHoldingValue', newHoldingValue);
+
+      const newHoldingRefValue = await calculateRefAmount({
+        amount: newHoldingValue,
         userId,
         baseCode: security.currencyCode,
       });
 
-      const newCostBasis: number =
-        parseFloat(currentHolding.costBasis) + amount + parseFloat(params.fees);
-      const newRefCostBasis: number = parseFloat(currentHolding.refCostBasis) + refAmount + refFees;
+      console.log('newHoldingRefValue', newHoldingRefValue);
 
-      await Holding.update(
+      const [newCostBasis, newRefCostBasis] =
+        params.transactionType === TRANSACTION_TYPES.income
+          ? [
+              parseFloat(currentHolding.costBasis) + amount + parseFloat(params.fees),
+              parseFloat(currentHolding.refCostBasis) + refAmount + refFees,
+            ]
+          : [
+              parseFloat(currentHolding.costBasis) - amount + parseFloat(params.fees),
+              parseFloat(currentHolding.refCostBasis) - refAmount + refFees,
+            ];
+
+      const [, updatedHoldings] = await Holding.update(
         {
-          value: String(value),
-          refValue: String(refValue),
+          value: String(newHoldingValue),
+          refValue: String(newHoldingRefValue),
           quantity: String(newQuantity),
           costBasis: String(newCostBasis),
           refCostBasis: String(newRefCostBasis),
@@ -128,27 +155,38 @@ export const createInvestmentTransaction = withTransaction(
             accountId: params.accountId,
             securityId: params.securityId,
           },
+          returning: true,
         },
       );
+      const updatedHolding = updatedHoldings[0]!;
 
       const currency = await Currencies.findOne({
         where: { code: security.currencyCode },
       });
 
       const account = (await Accounts.findOne({
-        where: {
-          id: params.accountId,
-          userId,
-        },
+        where: { id: params.accountId, userId },
       }))!;
+
+      console.log({
+        userId,
+        accountId: params.accountId,
+        transactionType: params.transactionType,
+        // We store amounts in Account as integer, so need to mutiply that by 100
+        amount: Math.floor((parseFloat(updatedHolding.costBasis) + amount) * 100),
+        refAmount: Math.floor((parseFloat(updatedHolding.refCostBasis) + refAmount) * 100),
+        currencyId: currency!.id,
+        accountType: account.type,
+        time: new Date(params.date).toISOString(),
+      });
 
       await updateAccountBalanceForChangedTx({
         userId,
         accountId: params.accountId,
         transactionType: params.transactionType,
         // We store amounts in Account as integer, so need to mutiply that by 100
-        amount: Math.floor((parseFloat(currentHolding.costBasis) + amount) * 100),
-        refAmount: Math.floor((parseFloat(currentHolding.refCostBasis) + refAmount) * 100),
+        amount: Math.floor((parseFloat(updatedHolding.costBasis) + amount) * 100),
+        refAmount: Math.floor((parseFloat(updatedHolding.refCostBasis) + refAmount) * 100),
         currencyId: currency!.id,
         accountType: account.type,
         time: new Date(params.date).toISOString(),

@@ -15,7 +15,9 @@ describe('Create investment transaction service', () => {
     await helpers.syncSecuritiesData();
     const securities = await helpers.getSecuritiesList({ raw: true });
     const mockedSecurity = securities[0]!;
-    const account = await helpers.createAccount({ raw: true });
+    const account = await helpers.createInvestmentAccount({
+      raw: true,
+    });
 
     const balances = await helpers.makeRequest({
       method: 'get',
@@ -70,6 +72,8 @@ describe('Create investment transaction service', () => {
       raw: true,
     });
 
+    console.log('accountUpdated', accountUpdated);
+
     expect(holdings.length).toBe(1);
     expect(transactions.length).toBe(1);
 
@@ -106,11 +110,169 @@ describe('Create investment transaction service', () => {
       { date: format(new Date(), 'yyyy-MM-dd'), amount: expectedAccountBalance },
     ]);
   });
-  it.todo(
-    'correctly works for non-base currency (ref values are correct for tx, holdings, and account balance)',
-  );
-  it.todo('after creation, the balances table is updated correctly');
-  it.todo('after creation, statistics are updated correctly');
+
+  it.skip('correctly works for non-base currency with multiple securities', async () => {
+    const currencyUAH = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+    // Change base currency to UAH so that we can calculate securities to ref currency
+    await helpers.makeRequest({
+      method: 'post',
+      url: '/user/currencies/base',
+      payload: { currencyId: currencyUAH.id },
+    });
+
+    await helpers.syncSecuritiesData();
+    // Set up EUR currency and exchange rates
+    const allCurrencies = await helpers.getAllCurrencies();
+    const eur = allCurrencies.find((i) => i.code === 'EUR')!;
+    const securities = await helpers.getSecuritiesList({ raw: true });
+    const security1 = securities[0]!;
+    const security2 = securities[1]!;
+    const account = await helpers.createAccount({
+      raw: true,
+      payload: helpers.buildAccountPayload({ currencyId: eur.id }),
+    });
+
+    await helpers.makeRequest({
+      method: 'post',
+      url: '/user/currencies',
+      payload: { currencies: [{ currencyId: eur.id }] },
+      raw: false,
+    });
+    await helpers.editCurrencyExchangeRate({
+      pairs: [
+        { baseCode: 'USD', quoteCode: 'EUR', rate: 0.85 },
+        { baseCode: 'EUR', quoteCode: 'USD', rate: 1.18 },
+      ],
+    });
+
+    // Create holdings for both securities
+    for (const security of [security1, security2]) {
+      await helpers.createHolding({
+        payload: { accountId: account.id, securityId: security.id },
+      });
+    }
+
+    const transactions = [
+      {
+        securityId: security1.id,
+        quantity: 10,
+        price: 25.1,
+        fees: 0.25,
+        date: '2024-05-25',
+        transactionType: TRANSACTION_TYPES.income,
+      },
+      {
+        securityId: security2.id,
+        quantity: 5,
+        price: 50.0,
+        fees: 0.5,
+        date: '2024-05-26',
+        transactionType: TRANSACTION_TYPES.income,
+      },
+      {
+        securityId: security1.id,
+        quantity: 3,
+        price: 27.5,
+        fees: 0.2,
+        date: '2024-05-27',
+        transactionType: TRANSACTION_TYPES.expense,
+      },
+      {
+        securityId: security2.id,
+        quantity: 2,
+        price: 52.0,
+        fees: 0.3,
+        date: '2024-05-28',
+        transactionType: TRANSACTION_TYPES.income,
+      },
+    ];
+
+    for (const tx of transactions) {
+      await helpers.createInvestmentTransaction({
+        payload: {
+          ...tx,
+          accountId: account.id,
+          date: new Date(tx.date).toISOString(),
+        },
+      });
+    }
+
+    const holdings = await helpers.getHoldings({ raw: true });
+    const createdTransactions = await helpers.makeRequest({
+      method: 'get',
+      url: '/investing/transactions',
+      payload: { accountId: account.id },
+      raw: true,
+    });
+    // const accountUpdated = await helpers.getAccount({ id: account.id, raw: true });
+
+    expect(holdings.length).toBe(2);
+    expect(createdTransactions.length).toBe(transactions.length);
+
+    // Calculate expected values for each security
+    // const expectedValues = securities.slice(0, 2).map((security) => {
+    //   const securityTxs = transactions.filter((tx) => tx.securityId === security.id);
+    //   const quantity = securityTxs.reduce(
+    //     (sum, tx) =>
+    //       tx.transactionType === TRANSACTION_TYPES.income ? sum + tx.quantity : sum - tx.quantity,
+    //     0,
+    //   );
+    //   const eurValue = securityTxs.reduce((sum, tx) => {
+    //     const txAmount = tx.quantity * tx.price;
+    //     return tx.transactionType === TRANSACTION_TYPES.income ? sum + txAmount : sum - txAmount;
+    //   }, 0);
+    //   const eurFees = securityTxs.reduce((sum, tx) => sum + tx.fees, 0);
+    //   const eurTotalValue = eurValue - eurFees;
+    //   const usdTotalValue = Math.round(eurTotalValue * 1.18 * 100) / 100;
+    //   return { securityId: security.id, quantity, eurTotalValue, usdTotalValue };
+    // });
+
+    // console.log('expectedValues', expectedValues);
+    // console.log('holdings', holdings);
+
+    const holdingA = holdings.find((h) => h.securityId === security1.id)!;
+    console.log('holdingA', holdingA);
+    expect({
+      quantity: Number(holdingA.quantity),
+      costBasis: Number(holdingA.costBasis),
+      refCostBasis: Number(holdingA.refCostBasis),
+    }).toStrictEqual({
+      quantity: 7,
+      costBasis: 10 * 25.1 + 0.25 - 3 * 27.5 + 0.2,
+      refCostBasis: (10 * 25.1 + 0.25) * 1.18 - (3 * 27.5 + 0.2) * 1.18,
+    });
+    // const holdingB = holdings.find((h) => h.securityId === security1.id)!;
+
+    // holdings.forEach((holding) => {
+    //   const expected = expectedValues.filter((v) => v.securityId === holding.securityId)!;
+    //   expect(Number(holding.quantity)).toBe(expected.reduce((a, b) => a + b.quantity, 0));
+    //   expect(Number(holding.value)).toBeCloseTo(
+    //     expected.reduce((a, b) => a + b.eurTotalValue, 0),
+    //     2,
+    //   );
+    //   expect(Number(holding.refValue)).toBeCloseTo(
+    //     expected.reduce((a, b) => a + b.usdTotalValue, 0),
+    //     2,
+    //   );
+    // });
+
+    // createdTransactions.forEach((tx, index) => {
+    //   const originalTx = transactions[index]!;
+    //   expect(tx.securityId).toBe(originalTx.securityId);
+    //   expect(Number(tx.quantity)).toBe(originalTx.quantity);
+    //   expect(Number(tx.price)).toBe(originalTx.price);
+    //   expect(Number(tx.fees)).toBe(originalTx.fees);
+    //   expect(tx.transactionType).toBe(originalTx.transactionType);
+
+    //   const txEurAmount = originalTx.quantity * originalTx.price;
+    //   expect(Number(tx.amount)).toBeCloseTo(txEurAmount, 2);
+    //   expect(Number(tx.refAmount)).toBeCloseTo(txEurAmount * 1.18, 2);
+    // });
+
+    // const totalUsdValue = expectedValues.reduce((sum, v) => sum + v.usdTotalValue, 0);
+    // const expectedAccountBalance = Math.round(totalUsdValue * 100);
+    // expect(accountUpdated.currentBalance).toBe(expectedAccountBalance);
+  });
 
   describe('failure cases', () => {
     it(`throws when trying to create transaction when:
