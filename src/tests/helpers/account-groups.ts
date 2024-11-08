@@ -54,3 +54,17 @@ export async function deleteAccountGroup<R extends boolean | undefined = undefin
     raw,
   });
 }
+
+export async function addAccountToGroup<R extends boolean | undefined = undefined>({
+  raw,
+  accountId,
+  groupId,
+}: Parameters<typeof accountGroupService.addAccountToGroup>[0] & {
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof accountGroupService.addAccountToGroup>>, R>({
+    method: 'post',
+    url: `/account-group/${groupId}/add-account/${accountId}`,
+    raw,
+  });
+}

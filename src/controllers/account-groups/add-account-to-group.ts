@@ -7,7 +7,8 @@ import * as accountGroupService from '@services/account-groups';
 
 export const addAccountToGroup = async (req, res: CustomResponse) => {
   try {
-    const { accountId, groupId }: AddAccountToGroupParams['body'] = req.validated.body;
+    const { accountId, groupId }: AddAccountToGroupParams['params'] = req.validated.params;
+    console.log('accountId, groupId', accountId, groupId);
 
     const grouping = await accountGroupService.addAccountToGroup({ accountId, groupId });
 
@@ -21,7 +22,7 @@ export const addAccountToGroup = async (req, res: CustomResponse) => {
 };
 
 export const addAccountToGroupSchema = z.object({
-  body: z.object({
+  params: z.object({
     accountId: recordId(),
     groupId: recordId(),
   }),

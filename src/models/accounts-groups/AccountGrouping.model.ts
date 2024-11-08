@@ -14,6 +14,12 @@ import AccountGroup from './AccountGroups.model';
 @Table({
   tableName: 'AccountGroupings',
   timestamps: true,
+  indexes: [
+    {
+      fields: ['accountId', 'groupId'],
+      unique: true,
+    },
+  ],
 })
 export default class AccountGrouping extends Model {
   @Column({

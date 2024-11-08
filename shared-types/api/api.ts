@@ -7,6 +7,7 @@ export enum API_ERROR_CODES {
   // general
   tooManyRequests = 'TOO_MANY_REQUESTS',
   notFound = 'NOT_FOUND',
+  notAllowed = 'NOT_ALLOWED',
   unexpected = 'UNEXPECTED',
   validationError = 'VALIDATION_ERROR',
   conflict = 'CONFLICT',

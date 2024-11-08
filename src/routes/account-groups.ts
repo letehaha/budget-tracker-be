@@ -31,7 +31,7 @@ router.delete(
 );
 
 router.post(
-  '/add-account',
+  '/:groupId/add-account/:accountId',
   authenticateJwt,
   validateEndpoint(accountGroupController.addAccountToGroupSchema),
   accountGroupController.addAccountToGroup,

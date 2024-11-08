@@ -63,6 +63,11 @@ module.exports = {
         }
       }, { transaction });
 
+      await queryInterface.addIndex('AccountGroupings', ['accountId', 'groupId'], {
+        unique: true,
+        transaction
+      });
+
       await transaction.commit();
     } catch (error) {
       await transaction.rollback();
