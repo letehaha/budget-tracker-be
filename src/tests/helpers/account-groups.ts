@@ -41,3 +41,16 @@ export async function getAccountGroups<R extends boolean | undefined = undefined
     raw,
   });
 }
+
+export async function deleteAccountGroup<R extends boolean | undefined = undefined>({
+  groupId,
+  raw,
+}: Omit<Parameters<typeof accountGroupService.deleteAccountGroup>[0], 'userId'> & {
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof accountGroupService.deleteAccountGroup>>, R>({
+    method: 'delete',
+    url: `/account-group/${groupId}`,
+    raw,
+  });
+}
