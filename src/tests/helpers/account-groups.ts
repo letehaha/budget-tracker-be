@@ -1,5 +1,5 @@
 import { makeRequest } from './common';
-import * as accountGroupService from '@root/services/account-groups/account-groups.service';
+import * as accountGroupService from '@root/services/account-groups';
 
 export async function createAccountGroup<R extends boolean | undefined = undefined>({
   raw,

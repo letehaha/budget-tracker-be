@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { CustomResponse } from '@common/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { errorHandler } from '@controllers/helpers';
-import * as accountGroupService from '@services/account-groups/account-groups.service';
+import * as accountGroupService from '@services/account-groups';
 
 export const deleteAccountGroup = async (req, res: CustomResponse) => {
   try {
