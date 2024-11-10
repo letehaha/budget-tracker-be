@@ -5,6 +5,7 @@ export enum ERROR_CODES {
   Unauthorized = 401,
   Forbidden = 403,
   NotFoundError = 404,
+  NotAllowed = 405,
   ConflictError = 409,
   ValidationError = 422,
   TooManyRequests = 429,
@@ -58,6 +59,18 @@ export class NotFoundError extends CustomError {
     message: string;
   }) {
     super(ERROR_CODES.NotFoundError, code, message);
+  }
+}
+
+export class NotAllowedError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.notAllowed,
+    message,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+  }) {
+    super(ERROR_CODES.NotAllowed, code, message);
   }
 }
 

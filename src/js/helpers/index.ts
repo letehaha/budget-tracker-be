@@ -5,7 +5,7 @@ export const removeUndefinedKeys = <T>(obj: T): T => {
       obj[key] === undefined ||
       (typeof obj[key] === 'number' && isNaN(obj[key] as number)) ||
       // Test for Invalid Date object
-      (obj[key] instanceof Date && isNaN(obj[key] as number))
+      (obj[key] instanceof Date && isNaN(obj[key] as unknown as number))
     ) {
       delete obj[key];
     }
