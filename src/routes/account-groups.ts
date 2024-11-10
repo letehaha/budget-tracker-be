@@ -14,7 +14,12 @@ router.post(
   accountGroupController.createAccountGroup,
 );
 
-router.get('/', authenticateJwt, accountGroupController.getAccountGroups);
+router.get(
+  '/',
+  authenticateJwt,
+  validateEndpoint(accountGroupController.getAccountGroupsSchema),
+  accountGroupController.getAccountGroups,
+);
 
 router.put(
   '/:groupId',

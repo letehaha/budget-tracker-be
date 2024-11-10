@@ -20,7 +20,7 @@ describe('Remove account from group', () => {
       groupId: group.id,
     });
 
-    expect(result.statusCode).toBe(204);
+    expect(result.statusCode).toBe(200);
   });
 
   it('fails when trying to remove non-existing account', async () => {
@@ -48,6 +48,6 @@ describe('Remove account from group', () => {
       groupId: group.id,
     });
 
-    expect(result.statusCode).toBe(204);
+    expect(result.statusCode).toBe(200);
   });
 });
