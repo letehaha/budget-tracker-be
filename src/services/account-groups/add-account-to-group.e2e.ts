@@ -18,6 +18,24 @@ describe('Add account to group', () => {
     expect(result.statusCode).toBe(201);
   });
 
+  it('successfully adds account to group_1 -> group_2 -> group_1', async () => {
+    const group_2 = await helpers.createAccountGroup({ name: 'test-1', raw: true });
+    await helpers.addAccountToGroup({
+      accountId: account.id,
+      groupId: group.id,
+    });
+    await helpers.addAccountToGroup({
+      accountId: account.id,
+      groupId: group_2.id,
+    });
+    const result = await helpers.addAccountToGroup({
+      accountId: account.id,
+      groupId: group.id,
+    });
+
+    expect(result.statusCode).toBe(201);
+  });
+
   it('fails when account does not exist', async () => {
     const result = await helpers.addAccountToGroup({
       accountId: 9999,
@@ -34,19 +52,5 @@ describe('Add account to group', () => {
     });
 
     expect(result.statusCode).toBe(404);
-  });
-
-  it('does not allow duplicate entries', async () => {
-    await helpers.addAccountToGroup({
-      accountId: account.id,
-      groupId: group.id,
-    });
-
-    const result = await helpers.addAccountToGroup({
-      accountId: account.id,
-      groupId: group.id,
-    });
-
-    expect(result.statusCode).toBe(409);
   });
 });
