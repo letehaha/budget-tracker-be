@@ -8,9 +8,9 @@ import * as accountGroupService from '@services/account-groups';
 export const getAccountGroups = async (req, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
-    const { accountIds }: GetAccountGroupsParams['query'] = req.validated.query;
+    const { accountIds, hidden }: GetAccountGroupsParams['query'] = req.validated.query;
 
-    const groups = await accountGroupService.getAccountGroups({ userId, accountIds });
+    const groups = await accountGroupService.getAccountGroups({ userId, accountIds, hidden });
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,
@@ -22,7 +22,10 @@ export const getAccountGroups = async (req, res: CustomResponse) => {
 };
 
 export const getAccountGroupsSchema = z.object({
-  query: z.object({ accountIds: commaSeparatedRecordIds.optional() }),
+  query: z.object({
+    accountIds: commaSeparatedRecordIds.optional(),
+    hidden: z.coerce.boolean(),
+  }),
 });
 
 type GetAccountGroupsParams = z.infer<typeof getAccountGroupsSchema>;
