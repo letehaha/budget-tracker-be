@@ -6,7 +6,7 @@ import { connection } from '@models/index';
 import { makeRequest, extractResponse } from '@tests/helpers';
 import { until } from '@common/helpers';
 
-jest.mock('axios');
+// jest.mock('axios');
 
 const umzug = new Umzug({
   migrations: {

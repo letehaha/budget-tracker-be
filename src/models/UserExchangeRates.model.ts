@@ -38,6 +38,16 @@ export default class UserExchangeRates extends Model {
 
   @Column({ allowNull: true, defaultValue: 1 })
   rate: number;
+
+  // TODO:
+  // 1. Add date fields to UserExchangeRates: "effectiveFrom", "effectiveTo"
+  // 2. When updating rates:
+  //  - Close current rate (set "effectiveTo")
+  //  - Create new entry with current date as "effectiveFrom"
+  // 3. For historical data:
+  //  - Query UserExchangeRates with transaction date
+  //  - Fall back to ExchangeRates if no user-specific rate
+  // This approach will maintain the rate history for each user, allowing accurate historical calculations
 }
 
 export type ExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode'>;

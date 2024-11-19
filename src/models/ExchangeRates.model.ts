@@ -1,16 +1,13 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { ExchangeRatesModel } from 'shared-types';
 import Currencies from './Currencies.model';
-
-interface ExchangeRatesAttributes extends ExchangeRatesModel {}
 
 @Table({
   timestamps: true,
   createdAt: 'date',
   updatedAt: false,
 })
-export default class ExchangeRates extends Model<ExchangeRatesAttributes> {
+export default class ExchangeRates extends Model {
   @Column({
     unique: true,
     allowNull: false,
@@ -35,6 +32,9 @@ export default class ExchangeRates extends Model<ExchangeRatesAttributes> {
 
   @Column({ allowNull: true, defaultValue: 1 })
   rate: number;
+
+  @Column({ allowNull: false })
+  date: string;
 }
 
 export async function getRatesForCurrenciesPairs(
