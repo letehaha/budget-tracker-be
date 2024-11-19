@@ -1,5 +1,7 @@
 FROM node:21.7.3
 
+LABEL com.docker.compose.project=test
+
 WORKDIR /app
 
 # Copy package.json and package-lock.json files. This allows Docker to cache the
