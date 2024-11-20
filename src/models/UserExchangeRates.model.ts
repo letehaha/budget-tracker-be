@@ -109,10 +109,7 @@ export async function getRates({
   });
 }
 
-export type UpdateExchangeRatePair = Pick<
-  UserExchangeRatesAttributes,
-  'baseCode' | 'quoteCode' | 'rate'
->;
+export type UpdateExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode' | 'rate'>;
 
 export async function updateRates({
   userId,
@@ -177,8 +174,7 @@ export async function updateRates({
 
       if (currencies.length !== userCurrencies.length) {
         throw new NotFoundError({
-          message:
-            'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
+          message: 'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
         });
       }
 

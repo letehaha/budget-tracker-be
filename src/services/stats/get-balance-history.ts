@@ -23,15 +23,7 @@ import { withTransaction } from '../common';
  * const balances = await getBalanceHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
  */
 export const getBalanceHistory = withTransaction(
-  async ({
-    userId,
-    from,
-    to,
-  }: {
-    userId: number;
-    from?: string;
-    to?: string;
-  }): Promise<BalanceModel[]> => {
+  async ({ userId, from, to }: { userId: number; from?: string; to?: string }): Promise<BalanceModel[]> => {
     try {
       let data: BalanceModel[] = [];
 

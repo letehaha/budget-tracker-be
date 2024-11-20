@@ -26,8 +26,7 @@ describe('Accounts controller', () => {
       expect(account.refCreditLimit).toStrictEqual(creditLimit);
     });
     it('should correctly create account with correct balance for external currency', async () => {
-      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true }))
-        .currencies[0]!;
+      const currency = (await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true })).currencies[0]!;
 
       const account = await helpers.createAccount({
         payload: {
@@ -42,13 +41,9 @@ describe('Accounts controller', () => {
       const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
-      expect(account.refInitialBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate!.rate),
-      );
+      expect(account.refInitialBalance).toStrictEqual(Math.floor(initialBalance * currencyRate!.rate));
       expect(account.currentBalance).toStrictEqual(initialBalance);
-      expect(account.refCurrentBalance).toStrictEqual(
-        Math.floor(initialBalance * currencyRate!.rate),
-      );
+      expect(account.refCurrentBalance).toStrictEqual(Math.floor(initialBalance * currencyRate!.rate));
       expect(account.creditLimit).toStrictEqual(creditLimit);
       expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate!.rate));
     });

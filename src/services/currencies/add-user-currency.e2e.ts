@@ -23,9 +23,7 @@ describe('Add user currencies', () => {
     // Verify that addition request returned added currencies
     const returnedValues = helpers.extractResponse(res).currencies;
     expect(returnedValues.length).toBe(2);
-    expect(currencies.every((c) => returnedValues.some((i) => i.currencyId === c.currencyId))).toBe(
-      true,
-    );
+    expect(currencies.every((c) => returnedValues.some((i) => i.currencyId === c.currencyId))).toBe(true);
 
     const returnedUah = returnedValues.find((c) => c.currencyId === uah.id)!;
     const returnedEur = returnedValues.find((c) => c.currencyId === eur.id)!;
@@ -89,9 +87,7 @@ describe('Add user currencies', () => {
     });
 
     expect(res.statusCode).toEqual(200);
-    expect(helpers.extractResponse(res).alreadyExistingIds).toEqual(
-      currencies.map((i) => i.currencyId),
-    );
+    expect(helpers.extractResponse(res).alreadyExistingIds).toEqual(currencies.map((i) => i.currencyId));
   });
 
   it('should successfully resolve when trying to add a currency same as base currency', async () => {

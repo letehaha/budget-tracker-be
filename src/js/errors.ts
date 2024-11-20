@@ -28,49 +28,25 @@ export class CustomError extends Error {
 }
 
 export class BadRequestError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.BadRequest,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.BadRequest, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.BadRequest, code, message);
   }
 }
 
 export class Unauthorized extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.unauthorized,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.unauthorized, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.Unauthorized, code, message);
   }
 }
 
 export class NotFoundError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.notFound,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.notFound, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.NotFoundError, code, message);
   }
 }
 
 export class NotAllowedError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.notAllowed,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.notAllowed, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.NotAllowed, code, message);
   }
 }

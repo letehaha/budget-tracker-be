@@ -15,9 +15,7 @@ export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency
   return data;
 }
 
-export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): Promise<
-  ExchangeRates[]
-> {
+export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): Promise<ExchangeRates[]> {
   const data = await makeRequest({
     method: 'get',
     url: '/user/currencies/rates',

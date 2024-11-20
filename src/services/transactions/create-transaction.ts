@@ -1,9 +1,4 @@
-import {
-  ACCOUNT_TYPES,
-  TRANSACTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  API_ERROR_CODES,
-} from 'shared-types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE, API_ERROR_CODES } from 'shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
 import { logger } from '@js/utils/logger';
@@ -123,14 +118,13 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 
   const defaultUserCurrency = await UsersCurrencies.getBaseCurrency({ userId });
 
-  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } =
-    await calcTransferTransactionRefAmount({
-      userId,
-      baseTransaction: baseTx,
-      destinationAmount,
-      oppositeTxCurrencyCode: oppositeTxCurrency.code,
-      baseCurrency: defaultUserCurrency,
-    });
+  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
+    userId,
+    baseTransaction: baseTx,
+    destinationAmount,
+    oppositeTxCurrencyCode: oppositeTxCurrency.code,
+    baseCurrency: defaultUserCurrency,
+  });
 
   baseTx = updatedBaseTransaction;
 
@@ -141,9 +135,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     note: baseTransaction.note,
     time: new Date(baseTransaction.time),
     transactionType:
-      transactionType === TRANSACTION_TYPES.income
-        ? TRANSACTION_TYPES.expense
-        : TRANSACTION_TYPES.income,
+      transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
     paymentType: baseTransaction.paymentType,
     accountId: destinationAccountId,
     categoryId: baseTransaction.categoryId,
@@ -174,8 +166,7 @@ export const createTransaction = withTransaction(
     try {
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
-          message:
-            'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
+          message: 'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
         });
       }
 
@@ -214,9 +205,7 @@ export const createTransaction = withTransaction(
 
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
-      let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [
-        baseTransaction!,
-      ];
+      let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction!];
 
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
         await createSingleRefund({
@@ -251,10 +240,7 @@ export const createTransaction = withTransaction(
               ids: [[baseTransaction!.id, destinationTransactionId]],
               result,
             });
-            throw new UnexpectedError(
-              API_ERROR_CODES.unexpected,
-              'Cannot create transaction with provided params',
-            );
+            throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Cannot create transaction with provided params');
           }
         } else {
           const res = await createOppositeTransaction([

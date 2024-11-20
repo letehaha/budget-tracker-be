@@ -1,11 +1,6 @@
 import { startOfDay } from 'date-fns';
 import { Response } from 'express';
-import {
-  TRANSACTION_TYPES,
-  type endpointsTypes,
-  TRANSACTION_TRANSFER_NATURE,
-  PAYMENT_TYPES,
-} from 'shared-types';
+import { TRANSACTION_TYPES, type endpointsTypes, TRANSACTION_TRANSFER_NATURE, PAYMENT_TYPES } from 'shared-types';
 import { CreateTransactionBody } from '../../../shared-types/routes';
 import Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
@@ -15,8 +10,7 @@ import { createAccount } from './account';
 
 type BuildTxPartialField = 'amount' | 'time' | 'transferNature' | 'paymentType' | 'transactionType';
 export const buildTransactionPayload = (
-  params: Omit<CreateTransactionBody, BuildTxPartialField> &
-    Partial<Pick<CreateTransactionBody, BuildTxPartialField>>,
+  params: Omit<CreateTransactionBody, BuildTxPartialField> & Partial<Pick<CreateTransactionBody, BuildTxPartialField>>,
 ): CreateTransactionBody => ({
   amount: 1000,
   categoryId: 1,
@@ -39,9 +33,7 @@ export async function createTransaction({
 export async function createTransaction({
   raw,
   payload,
-}: CreateTransactionBasePayload & { raw?: true }): Promise<
-  [baseTx: Transactions, oppositeTx?: Transactions]
->;
+}: CreateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>;
 export async function createTransaction({
   raw = false,
   payload = undefined,
@@ -80,9 +72,7 @@ export function updateTransaction({
   raw,
   payload,
   id,
-}: UpdateTransactionBasePayload & { raw?: true }): Promise<
-  [baseTx: Transactions, oppositeTx?: Transactions]
->;
+}: UpdateTransactionBasePayload & { raw?: true }): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>;
 export function updateTransaction({ raw = false, id, payload = {} }) {
   return makeRequest({
     method: 'put',

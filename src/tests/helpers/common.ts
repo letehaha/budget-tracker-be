@@ -25,9 +25,7 @@ export interface CustomResponse<T> extends ExpressCustomResponse {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const extractResponse = <T = any>(response: CustomResponse<T>) => response.body.response;
 
-export type MakeRequestReturn<T, R extends boolean | undefined = false> = R extends true
-  ? T
-  : CustomResponse<T>;
+export type MakeRequestReturn<T, R extends boolean | undefined = false> = R extends true ? T : CustomResponse<T>;
 
 export interface ErrorResponse {
   message: string;

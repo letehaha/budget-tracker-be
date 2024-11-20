@@ -1,8 +1,5 @@
 import { API_RESPONSE_STATUS, TRANSACTION_TYPES } from 'shared-types';
-import {
-  getRefundTransactions,
-  type GetRefundTransactionsParams,
-} from '@services/tx-refunds/get-refunds.service';
+import { getRefundTransactions, type GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 import { BadRequestError } from '@js/errors';
 import { errorHandler } from '@controllers/helpers';
 import { CustomResponse } from '@common/types';

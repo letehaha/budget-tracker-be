@@ -236,8 +236,7 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
-      instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -311,8 +310,7 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } =
-      instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -438,12 +436,7 @@ export interface GetTransactionBySomeIdPayload {
   transferId?: TransactionsAttributes['transferId'];
   originalId?: TransactionsAttributes['originalId'];
 }
-export const getTransactionBySomeId = ({
-  userId,
-  id,
-  transferId,
-  originalId,
-}: GetTransactionBySomeIdPayload) => {
+export const getTransactionBySomeId = ({ userId, id, transferId, originalId }: GetTransactionBySomeIdPayload) => {
   return Transactions.findOne({
     where: {
       userId,

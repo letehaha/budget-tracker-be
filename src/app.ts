@@ -48,12 +48,7 @@ loadCurrencyRatesJob.start();
 app.use(
   cors({
     origin(requestOrigin, callback) {
-      const ALLOWED_HOSTS = [
-        '127.0.0.1:8100',
-        'budget-tracker.com:8100',
-        '206.81.20.28:8081',
-        'gamanets.money',
-      ];
+      const ALLOWED_HOSTS = ['127.0.0.1:8100', 'budget-tracker.com:8100', '206.81.20.28:8081', 'gamanets.money'];
 
       if (process.env.NODE_ENV !== 'test') {
         if (!requestOrigin || !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))) {
@@ -93,9 +88,6 @@ if (process.env.NODE_ENV === 'test') {
 }
 
 // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-export const serverInstance = app.listen(
-  process.env.NODE_ENV === 'test' ? 0 : app.get('port'),
-  () => {
-    logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
-  },
-);
+export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
+  logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
+});

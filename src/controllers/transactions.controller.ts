@@ -37,8 +37,7 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
     const { id: userId } = req.user;
     const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
 
-    if (transferId === undefined)
-      throw new ValidationError({ message: '"transferId" is required.' });
+    if (transferId === undefined) throw new ValidationError({ message: '"transferId" is required.' });
 
     const data = await transactionsService.getTransactionsByTransferId({
       transferId,

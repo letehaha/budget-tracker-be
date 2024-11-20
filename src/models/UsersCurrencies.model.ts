@@ -75,13 +75,7 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({
-    userId,
-    currencyId,
-  }: {
-    userId: number;
-    currencyId: number;
-  }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({ userId, currencyId }: { userId: number; currencyId: number }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,
@@ -169,13 +163,7 @@ export const updateCurrency = async ({
   return currency;
 };
 
-export const deleteCurrency = async ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
+export const deleteCurrency = async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
   const where = { userId, currencyId };
 
   return UsersCurrencies.destroy({

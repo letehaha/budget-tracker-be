@@ -200,10 +200,7 @@ export interface GetAccountsByExternalIdsPayload {
   userId: AccountsAttributes['userId'];
   externalIds: string[];
 }
-export const getAccountsByExternalIds = async ({
-  userId,
-  externalIds,
-}: GetAccountsByExternalIdsPayload) => {
+export const getAccountsByExternalIds = async ({ userId, externalIds }: GetAccountsByExternalIdsPayload) => {
   const account = await Accounts.findAll({
     where: {
       userId,
@@ -296,12 +293,6 @@ export const getAccountCurrency = async ({ userId, id }: { userId: number; id: n
   return account;
 };
 
-export const getAccountsByCurrency = ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
+export const getAccountsByCurrency = ({ userId, currencyId }: { userId: number; currencyId: number }) => {
   return Accounts.findAll({ where: { userId, currencyId } });
 };

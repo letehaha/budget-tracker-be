@@ -71,13 +71,7 @@ export const createRefundTransaction = async ({
   return RefundTransactions.create({ userId, originalTxId, refundTxId });
 };
 
-export const getRefundsForTransaction = async ({
-  originalTxId,
-  userId,
-}: {
-  originalTxId: number;
-  userId: number;
-}) => {
+export const getRefundsForTransaction = async ({ originalTxId, userId }: { originalTxId: number; userId: number }) => {
   return RefundTransactions.findAll({
     where: { originalTxId: originalTxId, userId },
     include: [{ model: Transactions, as: 'refundTransaction' }],

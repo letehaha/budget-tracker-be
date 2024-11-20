@@ -8,11 +8,6 @@ import { authenticateJwt } from '@middlewares/passport';
 
 const router = Router({});
 
-router.get(
-  '/:date',
-  authenticateJwt,
-  validateEndpoint(getExchangeRatesForDateSchema),
-  getExchangeRatesForDate,
-);
+router.get('/:date', authenticateJwt, validateEndpoint(getExchangeRatesForDateSchema), getExchangeRatesForDate);
 
 export default router;
