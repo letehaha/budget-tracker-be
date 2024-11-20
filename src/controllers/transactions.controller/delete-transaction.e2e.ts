@@ -1,8 +1,25 @@
+import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE, TransactionModel } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 
 describe('Delete transaction controller', () => {
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
   it('should return validation error if no data passed', async () => {
     await helpers.createTransaction();
     const res = await helpers.deleteTransaction();
@@ -81,11 +98,9 @@ describe('Delete transaction controller', () => {
   });
   describe('transactions from external accounts', () => {
     it('cannot delete transactions from external account', async () => {
-      await helpers.monobank.pair();
-      const { transactions } = await helpers.monobank.mockTransactions();
-      const incomeTransaction = transactions.find(
-        (item) => item.transactionType === TRANSACTION_TYPES.income,
-      );
+      await helpers.monobank.pair(mock);
+      const { transactions } = await helpers.monobank.mockTransactions(mock);
+      const incomeTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
 
       const res = await helpers.deleteTransaction({ id: incomeTransaction!.id });
 

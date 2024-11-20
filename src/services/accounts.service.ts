@@ -21,18 +21,15 @@ import { withTransaction } from './common';
 import { redisKeyFormatter } from '@common/lib/redis';
 
 export const getAccounts = withTransaction(
-  async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> =>
-    Accounts.getAccounts(payload),
+  async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> => Accounts.getAccounts(payload),
 );
 
-export const getAccountsByExternalIds = withTransaction(
-  async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
-    Accounts.getAccountsByExternalIds(payload),
+export const getAccountsByExternalIds = withTransaction(async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
+  Accounts.getAccountsByExternalIds(payload),
 );
 
 export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountModel | null> =>
-    Accounts.getAccountById(payload),
+  async (payload: { id: number; userId: number }): Promise<AccountModel | null> => Accounts.getAccountById(payload),
 );
 
 const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
@@ -47,9 +44,9 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
   }) => {
     const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
 
-    const currencies = (
-      await Promise.all(currencyCodes.map((code) => Currencies.createCurrency({ code })))
-    ).filter(Boolean) as Currencies.default[];
+    const currencies = (await Promise.all(currencyCodes.map((code) => Currencies.createCurrency({ code })))).filter(
+      Boolean,
+    ) as Currencies.default[];
 
     const accountCurrencyCodes = {};
     currencies.forEach((item) => {
@@ -87,89 +84,82 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
   },
 );
 
-export const pairMonobankAccount = withTransaction(
-  async (payload: { token: string; userId: number }) => {
-    const { token, userId } = payload;
+export const pairMonobankAccount = withTransaction(async (payload: { token: string; userId: number }) => {
+  const { token, userId } = payload;
 
-    let user = await monobankUsersService.getUserByToken({ token, userId });
-    // If user is found, return
-    if (user) {
-      return { connected: true };
-    }
+  let user = await monobankUsersService.getUserByToken({ token, userId });
+  // If user is found, return
+  if (user) {
+    return { connected: true };
+  }
 
-    const redisToken = redisKeyFormatter(token);
+  const redisToken = redisKeyFormatter(token);
 
-    // Otherwise begin user connection
-    const response = await redisClient.get(redisToken);
-    let clientInfo: ExternalMonobankClientInfoResponse;
+  // Otherwise begin user connection
+  const response = await redisClient.get(redisToken);
+  let clientInfo: ExternalMonobankClientInfoResponse;
 
-    if (!response) {
-      // TODO: setup it later
-      // await updateWebhookAxios({ userToken: token });
+  if (!response) {
+    // TODO: setup it later
+    // await updateWebhookAxios({ userToken: token });
 
-      try {
-        const result = await axios({
-          method: 'GET',
-          url: `${hostname}/personal/client-info`,
-          responseType: 'json',
-          headers: {
-            'X-Token': token,
-          },
+    try {
+      const result = await axios({
+        method: 'GET',
+        url: `${hostname}/personal/client-info`,
+        responseType: 'json',
+        headers: {
+          'X-Token': token,
+        },
+      });
+
+      if (!result) {
+        throw new NotFoundError({
+          message: '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.',
         });
-
-        if (!result) {
-          throw new NotFoundError({
-            message:
-              '"token" (Monobank API token) is most likely invalid because we cannot find corresponding user.',
-          });
-        }
-
-        clientInfo = result.data;
-
-        await redisClient
-          .multi()
-          .set(redisToken, JSON.stringify(response))
-          .expire(redisToken, 60)
-          .exec();
-      } catch (err) {
-        if (err?.response?.data?.errorDescription === "Unknown 'X-Token'") {
-          throw new ForbiddenError({
-            code: API_ERROR_CODES.monobankTokenInvalid,
-            message: 'Monobank rejected this token!',
-          });
-        } else {
-          throw new ForbiddenError({
-            code: API_ERROR_CODES.monobankTokenInvalid,
-            message: 'Token is invalid!',
-          });
-        }
       }
-    } else {
-      clientInfo = JSON.parse(response);
+
+      clientInfo = result.data;
+
+      await redisClient.multi().set(redisToken, JSON.stringify(response)).expire(redisToken, 60).exec();
+    } catch (err) {
+      if (err?.response?.data?.errorDescription === "Unknown 'X-Token'") {
+        throw new ForbiddenError({
+          code: API_ERROR_CODES.monobankTokenInvalid,
+          message: 'Monobank rejected this token!',
+        });
+      } else {
+        throw new ForbiddenError({
+          code: API_ERROR_CODES.monobankTokenInvalid,
+          message: 'Token is invalid!',
+        });
+      }
     }
+  } else {
+    clientInfo = JSON.parse(response);
+  }
 
-    user = await monobankUsersService.createUser({
-      userId,
-      token,
-      clientId: clientInfo.clientId,
-      name: clientInfo.name,
-      webHookUrl: clientInfo.webHookUrl,
-    });
+  user = await monobankUsersService.createUser({
+    userId,
+    token,
+    clientId: clientInfo.clientId,
+    name: clientInfo.name,
+    webHookUrl: clientInfo.webHookUrl,
+  });
 
-    await createSystemAccountsFromMonobankAccounts({
-      userId,
-      monoAccounts: clientInfo.accounts,
-    });
+  await createSystemAccountsFromMonobankAccounts({
+    userId,
+    monoAccounts: clientInfo.accounts,
+  });
 
-    (
-      user as MonobankUserModel & {
-        accounts: ExternalMonobankClientInfoResponse['accounts'];
-      }
-    ).accounts = clientInfo.accounts;
+  (
+    user as MonobankUserModel & {
+      accounts: ExternalMonobankClientInfoResponse['accounts'];
+    }
+  ).accounts = clientInfo.accounts;
 
-    return user;
-  },
-);
+  return user;
+});
 
 export const createAccount = withTransaction(
   async (
@@ -202,10 +192,7 @@ export const updateAccount = withTransaction(
     externalId,
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
-    (
-      | Pick<Accounts.UpdateAccountByIdPayload, 'id'>
-      | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>
-    )) => {
+    (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
     const accountData = await Accounts.default.findByPk(id);
 
     if (!accountData) {
@@ -371,9 +358,7 @@ export async function updateAccountBalanceForChangedTxImpl({
   });
 }
 
-export const updateAccountBalanceForChangedTx = withTransaction(
-  updateAccountBalanceForChangedTxImpl,
-);
+export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
 
 export const deleteAccountById = withTransaction(async ({ id }: { id: number }) => {
   return Accounts.deleteAccountById({ id });

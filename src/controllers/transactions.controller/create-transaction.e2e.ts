@@ -1,8 +1,25 @@
+import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
+import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
   it('should return validation error if no data passed', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await helpers.createTransaction({ payload: null as any, raw: false });
@@ -102,9 +119,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     expect(baseTx).toStrictEqual(transactions[0]);
@@ -162,9 +177,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
@@ -192,12 +205,8 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyRate = (await helpers.getCurrenciesRates()).find(
-      (c) => c.baseCode === currencyA.code,
-    );
-    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find(
-      (c) => c.baseCode === currencyB.code,
-    );
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyA.code);
+    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyB.code);
 
     const DESTINATION_AMOUNT = 25000;
     const txPayload = {
@@ -238,9 +247,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
@@ -288,24 +295,19 @@ describe('Create transaction controller', () => {
       expect(oppositeTx!.amount).toBe(destinationTx.amount);
       expect(baseTx.amount).toBe(expectedValues.baseTransaction.amount);
       expect(baseTx.transactionType).toBe(TRANSACTION_TYPES.expense);
-      expect(oppositeTx!.transactionType).toBe(
-        expectedValues.destinationTransaction.transactionType,
-      );
+      expect(oppositeTx!.transactionType).toBe(expectedValues.destinationTransaction.transactionType);
     });
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'link with external %s transaction',
       async (txType) => {
-        await helpers.monobank.pair();
-        const { transactions } = await helpers.monobank.mockTransactions();
+        await helpers.monobank.pair(mock);
+        const { transactions } = await helpers.monobank.mockTransactions(mock);
         const externalTransaction = transactions.find((item) => item.transactionType === txType);
         const accountA = await helpers.createAccount({ raw: true });
         const expectedValues = {
           accountId: accountA.id,
           amount: 50,
-          transactionType:
-            txType === TRANSACTION_TYPES.expense
-              ? TRANSACTION_TYPES.income
-              : TRANSACTION_TYPES.expense,
+          transactionType: txType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
         };
         const transferTxPayload = helpers.buildTransactionPayload({
           ...expectedValues,

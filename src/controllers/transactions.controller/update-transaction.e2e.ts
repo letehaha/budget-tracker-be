@@ -1,3 +1,6 @@
+import { describe, it, beforeAll, afterAll, afterEach } from '@jest/globals';
+import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
@@ -5,6 +8,20 @@ import { faker } from '@faker-js/faker';
 import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
 
 describe('Update transaction controller', () => {
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
   it('should make basic updation', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
     const txAmount = baseTx.amount;
@@ -43,9 +60,7 @@ describe('Update transaction controller', () => {
 
     expect(baseTx.accountId).toStrictEqual(accountUAH.id);
     expect(baseTx.amount).toStrictEqual(createdTransaction.amount);
-    expect(baseTx.refAmount).toStrictEqual(
-      Math.floor(createdTransaction.amount * currencyRate!.rate),
-    );
+    expect(baseTx.refAmount).toStrictEqual(Math.floor(createdTransaction.amount * currencyRate!.rate));
   });
   it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
     const baseAccount = await helpers.createAccount({ raw: true });
@@ -70,8 +85,9 @@ describe('Update transaction controller', () => {
     // tx should always have refAmount same as ref tx in case of transfer
     expect(oppositeTx!.refAmount).toEqual(baseTx.refAmount);
 
-    const { account: accountEUR, currency: currencyEUR } =
-      await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+    const { account: accountEUR, currency: currencyEUR } = await helpers.createAccountWithNewCurrency({
+      currency: 'EUR',
+    });
     const [, newOppositeTx] = await helpers.updateTransaction({
       id: baseTx.id,
       payload: {
@@ -207,12 +223,10 @@ describe('Update transaction controller', () => {
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'updates from %s to transfer and back',
       async (transactionType) => {
-        await helpers.monobank.pair();
-        const { transactions } = await helpers.monobank.mockTransactions();
+        await helpers.monobank.pair(mock);
+        const { transactions } = await helpers.monobank.mockTransactions(mock);
 
-        const externalTransaction = transactions.find(
-          (item) => item.transactionType === transactionType,
-        );
+        const externalTransaction = transactions.find((item) => item.transactionType === transactionType);
         const accountB = await helpers.createAccount({
           raw: true,
         });
@@ -242,17 +256,11 @@ describe('Update transaction controller', () => {
               item.amount === (externalTransaction!.externalData as any).balance,
           );
           const newTxBalanceRecord = balanceHistory.find(
-            (item) =>
-              item.date === externalTxBalanceRecord.date &&
-              item.accountId === oppositeTx!.accountId,
+            (item) => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx!.accountId,
           );
 
           expect(newTxBalanceRecord.amount).toBe(
-            expected === 0
-              ? 0
-              : oppositeTx!.transactionType === TRANSACTION_TYPES.expense
-                ? -expected
-                : expected,
+            expected === 0 ? 0 : oppositeTx!.transactionType === TRANSACTION_TYPES.expense ? -expected : expected,
           );
         };
 
@@ -269,9 +277,7 @@ describe('Update transaction controller', () => {
           transferId,
           accountId: accountB.id,
           transactionType:
-            transactionType === TRANSACTION_TYPES.expense
-              ? TRANSACTION_TYPES.income
-              : TRANSACTION_TYPES.expense,
+            transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
         });
 
         await checkBalanceIsCorrect(externalTransaction!.refAmount);
@@ -298,15 +304,11 @@ describe('Update transaction controller', () => {
       },
     );
     it('throws error when trying to make invalid actions', async () => {
-      await helpers.monobank.pair();
-      const { transactions } = await helpers.monobank.mockTransactions();
+      await helpers.monobank.pair(mock);
+      const { transactions } = await helpers.monobank.mockTransactions(mock);
 
-      const incomeTransaction = transactions.find(
-        (item) => item.transactionType === TRANSACTION_TYPES.income,
-      );
-      const expenseTransaction = transactions.find(
-        (item) => item.transactionType === TRANSACTION_TYPES.expense,
-      );
+      const incomeTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
+      const expenseTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
 
       // when trying to update "transactionType" of the external account
       const result_a = await helpers.updateTransaction({
@@ -347,9 +349,7 @@ describe('Update transaction controller', () => {
         const accountB = await helpers.createAccount({ raw: true });
 
         const oppositeTxType =
-          txType === TRANSACTION_TYPES.income
-            ? TRANSACTION_TYPES.expense
-            : TRANSACTION_TYPES.income;
+          txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
         const [tx1] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
@@ -402,12 +402,10 @@ describe('Update transaction controller', () => {
       'throws an error when trying to link tx from the same account',
       async (txType) => {
         const oppositeTxType =
-          txType === TRANSACTION_TYPES.income
-            ? TRANSACTION_TYPES.expense
-            : TRANSACTION_TYPES.income;
+          txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
-        await helpers.monobank.pair();
-        const { transactions } = await helpers.monobank.mockTransactions();
+        await helpers.monobank.pair(mock);
+        const { transactions } = await helpers.monobank.mockTransactions(mock);
 
         const tx1 = transactions.find((item) => item.transactionType === txType);
         const tx2 = transactions.find((item) => item.transactionType === oppositeTxType);
@@ -483,17 +481,14 @@ describe('Update transaction controller', () => {
           raw: true,
         });
 
-        const expenseTx = transactions.find(
-          (t) => t!.transactionType === TRANSACTION_TYPES.expense,
-        );
+        const expenseTx = transactions.find((t) => t!.transactionType === TRANSACTION_TYPES.expense);
         const incomeTx = transactions.find((t) => t!.transactionType === TRANSACTION_TYPES.income);
 
         const result = await helpers.updateTransaction({
           id: tx1.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-            destinationTransactionId:
-              txType === TRANSACTION_TYPES.income ? expenseTx!.id : incomeTx!.id,
+            destinationTransactionId: txType === TRANSACTION_TYPES.income ? expenseTx!.id : incomeTx!.id,
           },
         });
 
@@ -508,9 +503,7 @@ describe('Update transaction controller', () => {
         const accountB = await helpers.createAccount({ raw: true });
 
         const oppositeTxType =
-          txType === TRANSACTION_TYPES.income
-            ? TRANSACTION_TYPES.expense
-            : TRANSACTION_TYPES.income;
+          txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
         const [tx1] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
@@ -734,9 +727,7 @@ describe('Update transaction controller', () => {
 
           // Test that previously refunded tx is now not marked as a refund
           expect(transactions.find((i) => i.id === originalTx1.id)!.refundLinked).toBe(false);
-          expect(
-            transactions.find((t) => [refundTx.id, originalTx2.id].includes(t.id))!.refundLinked,
-          ).toBe(true);
+          expect(transactions.find((t) => [refundTx.id, originalTx2.id].includes(t.id))!.refundLinked).toBe(true);
         },
       );
     });

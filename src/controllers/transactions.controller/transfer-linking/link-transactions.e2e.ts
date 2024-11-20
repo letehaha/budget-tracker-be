@@ -1,8 +1,25 @@
+import { describe, it, beforeAll, afterAll, afterEach } from '@jest/globals';
+import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 
 describe('link transactions between each other', () => {
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
   it('link two valid transactions', async () => {
     // Create 2 income and 2 expense to check that multiple updation is possible
     const accountA = await helpers.createAccount({ raw: true });
@@ -81,8 +98,8 @@ describe('link transactions between each other', () => {
   });
 
   it('throws an error when trying to link tx from the same account', async () => {
-    await helpers.monobank.pair();
-    const { transactions } = await helpers.monobank.mockTransactions();
+    await helpers.monobank.pair(mock);
+    const { transactions } = await helpers.monobank.mockTransactions(mock);
 
     const tx1 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
     const tx2 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);

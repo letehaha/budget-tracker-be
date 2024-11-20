@@ -1,8 +1,25 @@
+import { describe, it, beforeAll, afterAll, afterEach } from '@jest/globals';
+import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { faker } from '@faker-js/faker';
 
 describe('Unlink transfer transactions', () => {
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
   it('unlink system transactions', async () => {
     // Firstly create two transfer transactions
     const accountA = await helpers.createAccount({ raw: true });
@@ -50,14 +67,10 @@ describe('Unlink transfer transactions', () => {
   });
   it('unlink external transactions', async () => {
     // Firstly create external expense + income
-    await helpers.monobank.pair();
-    const { transactions } = await helpers.monobank.mockTransactions();
-    const expenseExternalTx = transactions.find(
-      (item) => item.transactionType === TRANSACTION_TYPES.expense,
-    );
-    const incomeExternalTx = transactions.find(
-      (item) => item.transactionType === TRANSACTION_TYPES.income,
-    );
+    await helpers.monobank.pair(mock);
+    const { transactions } = await helpers.monobank.mockTransactions(mock);
+    const expenseExternalTx = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
+    const incomeExternalTx = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
 
     // Now create system expense + income
     const accountA = await helpers.createAccount({ raw: true });
