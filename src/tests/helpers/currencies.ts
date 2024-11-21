@@ -66,7 +66,7 @@ export function getAllCurrencies(): Promise<Currencies[]> {
   });
 }
 
-export async function updateUserCurrencies<R extends boolean | undefined = undefined>({
+export async function addUserCurrenciesWithRates<R extends boolean | undefined = undefined>({
   currencies,
   raw,
 }: {

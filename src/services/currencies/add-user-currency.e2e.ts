@@ -13,7 +13,7 @@ describe('Add user currencies', () => {
       { currencyId: eur.id, exchangeRate: 0.85, liveRateUpdate: false },
     ];
 
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies,
       raw: false,
     });
@@ -44,7 +44,7 @@ describe('Add user currencies', () => {
     const allCurrencies = await helpers.getAllCurrencies();
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
 
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies: [{ currencyId: uah.id, exchangeRate: -1 }],
       raw: false,
     });
@@ -56,7 +56,7 @@ describe('Add user currencies', () => {
     const allCurrencies = await helpers.getAllCurrencies();
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
 
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies: [{ currencyId: uah.id }],
       raw: false,
     });
@@ -75,13 +75,13 @@ describe('Add user currencies', () => {
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
     const currencies = [{ currencyId: uah.id }];
 
-    await helpers.updateUserCurrencies({
+    await helpers.addUserCurrenciesWithRates({
       currencies,
       raw: false,
     });
 
     // Try to add the same currency again
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies,
       raw: false,
     });
@@ -93,7 +93,7 @@ describe('Add user currencies', () => {
   it('should successfully resolve when trying to add a currency same as base currency', async () => {
     const currencies = [{ currencyId: global.BASE_CURRENCY.id }];
 
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies,
       raw: false,
     });
@@ -102,7 +102,7 @@ describe('Add user currencies', () => {
   });
 
   it('should return validation error when currencies array is empty', async () => {
-    const res = await helpers.updateUserCurrencies({
+    const res = await helpers.addUserCurrenciesWithRates({
       currencies: [],
       raw: false,
     });
