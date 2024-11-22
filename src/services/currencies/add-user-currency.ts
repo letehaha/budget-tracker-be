@@ -29,7 +29,14 @@ export const addUserCurrencies = withTransaction(
       }
     });
 
-    const result = await Promise.all(currencies.map((item) => UsersCurrencies.addCurrency(item)));
+    const result = await Promise.all(
+      currencies.map((item) =>
+        UsersCurrencies.addCurrency({
+          liveRateUpdate: true,
+          ...item,
+        }),
+      ),
+    );
 
     return { currencies: result, alreadyExistingIds: alreadyExistsIds };
   },

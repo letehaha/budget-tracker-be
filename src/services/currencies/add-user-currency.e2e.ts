@@ -66,7 +66,7 @@ describe('Add user currencies', () => {
     expect(returnedValues.length).toBe(1);
     expect(returnedValues[0]!.currencyId).toBe(uah.id);
     expect(returnedValues[0]!.exchangeRate).toBeNull();
-    expect(returnedValues[0]!.liveRateUpdate).toBe(false);
+    expect(returnedValues[0]!.liveRateUpdate).toBe(true);
   });
 
   it('should successfully resolve when trying to add duplicate currencies', async () => {
