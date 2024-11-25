@@ -1,6 +1,7 @@
 const QueryTypes = require('sequelize').QueryTypes;
 const axios = require('axios');
 const fs = require('fs');
+const { subDays } = require("date-fns");
 
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -96,6 +97,10 @@ module.exports = {
         return acc;
       }, {});
 
+      // Fill exchange rates for the previous date, so that it won't conflict with
+      // our mocks and tests for exchange rates external API
+      const prevDate = subDays(new Date(), 10);
+
       const currenciesWithRates = currencies.reduce((currenciesList, currency) => {
         currenciesList.push(
           ...Object.entries(data.data.rates).reduce((acc, [code, rate]) => {
@@ -116,6 +121,7 @@ module.exports = {
                 quoteId: DBCurrenciesToObject[code].id,
                 quoteCode: code,
                 rate: code === currency.code ? 1 : calculatedRate,
+                date: prevDate,
               });
             }
 

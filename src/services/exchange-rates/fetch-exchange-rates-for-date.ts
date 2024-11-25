@@ -15,7 +15,7 @@ interface API_LAYER_EXCHANGE_RATES_RESPONSE {
   timestamp: number;
 }
 
-const API_LAYER_DATE_FORMAT = 'yyyy-MM-dd';
+export const API_LAYER_DATE_FORMAT = 'yyyy-MM-dd';
 
 export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Promise<ExchangeRates[] | void> => {
   // Normalize the date to start of day
