@@ -23,10 +23,14 @@ const createWinstonLogger = () => {
 
 const winstonLogger = createWinstonLogger();
 
+const showLogsInTests = process.env.NODE_ENV === 'test' ? process.env.SHOW_LOGS_IN_TESTS === 'true' : true;
+
 const createLogger =
   (severity: 'info' | 'warn') =>
   (message: string, ...meta: Record<string, unknown>[]) => {
-    winstonLogger.log(severity, message, ...meta);
+    if (showLogsInTests) {
+      winstonLogger.log(severity, message, ...meta);
+    }
   };
 
 const formatErrorToString = (error: string | Error) => {
@@ -76,7 +80,9 @@ function loggerErrorHandler(
     }
   }
 
-  winstonLogger.error(messageReult, ...extra);
+  if (showLogsInTests) {
+    winstonLogger.error(messageReult, ...extra);
+  }
 }
 
 const logger = {

@@ -31,6 +31,7 @@ jobs:
           envkey_APPLICATION_DB_DIALECT: ${{ secrets.APPLICATION_DB_DIALECT }}
           envkey_APPLICATION_REDIS_HOST: ${{ secrets.APPLICATION_REDIS_HOST }}
           envkey_JEST_WORKERS_AMOUNT: ${{ secrets.JEST_WORKERS_AMOUNT }}
+          envkey_SHOW_LOGS_IN_TESTS: ${{ secrets.SHOW_LOGS_IN_TESTS }}
           envkey_API_LAYER_API_KEY: ${{ secrets.API_LAYER_API_KEY }}
           directory: ./
           file_name: .env.production
