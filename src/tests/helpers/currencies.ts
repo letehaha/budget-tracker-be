@@ -4,6 +4,7 @@ import Currencies from '@models/Currencies.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
 import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
+import { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
 
 export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency: Currencies })[]> {
   const data = await makeRequest({
@@ -22,7 +23,7 @@ export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): 
     raw: true,
   });
 
-  return codes ? data.filter((item) => codes.includes(item.baseCode)) : data;
+  return codes ? data.filter((item) => codes.includes(item.quoteCode)) : data;
 }
 
 export function addUserCurrencies<R extends boolean | undefined = undefined>({
@@ -44,6 +45,23 @@ export function addUserCurrencies<R extends boolean | undefined = undefined>({
           currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id,
         })),
       ],
+    },
+    raw,
+  });
+}
+
+export function addUserCurrencyByCode<R extends boolean | undefined = undefined>({
+  code,
+  raw,
+}: {
+  code: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
+    method: 'post',
+    url: '/user/currencies',
+    payload: {
+      currencies: [{ currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id }],
     },
     raw,
   });
@@ -77,6 +95,21 @@ export async function addUserCurrenciesWithRates<R extends boolean | undefined =
     method: 'post',
     url: '/user/currencies',
     payload: { currencies },
+    raw,
+  });
+}
+
+export async function updateUserCurrency<R extends boolean | undefined = undefined>({
+  currency,
+  raw,
+}: {
+  currency: Omit<Parameters<typeof apiEditUserCurrency>[0], 'userId'>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiEditUserCurrency>>, R>({
+    method: 'put',
+    url: '/user/currency',
+    payload: { ...currency },
     raw,
   });
 }

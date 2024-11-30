@@ -162,6 +162,14 @@ export async function updateRates({
         },
       );
 
+      const currency = (await Currencies.default.findOne({
+        where: { code: pairItem.baseCode },
+        raw: true,
+        attributes: ['id'],
+      }))!;
+
+      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
+
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
       const currencies = await Currencies.getCurrencies({
@@ -195,6 +203,13 @@ export async function updateRates({
             returning: true,
           },
         );
+
+        const currency = (await Currencies.default.findOne({
+          where: { code: pairItem.baseCode },
+          raw: true,
+          attributes: ['id'],
+        }))!;
+        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
 
         returningValues.push(res);
       } else {

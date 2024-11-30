@@ -1,31 +1,19 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from '@jest/globals';
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+import { describe, it, expect } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
-import { getApiLayerResposeMock } from '@tests/mocks/exchange-rates';
-
-const API_ENDPOINT_REGEX = /https:\/\/api.apilayer.com\/fixer/;
+import { getApiLayerResposeMock } from '@tests/mocks/exchange-rates/data';
+import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
+import { API_LAYER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
 
 describe('Exchange Rates Functionality', () => {
-  let mock: MockAdapter;
+  let apiOverride: ReturnType<typeof createOverride>;
 
   beforeAll(() => {
-    mock = new MockAdapter(axios);
-  });
-
-  afterEach(() => {
-    mock.reset();
-  });
-
-  afterAll(() => {
-    mock.restore();
+    apiOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
   it('should successfully fetch and store exchange rates', async () => {
-    const date = '2024-11-17';
-    const mockExchangeRates = getApiLayerResposeMock(date);
-    mock.onGet(API_ENDPOINT_REGEX).reply(200, mockExchangeRates);
+    const date = format(new Date(), 'yyyy-MM-dd');
 
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
@@ -44,8 +32,8 @@ describe('Exchange Rates Functionality', () => {
   it('should successfully resolve when trying to sync data for the date with existing rates. No external API call should happen', async () => {
     // Imitate today's date, because `sync` actually happens only for today
     const date = format(new Date(), 'yyyy-MM-dd');
-    const mockExchangeRates = getApiLayerResposeMock(date);
-    mock.onGet(API_ENDPOINT_REGEX).reply(200, mockExchangeRates);
+
+    const counter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
 
@@ -54,47 +42,46 @@ describe('Exchange Rates Functionality', () => {
     // Second call should silently succeed with no external being API called
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    expect(mock.history.get.length).toBe(1);
+    expect(counter.count).toBe(1);
   });
 
   it('should return validation error if API returns something not related to base currency', async () => {
-    const date = '2024-11-17';
-    const mockExchangeRates = {
-      ...getApiLayerResposeMock(date),
-      base: 'EUR',
-    };
-    mock.onGet(API_ENDPOINT_REGEX).reply(200, mockExchangeRates);
-
+    apiOverride.setOneTimeOverride({
+      body: {
+        ...getApiLayerResposeMock('2024-11-17'),
+        base: 'EUR',
+      },
+    });
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(422);
   });
 
   it('should handle 400 Bad Request error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(400);
+    apiOverride.setOneTimeOverride({ status: 400 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle 401 Unauthorized error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(401);
+    apiOverride.setOneTimeOverride({ status: 401 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle 404 Not Found error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(404);
+    apiOverride.setOneTimeOverride({ status: 404 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle 429 Too Many Requests error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(429);
+    apiOverride.setOneTimeOverride({ status: 429 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(429);
   });
 
   it('should handle 500 Server Error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(500);
+    apiOverride.setOneTimeOverride({ status: 500 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle 5xx Error', async () => {
-    mock.onGet(API_ENDPOINT_REGEX).reply(503);
+    apiOverride.setOneTimeOverride({ status: 503 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 });

@@ -20,6 +20,7 @@ export const getUserExchangeRates = withTransaction(async ({ userId }: { userId:
         userId,
         baseId: item.currencyId,
         quoteId: userBaseCurrency.currencyId,
+        date: new Date(),
       }),
     ),
   );

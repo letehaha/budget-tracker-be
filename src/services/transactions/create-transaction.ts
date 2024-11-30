@@ -17,7 +17,7 @@ import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
 import { withTransaction } from '../common';
 
 type CreateOppositeTransactionParams = [
-  creationParams: CreateTransactionParams | UpdateTransactionParams,
+  creationParams: (CreateTransactionParams | UpdateTransactionParams) & { time: Date },
   baseTransaction: Transactions.default,
 ];
 
@@ -42,12 +42,14 @@ export const calcTransferTransactionRefAmount = async ({
   destinationAmount,
   oppositeTxCurrencyCode,
   baseCurrency,
+  date,
 }: {
   userId: number;
   baseTransaction: Transactions.default;
   destinationAmount: number;
   oppositeTxCurrencyCode: string;
   baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
+  date: Date;
 }) => {
   if (!baseCurrency) {
     baseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
@@ -75,6 +77,7 @@ export const calcTransferTransactionRefAmount = async ({
       amount: destinationAmount,
       baseCode: oppositeTxCurrencyCode,
       quoteCode: baseCurrency.currency.code,
+      date,
     });
   }
 
@@ -124,6 +127,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     destinationAmount,
     oppositeTxCurrencyCode: oppositeTxCurrency.code,
     baseCurrency: defaultUserCurrency,
+    date: new Date(baseTransaction.time),
   });
 
   baseTx = updatedBaseTransaction;
@@ -180,8 +184,9 @@ export const createTransaction = withTransaction(
         id: accountId,
       });
 
-      const generalTxParams: Transactions.CreateTransactionPayload = {
+      const generalTxParams: Transactions.CreateTransactionPayload & { time: Date } = {
         ...payload,
+        time: payload.time ?? new Date(),
         amount,
         userId,
         accountId,
@@ -200,6 +205,7 @@ export const createTransaction = withTransaction(
           amount: generalTxParams.amount,
           baseCode: generalTxCurrency.code,
           quoteCode: defaultUserCurrency.code,
+          date: generalTxParams.time,
         });
       }
 
@@ -249,6 +255,7 @@ export const createTransaction = withTransaction(
               userId,
               accountId,
               transferNature,
+              time: payload.time ?? new Date(),
               ...payload,
             },
             baseTransaction!,

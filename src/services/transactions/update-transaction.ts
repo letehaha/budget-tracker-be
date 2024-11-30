@@ -81,12 +81,13 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
     amount: number;
     refAmount: number;
     currencyCode: string;
+    time: Date;
   } = {
     id: newData.id,
     amount: newData.amount ?? prevData.amount,
     refAmount: newData.amount ?? prevData.refAmount,
     note: newData.note,
-    time: newData.time,
+    time: newData.time ?? prevData.time,
     userId: newData.userId,
     transactionType,
     paymentType: newData.paymentType,
@@ -116,6 +117,7 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
       amount: baseTransactionUpdateParams.amount,
       baseCode: baseTransactionUpdateParams.currencyCode,
       quoteCode: defaultUserCurrency.code,
+      date: baseTransactionUpdateParams.time,
     });
   }
 
@@ -262,6 +264,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     baseTransaction,
     destinationAmount: updateOppositeTxParams.amount!,
     oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
+    date: baseTransaction.time,
   });
 
   updateOppositeTxParams.refAmount = oppositeRefAmount;
@@ -382,6 +385,7 @@ export const updateTransaction = withTransaction(
             // it will be `undefined`, that's why we derive it from prevData
             {
               ...payload,
+              time: payload.time ?? new Date(),
               transactionType: payload.transactionType ?? prevData.transactionType,
             },
             baseTransaction,

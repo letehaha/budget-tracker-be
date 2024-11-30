@@ -64,6 +64,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 
     const result = await userExchangeRateService.getExchangeRate({
       userId,
+      date: new Date(params.date),
       baseCode,
       quoteCode: quoteCode || defaultUserCurrency!.code,
     });
@@ -84,6 +85,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 type Params = {
   amount: number;
   userId: number;
+  date: Date | string;
 } & (
   | {
       baseCode: string;

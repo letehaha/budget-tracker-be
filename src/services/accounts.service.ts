@@ -19,6 +19,7 @@ import Balances from '@models/Balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
 import { redisKeyFormatter } from '@common/lib/redis';
+import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 export const getAccounts = withTransaction(
   async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> => Accounts.getAccounts(payload),
@@ -166,16 +167,21 @@ export const createAccount = withTransaction(
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   ): Promise<AccountModel | null> => {
     const { userId, creditLimit, currencyId, initialBalance } = payload;
+
+    await UsersCurrencies.addCurrency({ userId, currencyId });
+
     const refCreditLimit = await calculateRefAmount({
       userId: userId,
       amount: creditLimit,
       baseId: currencyId,
+      date: new Date(),
     });
 
     const refInitialBalance = await calculateRefAmount({
       userId,
       amount: initialBalance,
       baseId: currencyId,
+      date: new Date(),
     });
 
     return Accounts.createAccount({
@@ -216,6 +222,7 @@ export const updateAccount = withTransaction(
         userId: accountData.userId,
         amount: diff,
         baseId: accountData.currencyId,
+        date: new Date(),
       });
 
       // --- for system accounts

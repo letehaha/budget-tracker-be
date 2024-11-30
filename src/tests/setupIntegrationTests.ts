@@ -5,8 +5,17 @@ import { redisClient } from '@root/redis';
 import { connection } from '@models/index';
 import { makeRequest, extractResponse } from '@tests/helpers';
 import { until } from '@common/helpers';
+import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 
-// jest.mock('axios');
+import { setupMswServer } from './mocks/setup-mock-server';
+
+const mswMockServer = setupMswServer();
+
+beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
+afterEach(() => mswMockServer.resetHandlers());
+afterAll(() => mswMockServer.close());
+
+global.mswMockServer = mswMockServer;
 
 const umzug = new Umzug({
   migrations: {
@@ -120,6 +129,7 @@ afterAll(async () => {
   try {
     await redisClient.quit();
     await serverInstance.close();
+    await loadCurrencyRatesJob.stop();
   } catch (err) {
     console.log('afterAll', err);
   }

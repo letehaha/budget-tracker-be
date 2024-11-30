@@ -4,7 +4,7 @@ import { TRANSACTION_TYPES, type endpointsTypes, TRANSACTION_TRANSFER_NATURE, PA
 import { CreateTransactionBody } from '../../../shared-types/routes';
 import Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
-import { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
+import type { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
 import { makeRequest } from './common';
 import { createAccount } from './account';
 

@@ -176,4 +176,5 @@ export const getApiLayerResposeMock = (date: string) => ({
   },
   success: true,
   timestamp: 1731887999,
+  customMock: true,
 });

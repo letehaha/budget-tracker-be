@@ -1,6 +1,4 @@
-import { describe, it, beforeAll, afterAll, afterEach } from '@jest/globals';
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'axios';
+import { describe, it } from '@jest/globals';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
@@ -8,20 +6,6 @@ import { faker } from '@faker-js/faker';
 import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
 
 describe('Update transaction controller', () => {
-  let mock: MockAdapter;
-
-  beforeAll(() => {
-    mock = new MockAdapter(axios);
-  });
-
-  afterEach(() => {
-    mock.reset();
-  });
-
-  afterAll(() => {
-    mock.restore();
-  });
-
   it('should make basic updation', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
     const txAmount = baseTx.amount;
@@ -223,8 +207,8 @@ describe('Update transaction controller', () => {
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'updates from %s to transfer and back',
       async (transactionType) => {
-        await helpers.monobank.pair(mock);
-        const { transactions } = await helpers.monobank.mockTransactions(mock);
+        await helpers.monobank.pair();
+        const { transactions } = await helpers.monobank.mockTransactions();
 
         const externalTransaction = transactions.find((item) => item.transactionType === transactionType);
         const accountB = await helpers.createAccount({
@@ -304,8 +288,8 @@ describe('Update transaction controller', () => {
       },
     );
     it('throws error when trying to make invalid actions', async () => {
-      await helpers.monobank.pair(mock);
-      const { transactions } = await helpers.monobank.mockTransactions(mock);
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
 
       const incomeTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
       const expenseTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
@@ -404,8 +388,8 @@ describe('Update transaction controller', () => {
         const oppositeTxType =
           txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
-        await helpers.monobank.pair(mock);
-        const { transactions } = await helpers.monobank.mockTransactions(mock);
+        await helpers.monobank.pair();
+        const { transactions } = await helpers.monobank.mockTransactions();
 
         const tx1 = transactions.find((item) => item.transactionType === txType);
         const tx2 = transactions.find((item) => item.transactionType === oppositeTxType);

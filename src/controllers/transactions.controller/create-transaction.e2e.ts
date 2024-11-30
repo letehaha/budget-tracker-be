@@ -1,25 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'axios';
+import { describe, it, expect } from '@jest/globals';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
-  let mock: MockAdapter;
-
-  beforeAll(() => {
-    mock = new MockAdapter(axios);
-  });
-
-  afterEach(() => {
-    mock.reset();
-  });
-
-  afterAll(() => {
-    mock.restore();
-  });
-
   it('should return validation error if no data passed', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await helpers.createTransaction({ payload: null as any, raw: false });
@@ -68,7 +52,7 @@ describe('Create transaction controller', () => {
     });
 
     const transactions = await helpers.getTransactions({ raw: true });
-    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseId === currency.id);
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteId === currency.id);
 
     expect(baseTx.currencyId).toBe(currency.id);
     expect(baseTx.currencyCode).toBe(currency.code);
@@ -205,8 +189,8 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyA.code);
-    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyB.code);
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteCode === currencyA.code);
+    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteCode === currencyB.code);
 
     const DESTINATION_AMOUNT = 25000;
     const txPayload = {
@@ -300,8 +284,8 @@ describe('Create transaction controller', () => {
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'link with external %s transaction',
       async (txType) => {
-        await helpers.monobank.pair(mock);
-        const { transactions } = await helpers.monobank.mockTransactions(mock);
+        await helpers.monobank.pair();
+        const { transactions } = await helpers.monobank.mockTransactions();
         const externalTransaction = transactions.find((item) => item.transactionType === txType);
         const accountA = await helpers.createAccount({ raw: true });
         const expectedValues = {

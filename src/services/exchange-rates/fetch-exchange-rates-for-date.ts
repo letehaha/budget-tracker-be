@@ -15,9 +15,12 @@ interface API_LAYER_EXCHANGE_RATES_RESPONSE {
   timestamp: number;
 }
 
+// Used in tests
+export const API_LAYER_ENDPOINT_REGEX = /https:\/\/api.apilayer.com\/fixer/;
 export const API_LAYER_DATE_FORMAT = 'yyyy-MM-dd';
+export const API_LAYER_BASE_CURRENCY_CODE = 'USD';
 
-export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Promise<ExchangeRates[] | void> => {
+export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Promise<void> => {
   // Normalize the date to start of day
   const normalizedDate = startOfDay(date);
 
@@ -36,10 +39,9 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
     return undefined;
   }
 
-  const BASE_CURRENCY = 'USD';
   const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
 
-  const API_URL = `https://api.apilayer.com/fixer/${formattedDate}?base=${BASE_CURRENCY}`;
+  const API_URL = `https://api.apilayer.com/fixer/${formattedDate}?base=${API_LAYER_BASE_CURRENCY_CODE}`;
 
   // Fetch new rates from an API (replace with your actual API endpoint)
   try {
@@ -61,7 +63,7 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
         // List of error codes
         // https://apilayer.com/marketplace/fixer-api?utm_source=apilayermarketplace&utm_medium=featured#errors
 
-        const params = { date: formattedDate, base: BASE_CURRENCY };
+        const params = { date: formattedDate, base: API_LAYER_BASE_CURRENCY_CODE };
         const badGatewayErrorMessage = 'Failed to load exchange rates due to the issues with the external provider.';
         const statusCode = err.response?.status;
 
@@ -91,8 +93,10 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
       throw new ValidationError({ message: 'Invalid response from exchange rate API' });
     }
 
-    if (response.base !== BASE_CURRENCY) {
-      logger.error(`Exchange rates fetching failed. Expected to load ${BASE_CURRENCY}, got ${response.base}`);
+    if (response.base !== API_LAYER_BASE_CURRENCY_CODE) {
+      logger.error(
+        `Exchange rates fetching failed. Expected to load ${API_LAYER_BASE_CURRENCY_CODE}, got ${response.base}`,
+      );
       throw new ValidationError({ message: 'Invalid response from exchange rate API' });
     }
 
@@ -102,9 +106,9 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
     // Prepare data for bulk insert
     const rateData: { rate: number; baseCode: string; quoteCode: string }[] = [];
     for (const currency of currencies) {
-      if (currency.code !== BASE_CURRENCY && rates[currency.code]) {
+      if (rates[currency.code]) {
         rateData.push({
-          baseCode: BASE_CURRENCY,
+          baseCode: API_LAYER_BASE_CURRENCY_CODE,
           quoteCode: currency.code,
           rate: rates[currency.code]!,
         });

@@ -1,42 +1,12 @@
 import { faker } from '@faker-js/faker';
 import { subDays } from 'date-fns';
-import { ExternalMonobankClientInfoResponse, ExternalMonobankTransactionResponse } from 'shared-types';
+import { ExternalMonobankTransactionResponse } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import Transactions from '@models/Transactions.model';
 import Accounts from '@models/Accounts.model';
-import MockAdapter from 'axios-mock-adapter';
 
-const getMockedClientData = (): ExternalMonobankClientInfoResponse => ({
-  clientId: 'sdfsdfsdf',
-  name: 'Test User',
-  webHookUrl: '',
-  permissions: '',
-  accounts: [
-    {
-      id: 'test-account-1',
-      sendId: 'test-send-id-1',
-      balance: 2500000,
-      creditLimit: 200000,
-      type: 'black',
-      currencyCode: 980,
-      cashbackType: 'Miles',
-      maskedPan: [],
-      iban: 'test iban 1',
-    },
-    {
-      id: 'test-account-2',
-      sendId: 'test-send-id-2',
-      balance: 1000,
-      creditLimit: 0,
-      type: 'black',
-      currencyCode: 840,
-      cashbackType: 'Miles',
-      maskedPan: [],
-      iban: 'test iban 2',
-    },
-  ],
-  jars: [],
-});
+import { getMockedClientData } from '@tests/mocks/monobank/data';
+import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 
 const getMockedTransactionData = (
   amount = 1,
@@ -71,26 +41,19 @@ const getMockedTransactionData = (
       counterEdrpou: '',
       counterIban: '',
       counterName: '',
+      __mocked: true,
     };
   });
 };
 
-const DUMB_MONOBANK_API_TOKEN = '234234234234';
-
-const callPairMonobankUser = () => {
+const pairMonobankUser = (token: string = VALID_MONOBANK_TOKEN) => {
   return helpers.makeRequest({
     method: 'post',
     url: '/banks/monobank/pair-user',
     payload: {
-      token: DUMB_MONOBANK_API_TOKEN,
+      token,
     },
   });
-};
-
-const pairMonobankUser = (mock: MockAdapter) => {
-  mock.onGet(/personal\/client-info/).reply(200, getMockedClientData());
-
-  return callPairMonobankUser();
 };
 
 const getTransactions = async () => {
@@ -102,10 +65,7 @@ const getTransactions = async () => {
   );
 };
 
-const addTransactions = async (
-  mock: MockAdapter,
-  { amount = 10 }: { amount?: number } = {},
-): Promise<{
+const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promise<{
   account: Accounts;
   transactions: Transactions[];
 }> => {
@@ -117,11 +77,11 @@ const addTransactions = async (
   );
   const account = accounts[1]!;
 
-  const mockedTransactions = helpers.monobank.mockedTransactions(amount, {
+  const mockedTransactions = getMockedTransactionData(amount, {
     initialBalance: account.initialBalance,
   });
 
-  mock.onGet(/personal\/statement/).reply(200, mockedTransactions);
+  global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
 
   await helpers.makeRequest({
     method: 'get',
@@ -145,8 +105,6 @@ export default {
   pair: pairMonobankUser,
   getTransactions,
   mockTransactions: addTransactions,
-  callPair: callPairMonobankUser,
-  mockedTransactions: getMockedTransactionData,
   mockedClientData: getMockedClientData,
-  mockedToken: DUMB_MONOBANK_API_TOKEN,
+  mockedToken: VALID_MONOBANK_TOKEN,
 };

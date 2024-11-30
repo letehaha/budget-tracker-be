@@ -1,27 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+import { describe, it, expect } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import { subDays, isSameDay } from 'date-fns';
 import { ACCOUNT_TYPES, API_ERROR_CODES } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { INVALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
 describe('Monobank integration', () => {
-  let mock: MockAdapter;
-
-  beforeAll(() => {
-    mock = new MockAdapter(axios);
-  });
-
-  afterEach(() => {
-    mock.reset();
-  });
-
-  afterAll(() => {
-    mock.restore();
-  });
-
   describe('Pair Monobank account', () => {
     it('throws validation error if no "token" passed', async () => {
       const result = await helpers.makeRequest({
@@ -32,13 +17,13 @@ describe('Monobank integration', () => {
       expect(result.status).toEqual(ERROR_CODES.ValidationError);
     });
     it('throws error if invalid "token" is passed', async () => {
-      const result = await helpers.monobank.callPair();
+      const result = await helpers.monobank.pair(INVALID_MONOBANK_TOKEN);
 
       expect(result.status).toEqual(ERROR_CODES.Forbidden);
     });
     it('creates Monobank user and correct accounts with valid token', async () => {
       const mockedClientData = helpers.monobank.mockedClientData();
-      const createdMonoUserRestult = await helpers.monobank.pair(mock);
+      const createdMonoUserRestult = await helpers.monobank.pair();
 
       expect(helpers.extractResponse(createdMonoUserRestult).apiToken).toBe(helpers.monobank.mockedToken);
       expect(helpers.extractResponse(createdMonoUserRestult).accounts.length).toBe(mockedClientData.accounts.length);
@@ -56,7 +41,7 @@ describe('Monobank integration', () => {
         const resultItem = accountResult.find((acc) => acc.externalId === item.id)!;
 
         const rates = await helpers.getCurrenciesRates();
-        const rate = rates.find((r) => r.baseCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode])!.rate;
+        const rate = rates.find((r) => r.quoteCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode])!.rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
         expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));
@@ -71,11 +56,11 @@ describe('Monobank integration', () => {
       }
     });
     it('handles case when trying to pair existing account', async () => {
-      const result = await helpers.monobank.pair(mock);
+      const result = await helpers.monobank.pair();
 
       expect(result.status).toBe(200);
 
-      const oneMoreResult = await helpers.monobank.callPair();
+      const oneMoreResult = await helpers.monobank.pair();
 
       expect(helpers.extractResponse(oneMoreResult).code).toBe(API_ERROR_CODES.monobankUserAlreadyConnected);
     });
@@ -90,7 +75,7 @@ describe('Monobank integration', () => {
       expect(helpers.extractResponse(result).code).toEqual(API_ERROR_CODES.monobankUserNotPaired);
     });
     it('Returns correct user', async () => {
-      await helpers.monobank.pair(mock);
+      await helpers.monobank.pair();
 
       const result = await helpers.makeRequest({
         method: 'get',
@@ -123,7 +108,7 @@ describe('Monobank integration', () => {
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
     });
     it('returns 404 if calling for unexisting account', async () => {
-      await helpers.monobank.pair(mock);
+      await helpers.monobank.pair();
 
       const result = await helpers.makeRequest({
         method: 'get',
@@ -147,8 +132,8 @@ describe('Monobank integration', () => {
         // To prevent DB deadlock. Dunno why it happens
         await helpers.sleep(500);
 
-        await helpers.monobank.pair(mock);
-        const result = await helpers.monobank.mockTransactions(mock);
+        await helpers.monobank.pair();
+        const result = await helpers.monobank.mockTransactions();
         account = result.account;
       });
 
