@@ -33,8 +33,7 @@ const validateTransactionLinking = ({
   }
   if (
     opposite.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer ||
-    (!ignoreBaseTxTypeValidation &&
-      base.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer)
+    (!ignoreBaseTxTypeValidation && base.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer)
   ) {
     // TODO: disabled when multiple links are available
     throw new ValidationError({

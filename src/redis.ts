@@ -18,8 +18,10 @@ console.time('connect-to-redis');
 redisClient
   .connect()
   .then(() => {
-    console.log('App connected to Redis! Took: ');
-    console.timeEnd('connect-to-redis');
+    if (process.env.SHOW_LOGS_IN_TESTS === 'true') {
+      console.log('App connected to Redis! Took: ');
+      console.timeEnd('connect-to-redis');
+    }
   })
   .catch((err) => {
     console.error('Cannot connect to Redis!', err);

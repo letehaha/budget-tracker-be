@@ -25,9 +25,7 @@ export interface CustomResponse<T> extends ExpressCustomResponse {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const extractResponse = <T = any>(response: CustomResponse<T>) => response.body.response;
 
-export type MakeRequestReturn<T, R extends boolean | undefined = false> = R extends true
-  ? T
-  : CustomResponse<T>;
+export type MakeRequestReturn<T, R extends boolean | undefined = false> = R extends true ? T : CustomResponse<T>;
 
 export interface ErrorResponse {
   message: string;
@@ -50,7 +48,10 @@ export async function makeRequest<T = any, R extends boolean | undefined = false
 }: MakeRequestParams<R>): Promise<MakeRequestReturn<T, R>> {
   let tempUrl = url;
 
-  if (method === 'get') {
+  // If not check for full existance, MSW will throw "Invariant Violation: Failed to write to a request stream: stream does not exist" error
+  const payloadExists = payload && Object.values(payload).length;
+
+  if (method === 'get' && payloadExists) {
     tempUrl = tempUrl + '?' + new URLSearchParams(payload as Record<string, string>).toString();
   }
 
@@ -58,7 +59,9 @@ export async function makeRequest<T = any, R extends boolean | undefined = false
 
   if (global.APP_AUTH_TOKEN) base.set('Authorization', global.APP_AUTH_TOKEN);
   if (Object.keys(headers).length) base.set(headers);
-  if (payload) base.send(payload);
+
+  // If not check for non-GET method, MSW will throw "Invariant Violation: Failed to write to a request stream: stream does not exist" error
+  if (method !== 'get' && payloadExists) base.send(payload);
 
   const result: CustomResponse<T> = await base;
   return (raw ? extractResponse(result) : result) as MakeRequestReturn<T, R>;

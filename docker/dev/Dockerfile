@@ -6,7 +6,7 @@ COPY . .
 
 # Install dependencies
 RUN chmod +x ./post-install.sh
-RUN npm ci --also=dev
+RUN npm ci --include=dev
 
 ENV NODE_ENV=development
 

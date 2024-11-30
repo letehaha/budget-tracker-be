@@ -5,67 +5,75 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.createTable('AccountGroups', {
-        id: {
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
-          type: Sequelize.INTEGER
+      await queryInterface.createTable(
+        'AccountGroups',
+        {
+          id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: Sequelize.INTEGER,
+          },
+          userId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: { model: 'Users', key: 'id' },
+          },
+          name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          parentGroupId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: { model: 'AccountGroups', key: 'id' },
+          },
+          createdAt: {
+            allowNull: false,
+            type: Sequelize.DATE,
+          },
+          updatedAt: {
+            allowNull: false,
+            type: Sequelize.DATE,
+          },
         },
-        userId: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: { model: 'Users', key: 'id' }
-        },
-        name: {
-          type: Sequelize.STRING,
-          allowNull: false
-        },
-        parentGroupId: {
-          type: Sequelize.INTEGER,
-          allowNull: true,
-          references: { model: 'AccountGroups', key: 'id' }
-        },
-        createdAt: {
-          allowNull: false,
-          type: Sequelize.DATE
-        },
-        updatedAt: {
-          allowNull: false,
-          type: Sequelize.DATE
-        }
-      }, { transaction });
+        { transaction },
+      );
 
-      await queryInterface.createTable('AccountGroupings', {
-        id: {
-          allowNull: false,
-          autoIncrement: true,
-          primaryKey: true,
-          type: Sequelize.INTEGER
+      await queryInterface.createTable(
+        'AccountGroupings',
+        {
+          id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: Sequelize.INTEGER,
+          },
+          accountId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: { model: 'Accounts', key: 'id' },
+          },
+          groupId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: { model: 'AccountGroups', key: 'id' },
+          },
+          createdAt: {
+            allowNull: false,
+            type: Sequelize.DATE,
+          },
+          updatedAt: {
+            allowNull: false,
+            type: Sequelize.DATE,
+          },
         },
-        accountId: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: { model: 'Accounts', key: 'id' }
-        },
-        groupId: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: { model: 'AccountGroups', key: 'id' }
-        },
-        createdAt: {
-          allowNull: false,
-          type: Sequelize.DATE
-        },
-        updatedAt: {
-          allowNull: false,
-          type: Sequelize.DATE
-        }
-      }, { transaction });
+        { transaction },
+      );
 
       await queryInterface.addIndex('AccountGroupings', ['accountId', 'groupId'], {
         unique: true,
-        transaction
+        transaction,
       });
 
       await transaction.commit();
@@ -85,5 +93,5 @@ module.exports = {
       await transaction.rollback();
       throw error;
     }
-  }
+  },
 };

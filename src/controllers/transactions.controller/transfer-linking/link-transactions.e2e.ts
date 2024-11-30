@@ -1,3 +1,4 @@
+import { describe, it } from '@jest/globals';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';

@@ -1,19 +1,11 @@
 import { z } from 'zod';
-import {
-  API_RESPONSE_STATUS,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-} from 'shared-types';
+import { API_RESPONSE_STATUS, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from 'shared-types';
 import { CustomResponse, CustomRequest } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 import * as transactionsService from '@services/transactions';
 import { removeUndefinedKeys } from '@js/helpers';
 
-export const updateTransaction = async (
-  req: CustomRequest<typeof updateTransactionSchema>,
-  res: CustomResponse,
-) => {
+export const updateTransaction = async (req: CustomRequest<typeof updateTransactionSchema>, res: CustomResponse) => {
   try {
     const { id } = req.validated.params;
     const {
@@ -66,12 +58,7 @@ const recordId = () => z.number().int().positive().finite();
 const bodyZodSchema = z
   .object({
     amount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
-    destinationAmount: z
-      .number()
-      .int()
-      .positive('Amount must be greater than 0')
-      .finite()
-      .optional(),
+    destinationAmount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
     note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
     time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),
@@ -89,10 +76,7 @@ const bodyZodSchema = z
   })
   .refine(
     (data) => {
-      if (
-        data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        data.destinationTransactionId
-      ) {
+      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && data.destinationTransactionId) {
         return !(data.destinationAccountId || data.destinationAmount);
       }
       return true;
@@ -104,10 +88,7 @@ const bodyZodSchema = z
   )
   .refine(
     (data) => {
-      if (
-        data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        !data.destinationTransactionId
-      ) {
+      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && !data.destinationTransactionId) {
         return !!(data.destinationAccountId && data.destinationAmount);
       }
       return true;

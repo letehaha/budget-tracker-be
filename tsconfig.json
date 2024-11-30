@@ -27,7 +27,8 @@
     "noImplicitAny": false,
     "noUncheckedIndexedAccess": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "typeRoots": ["./node_modules/@types", "./src/tests/global.d.ts", "./src/typings"]
   },
   "include": ["src/**/*", "src/tests/custom-matchers.d.ts"]
 }

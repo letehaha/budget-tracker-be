@@ -41,20 +41,8 @@ export function getAccounts(): Promise<Accounts[]> {
  * Creates an account. By default for base currency, but any payload can be passed
  */
 export function createAccount(): Promise<Response>;
-export function createAccount({
-  payload,
-  raw,
-}: {
-  payload?: BuildAccountPayload;
-  raw: false;
-}): Promise<Response>;
-export function createAccount({
-  payload,
-  raw,
-}: {
-  payload?: BuildAccountPayload;
-  raw: true;
-}): Promise<Accounts>;
+export function createAccount({ payload, raw }: { payload?: BuildAccountPayload; raw: false }): Promise<Response>;
+export function createAccount({ payload, raw }: { payload?: BuildAccountPayload; raw: true }): Promise<Accounts>;
 export function createAccount({ payload = buildAccountPayload(), raw = false } = {}) {
   return makeRequest({
     method: 'post',

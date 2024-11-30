@@ -7,10 +7,7 @@ interface BaseCreationPayload {
   name?: string;
   color?: string;
 }
-export async function addCustomCategory({
-  raw,
-  ...params
-}: BaseCreationPayload & { raw?: false }): Promise<Response>;
+export async function addCustomCategory({ raw, ...params }: BaseCreationPayload & { raw?: false }): Promise<Response>;
 export async function addCustomCategory({
   raw,
   ...params
@@ -37,10 +34,7 @@ interface BaseUpdationPayload {
   color?: string;
   imageUrl?: string;
 }
-export async function editCustomCategory({
-  raw,
-  ...params
-}: BaseUpdationPayload & { raw?: false }): Promise<Response>;
+export async function editCustomCategory({ raw, ...params }: BaseUpdationPayload & { raw?: false }): Promise<Response>;
 export async function editCustomCategory({
   raw,
   ...params

@@ -66,9 +66,7 @@ describe.skip('getRefundTransactions', () => {
 
       expect(helpers.extractResponse(response).data.length).toBe(1);
       expect(
-        helpers
-          .extractResponse(response)
-          .data.every((refund) => refund.originalTransaction.categoryId === categoryId),
+        helpers.extractResponse(response).data.every((refund) => refund.originalTransaction.categoryId === categoryId),
       ).toBe(true);
     });
 
@@ -96,17 +94,12 @@ describe.skip('getRefundTransactions', () => {
         refundTxId: refundTx.id,
       });
 
-      const response = await helpers.getRefundTransactions(
-        { transactionType: TRANSACTION_TYPES.expense },
-        true,
-      );
+      const response = await helpers.getRefundTransactions({ transactionType: TRANSACTION_TYPES.expense }, true);
 
       expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
       expect(
-        response.data.every(
-          (refund) => refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense,
-        ),
+        response.data.every((refund) => refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense),
       ).toBe(true);
     });
 
@@ -138,9 +131,7 @@ describe.skip('getRefundTransactions', () => {
 
       expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
-      expect(
-        response.data.every((refund) => refund.originalTransaction.accountId === account.id),
-      ).toBe(true);
+      expect(response.data.every((refund) => refund.originalTransaction.accountId === account.id)).toBe(true);
     });
 
     it('successfully applies multiple filters simultaneously', async () => {

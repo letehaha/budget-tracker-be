@@ -629,9 +629,7 @@ describe('Refund Transactions service', () => {
         });
 
         expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-        expect(helpers.extractResponse(result).message).toContain(
-          'Cannot refund a "refund" transaction',
-        );
+        expect(helpers.extractResponse(result).message).toContain('Cannot refund a "refund" transaction');
       });
 
       it('fails when trying to link transcation to itself', async () => {
@@ -654,9 +652,7 @@ describe('Refund Transactions service', () => {
         });
 
         expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-        expect(helpers.extractResponse(result).message).toContain(
-          'Attempt to link a single transaction to itself',
-        );
+        expect(helpers.extractResponse(result).message).toContain('Attempt to link a single transaction to itself');
       });
 
       it('fails when trying to use the same refund transaction for multiple original transactions', async () => {
@@ -704,9 +700,7 @@ describe('Refund Transactions service', () => {
         });
 
         expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-        expect(helpers.extractResponse(result).message).toContain(
-          '"refundTxId" already marked as a refund',
-        );
+        expect(helpers.extractResponse(result).message).toContain('"refundTxId" already marked as a refund');
       });
     });
 
@@ -807,9 +801,7 @@ describe('Refund Transactions service', () => {
           });
 
           expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-          expect(helpers.extractResponse(result).message).toContain(
-            'Refund transaction cannot be a transfer one',
-          );
+          expect(helpers.extractResponse(result).message).toContain('Refund transaction cannot be a transfer one');
         });
 
         it('fails when trying to create a duplicate refund transaction with null originalTxId', async () => {
@@ -837,9 +829,7 @@ describe('Refund Transactions service', () => {
           });
 
           expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-          expect(helpers.extractResponse(result).message).toContain(
-            '"refundTxId" already marked as a refund',
-          );
+          expect(helpers.extractResponse(result).message).toContain('"refundTxId" already marked as a refund');
         });
       });
     });

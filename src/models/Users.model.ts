@@ -1,13 +1,5 @@
 import { UserModel } from 'shared-types';
-import {
-  Table,
-  Column,
-  Model,
-  DefaultScope,
-  Scopes,
-  BelongsToMany,
-  Length,
-} from 'sequelize-typescript';
+import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length } from 'sequelize-typescript';
 
 import UsersCurrencies from './UsersCurrencies.model';
 import Currencies from './Currencies.model';

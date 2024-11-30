@@ -38,6 +38,16 @@ export default class UserExchangeRates extends Model {
 
   @Column({ allowNull: true, defaultValue: 1 })
   rate: number;
+
+  // TODO:
+  // 1. Add date fields to UserExchangeRates: "effectiveFrom", "effectiveTo"
+  // 2. When updating rates:
+  //  - Close current rate (set "effectiveTo")
+  //  - Create new entry with current date as "effectiveFrom"
+  // 3. For historical data:
+  //  - Query UserExchangeRates with transaction date
+  //  - Fall back to ExchangeRates if no user-specific rate
+  // This approach will maintain the rate history for each user, allowing accurate historical calculations
 }
 
 export type ExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode'>;
@@ -99,10 +109,7 @@ export async function getRates({
   });
 }
 
-export type UpdateExchangeRatePair = Pick<
-  UserExchangeRatesAttributes,
-  'baseCode' | 'quoteCode' | 'rate'
->;
+export type UpdateExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode' | 'rate'>;
 
 export async function updateRates({
   userId,
@@ -155,6 +162,14 @@ export async function updateRates({
         },
       );
 
+      const currency = (await Currencies.default.findOne({
+        where: { code: pairItem.baseCode },
+        raw: true,
+        attributes: ['id'],
+      }))!;
+
+      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
+
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
       const currencies = await Currencies.getCurrencies({
@@ -167,8 +182,7 @@ export async function updateRates({
 
       if (currencies.length !== userCurrencies.length) {
         throw new NotFoundError({
-          message:
-            'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
+          message: 'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
         });
       }
 
@@ -189,6 +203,13 @@ export async function updateRates({
             returning: true,
           },
         );
+
+        const currency = (await Currencies.default.findOne({
+          where: { code: pairItem.baseCode },
+          raw: true,
+          attributes: ['id'],
+        }))!;
+        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
 
         returningValues.push(res);
       } else {

@@ -104,9 +104,7 @@ async function createMonoTransaction({
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');
   } else {
-    categoryId = (await Users.getUserDefaultCategory({ id: userData.id }))!.get(
-      'defaultCategoryId',
-    );
+    categoryId = (await Users.getUserDefaultCategory({ id: userData.id }))!.get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),

@@ -1,10 +1,7 @@
 import * as helpers from '@tests/helpers';
 import type { GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 
-export const createSingleRefund = async (
-  payload: { originalTxId: number | null; refundTxId: number },
-  raw = false,
-) => {
+export const createSingleRefund = async (payload: { originalTxId: number | null; refundTxId: number }, raw = false) => {
   const result = await helpers.makeRequest({
     method: 'post',
     url: '/transactions/refund',
@@ -26,10 +23,7 @@ export const getSingleRefund = async (
   return raw ? helpers.extractResponse(result) : result;
 };
 
-export const getRefundTransactions = async (
-  params?: Omit<GetRefundTransactionsParams, 'userId'>,
-  raw = false,
-) => {
+export const getRefundTransactions = async (params?: Omit<GetRefundTransactionsParams, 'userId'>, raw = false) => {
   const queryString = params
     ? Object.entries(params)
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)

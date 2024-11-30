@@ -53,9 +53,7 @@ describe('removeRefundLink', () => {
       transactions = await helpers.getTransactions({ raw: true });
 
       // Check that after refund deletion all transactions are in place
-      expect(
-        [originalTx.id, refundTx.id].every((id) => transactions.find((tx) => tx.id === id)),
-      ).toBe(true);
+      expect([originalTx.id, refundTx.id].every((id) => transactions.find((tx) => tx.id === id))).toBe(true);
       expect(transactions.every((tx) => tx.refundLinked)).toBe(false);
     });
 

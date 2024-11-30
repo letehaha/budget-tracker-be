@@ -12,10 +12,7 @@ import {
 } from '@controllers/transactions.controller';
 import { createRefund } from '@controllers/transactions.controller/refunds/create-refund';
 import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
-import {
-  getTransactions,
-  getTransactionsSchema,
-} from '@controllers/transactions.controller/get-transaction';
+import { getTransactions, getTransactionsSchema } from '@controllers/transactions.controller/get-transaction';
 import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
 import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
 import { getRefundsForTransactionById } from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';

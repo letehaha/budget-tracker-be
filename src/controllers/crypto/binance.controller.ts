@@ -12,10 +12,7 @@ const createSignedGETRequestURL = ({ url, params, secretKey }) => {
 
   localUrl.search = new URLSearchParams(localParams).toString();
 
-  localParams.signature = crypto
-    .createHmac('sha256', secretKey)
-    .update(localUrl.search.substr(1))
-    .digest('hex');
+  localParams.signature = crypto.createHmac('sha256', secretKey).update(localUrl.search.substr(1)).digest('hex');
 
   localUrl.search = new URLSearchParams(localParams).toString();
 
@@ -105,9 +102,7 @@ export const getAccountData = async (req, res: CustomResponse) => {
       method: 'GET',
     });
 
-    const notNullBalances = response.data.balances.filter(
-      (item) => Number(item.free) + Number(item.locked) > 0,
-    );
+    const notNullBalances = response.data.balances.filter((item) => Number(item.free) + Number(item.locked) > 0);
 
     const defaultAssetQuote = 'USDT';
     const blackList = ['USDT', 'NFT'];

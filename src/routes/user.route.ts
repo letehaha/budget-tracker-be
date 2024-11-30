@@ -15,10 +15,7 @@ import {
   editCurrencyExchangeRate,
   editCurrencyExchangeRateSchema,
 } from '@controllers/currencies/edit-currency-exchange-rate';
-import {
-  addUserCurrencies,
-  addUserCurrenciesSchema,
-} from '@controllers/currencies/add-user-currencies';
+import { addUserCurrencies, addUserCurrenciesSchema } from '@controllers/currencies/add-user-currencies';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 
@@ -32,12 +29,7 @@ router.get('/currencies', authenticateJwt, getUserCurrencies);
 router.get('/currencies/base', authenticateJwt, getUserBaseCurrency);
 router.get('/currencies/rates', authenticateJwt, getCurrenciesExchangeRates);
 
-router.post(
-  '/currencies',
-  authenticateJwt,
-  validateEndpoint(addUserCurrenciesSchema),
-  addUserCurrencies,
-);
+router.post('/currencies', authenticateJwt, validateEndpoint(addUserCurrenciesSchema), addUserCurrencies);
 router.post('/currencies/base', authenticateJwt, setBaseUserCurrency);
 
 router.put('/currency', authenticateJwt, editUserCurrency);

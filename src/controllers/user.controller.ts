@@ -242,8 +242,7 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
     pairs.forEach((pair) => {
       if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
         throw new ValidationError({
-          message:
-            "When changing base-qoute pair rate, you need to also change opposite pair's rate.",
+          message: "When changing base-qoute pair rate, you need to also change opposite pair's rate.",
         });
       }
     });
@@ -278,8 +277,7 @@ export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) =
     pairs.forEach((pair) => {
       if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
         throw new ValidationError({
-          message:
-            "When removing base-qoute pair rate, you need to also remove opposite pair's rate.",
+          message: "When removing base-qoute pair rate, you need to also remove opposite pair's rate.",
         });
       }
     });

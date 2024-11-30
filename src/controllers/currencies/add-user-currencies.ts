@@ -9,9 +9,7 @@ export const addUserCurrencies = async (req, res: CustomResponse) => {
     const { id: userId } = req.user;
     const { currencies }: AddUserCurrenciesParams = req.validated.body;
 
-    const result = await userCurrenciesService.addUserCurrencies(
-      currencies.map((item) => ({ userId, ...item })),
-    );
+    const result = await userCurrenciesService.addUserCurrencies(currencies.map((item) => ({ userId, ...item })));
 
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,

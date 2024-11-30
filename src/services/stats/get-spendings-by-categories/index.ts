@@ -90,9 +90,7 @@ const groupAndAdjustData = async (params: {
 
     // We always need to adjust spendings exactly for expense transactions
     const wantedCategoryId =
-      pair.base.transactionType === TRANSACTION_TYPES.expense
-        ? pair.base.categoryId
-        : pair.refund.categoryId;
+      pair.base.transactionType === TRANSACTION_TYPES.expense ? pair.base.categoryId : pair.refund.categoryId;
     const rootCategoryId = getRootCategoryId(wantedCategoryId).toString();
 
     if (rootCategoryId in result) {

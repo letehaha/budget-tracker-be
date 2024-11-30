@@ -1,5 +1,3 @@
-// accountGroup.routes.ts
-
 import { Router } from 'express';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';

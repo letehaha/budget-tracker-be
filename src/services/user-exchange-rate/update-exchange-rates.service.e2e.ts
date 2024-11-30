@@ -42,16 +42,10 @@ describe('Edit currency exchange rate controller', () => {
 
       // Verify that edition request returned edited currencies
       const returnedValues = helpers.extractResponse(res);
-      expect(['USD', 'EUR'].every((code) => returnedValues.map((r) => r.baseCode === code))).toBe(
-        true,
-      );
+      expect(['USD', 'EUR'].every((code) => returnedValues.map((r) => r.baseCode === code))).toBe(true);
 
-      const usdEurRate = returnedValues.find(
-        (rate) => rate.baseCode === 'USD' && rate.quoteCode === 'EUR',
-      )!;
-      const eurUsdRate = returnedValues.find(
-        (rate) => rate.baseCode === 'EUR' && rate.quoteCode === 'USD',
-      )!;
+      const usdEurRate = returnedValues.find((rate) => rate.baseCode === 'USD' && rate.quoteCode === 'EUR')!;
+      const eurUsdRate = returnedValues.find((rate) => rate.baseCode === 'EUR' && rate.quoteCode === 'USD')!;
 
       expect(usdEurRate.rate).toBeCloseTo(0.85);
       expect(eurUsdRate.rate).toBeCloseTo(1.18);

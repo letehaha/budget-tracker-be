@@ -13,12 +13,7 @@ const tryBasicDateValidation = ({ from, to }) => {
   if (to && !isValid(new Date(to))) {
     throw new ValidationError({ message: '"to" is invalid date.' });
   }
-  if (
-    from &&
-    to &&
-    !isEqual(new Date(from), new Date(to)) &&
-    !isBefore(new Date(from), new Date(to))
-  ) {
+  if (from && to && !isEqual(new Date(from), new Date(to)) && !isBefore(new Date(from), new Date(to))) {
     throw new ValidationError({
       message: '"from" cannot be greater than "to" date.',
     });

@@ -15,12 +15,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import * as refundsService from '@services/tx-refunds';
 import { withTransaction } from '../common';
 
-export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = [
-  'amount',
-  'time',
-  'transactionType',
-  'accountId',
-];
+export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 'transactionType', 'accountId'];
 
 /**
  * 1. Do not allow editing specified fields
@@ -72,10 +67,7 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
   // }
 };
 
-const makeBasicBaseTxUpdation = async (
-  newData: UpdateTransactionParams,
-  prevData: Transactions.default,
-) => {
+const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
   const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
     userId: newData.userId,
     isDefaultCurrency: true,
@@ -83,20 +75,19 @@ const makeBasicBaseTxUpdation = async (
 
   // Never update "transactionType" of non-system transactions. Just an additional guard
   const transactionType =
-    prevData.accountType === ACCOUNT_TYPES.system
-      ? newData.transactionType
-      : prevData.transactionType;
+    prevData.accountType === ACCOUNT_TYPES.system ? newData.transactionType : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
     amount: number;
     refAmount: number;
     currencyCode: string;
+    time: Date;
   } = {
     id: newData.id,
     amount: newData.amount ?? prevData.amount,
     refAmount: newData.amount ?? prevData.refAmount,
     note: newData.note,
-    time: newData.time,
+    time: newData.time ?? prevData.time,
     userId: newData.userId,
     transactionType,
     paymentType: newData.paymentType,
@@ -126,6 +117,7 @@ const makeBasicBaseTxUpdation = async (
       amount: baseTransactionUpdateParams.amount,
       baseCode: baseTransactionUpdateParams.currencyCode,
       quoteCode: defaultUserCurrency.code,
+      date: baseTransactionUpdateParams.time,
     });
   }
 
@@ -142,8 +134,7 @@ const makeBasicBaseTxUpdation = async (
 
   if (newData.refundedByTxIds !== undefined) {
     const refundsShouldBeRemoved = prevData.refundLinked && newData.refundedByTxIds === null;
-    const refundsShouldBeSetOrOverriden =
-      Array.isArray(newData.refundedByTxIds) && newData.refundedByTxIds.length;
+    const refundsShouldBeSetOrOverriden = Array.isArray(newData.refundedByTxIds) && newData.refundedByTxIds.length;
 
     if (refundsShouldBeRemoved || refundsShouldBeSetOrOverriden) {
       const previousRefunds = await refundsService.getRefundsForTransactionById({
@@ -224,8 +215,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData] = params;
   let [, , baseTransaction] = params;
 
-  const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } =
-    newData;
+  const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
   const oppositeTx = (
     await Transactions.getTransactionsByArrayOfField({
@@ -269,13 +259,13 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     };
   }
 
-  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } =
-    await calcTransferTransactionRefAmount({
-      userId,
-      baseTransaction,
-      destinationAmount: updateOppositeTxParams.amount!,
-      oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
-    });
+  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
+    userId,
+    baseTransaction,
+    destinationAmount: updateOppositeTxParams.amount!,
+    oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
+    date: baseTransaction.time,
+  });
 
   updateOppositeTxParams.refAmount = oppositeRefAmount;
   baseTransaction = updatedBaseTransaction;
@@ -320,8 +310,7 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
 const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   // Previously was transfer, now NOT a transfer
   const nowNotTransfer =
-    payload.transferNature === undefined &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+    payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
 
   // Previously was transfer, now also transfer
   const updatingTransfer =
@@ -373,10 +362,7 @@ export const updateTransaction = withTransaction(
       if (isUpdatingTransferTx(payload, prevData)) {
         // Handle the case when initially tx was "expense", became "transfer",
         // but now user wants to unmark it from transfer and make "income"
-        if (
-          payload.transactionType !== undefined &&
-          payload.transactionType !== prevData.transactionType
-        ) {
+        if (payload.transactionType !== undefined && payload.transactionType !== prevData.transactionType) {
           await deleteOppositeTransaction(helperFunctionsArgs);
         }
 
@@ -399,6 +385,7 @@ export const updateTransaction = withTransaction(
             // it will be `undefined`, that's why we derive it from prevData
             {
               ...payload,
+              time: payload.time ?? new Date(),
               transactionType: payload.transactionType ?? prevData.transactionType,
             },
             baseTransaction,

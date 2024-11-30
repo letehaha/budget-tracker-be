@@ -12,13 +12,7 @@ import { Unauthorized, NotFoundError, UnexpectedError, ConflictError } from '@js
 import { withTransaction } from './common';
 
 export const login = withTransaction(
-  async ({
-    username,
-    password,
-  }: {
-    username: string;
-    password: string;
-  }): Promise<{ token: string }> => {
+  async ({ username, password }: { username: string; password: string }): Promise<{ token: string }> => {
     try {
       const user = await userService.getUserByCredentials({ username });
 
@@ -79,10 +73,7 @@ export const register = withTransaction(
       }));
 
       // Insert default categories
-      const categories = await categoriesService.bulkCreate(
-        { data: defaultCategories },
-        { returning: true },
-      );
+      const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
       let subcats: Omit<CategoryModel, 'id' | 'imageUrl'>[] = [];
 
@@ -90,9 +81,7 @@ export const register = withTransaction(
       // since DB expects that
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       categories.forEach((item) => {
-        const subcategories = DEFAULT_CATEGORIES.subcategories.find(
-          (subcat) => subcat.parentName === item.name,
-        );
+        const subcategories = DEFAULT_CATEGORIES.subcategories.find((subcat) => subcat.parentName === item.name);
 
         if (subcategories) {
           subcats = [
@@ -110,9 +99,7 @@ export const register = withTransaction(
       await categoriesService.bulkCreate({ data: subcats });
 
       // set defaultCategoryId so the undefined mcc codes will use it
-      const defaultCategory = categories.find(
-        (item) => item.name === DEFAULT_CATEGORIES.names.other,
-      );
+      const defaultCategory = categories.find((item) => item.name === DEFAULT_CATEGORIES.names.other);
 
       if (!defaultCategory) {
         // TODO: return UnexpectedError, but move descriptive message to logger, so users won't see this internal issue

@@ -11,10 +11,7 @@ import { errorHandler } from '@controllers/helpers';
 
 import * as transactionsService from '@services/transactions';
 
-export const createTransaction = async (
-  req: CustomRequest<typeof createTransactionSchema>,
-  res: CustomResponse,
-) => {
+export const createTransaction = async (req: CustomRequest<typeof createTransactionSchema>, res: CustomResponse) => {
   try {
     const {
       amount,
@@ -75,12 +72,7 @@ const bodyZodSchema = z
     paymentType: z.nativeEnum(PAYMENT_TYPES),
     accountId: recordId(),
     accountType: z.nativeEnum(ACCOUNT_TYPES).optional(),
-    destinationAmount: z
-      .number()
-      .int()
-      .positive('Amount must be greater than 0')
-      .finite()
-      .optional(),
+    destinationAmount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
     destinationAccountId: recordId().optional(),
     destinationTransactionId: recordId().optional(),
     categoryId: z.union([recordId(), z.undefined()]),
@@ -89,11 +81,7 @@ const bodyZodSchema = z
   })
   .refine(
     (data) =>
-      !(
-        data.transferNature &&
-        data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer &&
-        data.refundsTxId
-      ),
+      !(data.transferNature && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer && data.refundsTxId),
     {
       message: `Non-${TRANSACTION_TRANSFER_NATURE.not_transfer} cannot be used in "transferNature" when "refundsTxId" is used`,
       path: ['transferNature', 'refundsTxId'],
@@ -113,10 +101,7 @@ const bodyZodSchema = z
   )
   .refine(
     (data) => {
-      if (
-        data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        data.destinationTransactionId
-      ) {
+      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && data.destinationTransactionId) {
         return !(data.destinationAccountId || data.destinationAmount);
       }
       return true;
@@ -128,10 +113,7 @@ const bodyZodSchema = z
   )
   .refine(
     (data) => {
-      if (
-        data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        !data.destinationTransactionId
-      ) {
+      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && !data.destinationTransactionId) {
         return !!(data.destinationAccountId && data.destinationAmount);
       }
       return true;
@@ -143,10 +125,7 @@ const bodyZodSchema = z
   )
   .refine(
     (data) => {
-      if (
-        data.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer &&
-        data.categoryId === undefined
-      ) {
+      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer && data.categoryId === undefined) {
         return false;
       }
       return true;
