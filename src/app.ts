@@ -30,6 +30,7 @@ import exchangeRatesRoutes from './routes/exchange-rates';
 import { supportedLocales } from './translations';
 
 import middlewarePassword from './middlewares/passport';
+import { requestIdMiddleware } from '@middlewares/request-id';
 
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 
@@ -40,6 +41,8 @@ const apiPrefix = config.get('apiPrefix');
 
 app.use(passport.initialize());
 middlewarePassword(passport);
+
+app.use(requestIdMiddleware);
 
 app.set('port', config.get('port'));
 

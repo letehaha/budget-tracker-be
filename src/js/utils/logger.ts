@@ -1,35 +1,61 @@
 import winston, { format, transports } from 'winston';
+import LokiTransport from 'winston-loki';
+import { getCurrentRequestId } from '@common/lib/cls/logging';
+
+const transportsArray: winston.transport[] = [new transports.Console()];
+const { GRAFANA_LOKI_HOST, GRAFANA_LOKI_AUTH, GRAFANA_LOKI_USER_ID } = process.env;
+const isGrafanaConfigured = Boolean(GRAFANA_LOKI_HOST && GRAFANA_LOKI_AUTH && GRAFANA_LOKI_USER_ID);
+
+if (isGrafanaConfigured && GRAFANA_LOKI_HOST && GRAFANA_LOKI_AUTH && GRAFANA_LOKI_USER_ID) {
+  transportsArray.push(
+    new LokiTransport({
+      host: GRAFANA_LOKI_HOST,
+      basicAuth: `${GRAFANA_LOKI_USER_ID}:${GRAFANA_LOKI_AUTH}`,
+      labels: {
+        service: 'budget-tracker-be',
+        env: process.env.NODE_ENV,
+      },
+      format: winston.format.json(),
+      json: true,
+      replaceTimestamp: true,
+      level: 'debug',
+      onConnectionError: (error) => console.log('onConnectionError', error),
+    }),
+  );
+}
+
+const showLogsInTests = process.env.NODE_ENV === 'test' ? process.env.SHOW_LOGS_IN_TESTS === 'true' : true;
 
 const createWinstonLogger = () => {
+  const formats = [
+    format.errors({ stack: true }),
+    format.timestamp(),
+    isGrafanaConfigured
+      ? format.json() // Loki requires JSON format
+      : format.printf((mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`),
+  ];
+
+  if (!isGrafanaConfigured) formats.push(format.colorize());
+
   return winston.createLogger({
-    level: 'info',
-    format: format.combine(
-      format.errors({ stack: true }),
-      format.timestamp(),
-      format.colorize(),
-      format.printf((mess) => `[${mess.timestamp}] ${mess.level}: ${mess.message}`),
-    ),
-    transports: [
-      //
-      // - Write all logs with importance level of `error` or less to `error.log`
-      // - Write all logs with importance level of `info` or less to `combined.log`
-      //
-      new transports.File({ filename: 'error.log', level: 'error' }),
-      // new transports.File({ filename: 'combined.log' }),
-      new transports.Console(),
-    ],
+    level: 'debug',
+    format: format.combine(...formats),
+    transports: transportsArray,
   });
 };
 
 const winstonLogger = createWinstonLogger();
 
-const showLogsInTests = process.env.NODE_ENV === 'test' ? process.env.SHOW_LOGS_IN_TESTS === 'true' : true;
-
 const createLogger =
   (severity: 'info' | 'warn') =>
-  (message: string, ...meta: Record<string, unknown>[]) => {
+  (message: string, meta: Record<string, unknown> = {}) => {
     if (showLogsInTests) {
-      winstonLogger.log(severity, message, ...meta);
+      winstonLogger.log({
+        level: severity,
+        message,
+        requestId: getCurrentRequestId() ?? null,
+        ...meta,
+      });
     }
   };
 
@@ -48,40 +74,34 @@ const formatErrorToString = (error: string | Error) => {
   return message;
 };
 
-function loggerErrorHandler(message: string, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(error: Error, ...extra: Record<string, unknown>[]): void;
-function loggerErrorHandler(
-  messageParam: { message: string; error?: Error },
-  ...extra: Record<string, unknown>[]
-): void;
-function loggerErrorHandler(
-  messageParam: { message?: string; error: Error },
-  ...extra: Record<string, unknown>[]
-): void;
+function loggerErrorHandler(message: string, extra?: Record<string, unknown>): void;
+function loggerErrorHandler(error: Error, extra?: Record<string, unknown>): void;
+function loggerErrorHandler(messageParam: { message: string; error?: Error }, extra?: Record<string, unknown>): void;
+function loggerErrorHandler(messageParam: { message?: string; error: Error }, extra?: Record<string, unknown>): void;
 function loggerErrorHandler(
   messageParam: { message?: string; error?: Error } | string | Error,
-  ...extra: Record<string, unknown>[]
+  extra?: Record<string, unknown>,
 ): void {
-  let messageReult = 'Default error message from logger';
+  let messageResult: string;
 
   if (typeof messageParam === 'string') {
-    messageReult = messageParam;
-  } else if (typeof messageParam === 'string' || messageParam instanceof Error) {
-    messageReult = formatErrorToString(messageParam);
+    messageResult = messageParam;
+  } else if (messageParam instanceof Error) {
+    messageResult = formatErrorToString(messageParam);
+  } else if (messageParam.message && messageParam.error) {
+    messageResult = `${messageParam.message} \n ${formatErrorToString(messageParam.error)}`;
+  } else if (messageParam.error) {
+    messageResult = formatErrorToString(messageParam.error);
   } else {
-    const { message, error } = messageParam;
-
-    if (message === undefined && error) {
-      messageReult = formatErrorToString(error);
-    } else if (message && error === undefined) {
-      messageReult = message;
-    } else if (error) {
-      messageReult = `${message} \n ${formatErrorToString(error)}`;
-    }
+    messageResult = 'Default error message from logger';
   }
 
   if (showLogsInTests) {
-    winstonLogger.error(messageReult, ...extra);
+    winstonLogger.error({
+      message: messageResult,
+      requestId: getCurrentRequestId() ?? null,
+      ...(extra ?? {}),
+    });
   }
 }
 

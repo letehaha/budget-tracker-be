@@ -33,6 +33,9 @@ jobs:
           envkey_JEST_WORKERS_AMOUNT: ${{ secrets.JEST_WORKERS_AMOUNT }}
           envkey_SHOW_LOGS_IN_TESTS: ${{ secrets.SHOW_LOGS_IN_TESTS }}
           envkey_API_LAYER_API_KEY: ${{ secrets.API_LAYER_API_KEY }}
+          envkey_GRAFANA_LOKI_HOST: ${{ secrets.GRAFANA_LOKI_HOST }}
+          envkey_GRAFANA_LOKI_AUTH: ${{ secrets.GRAFANA_LOKI_AUTH }}
+          envkey_GRAFANA_LOKI_USER_ID: ${{ secrets.GRAFANA_LOKI_USER_ID }}
           directory: ./
           file_name: .env.production
 
