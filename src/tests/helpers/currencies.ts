@@ -4,6 +4,7 @@ import Currencies from '@models/Currencies.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
 import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
+import { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
 
 export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency: Currencies })[]> {
   const data = await makeRequest({
@@ -15,9 +16,7 @@ export async function getUserCurrencies(): Promise<(UsersCurrencies & { currency
   return data;
 }
 
-export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): Promise<
-  ExchangeRates[]
-> {
+export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): Promise<ExchangeRates[]> {
   const data = await makeRequest({
     method: 'get',
     url: '/user/currencies/rates',
@@ -51,6 +50,23 @@ export function addUserCurrencies<R extends boolean | undefined = undefined>({
   });
 }
 
+export function addUserCurrencyByCode<R extends boolean | undefined = undefined>({
+  code,
+  raw,
+}: {
+  code: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAddUserCurrencies>>, R>({
+    method: 'post',
+    url: '/user/currencies',
+    payload: {
+      currencies: [{ currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id }],
+    },
+    raw,
+  });
+}
+
 export function editUserCurrencyExchangeRate({ pairs }: { pairs: UpdateExchangeRatePair[] }) {
   return makeRequest({
     method: 'put',
@@ -68,7 +84,7 @@ export function getAllCurrencies(): Promise<Currencies[]> {
   });
 }
 
-export async function updateUserCurrencies<R extends boolean | undefined = undefined>({
+export async function addUserCurrenciesWithRates<R extends boolean | undefined = undefined>({
   currencies,
   raw,
 }: {
@@ -79,6 +95,21 @@ export async function updateUserCurrencies<R extends boolean | undefined = undef
     method: 'post',
     url: '/user/currencies',
     payload: { currencies },
+    raw,
+  });
+}
+
+export async function updateUserCurrency<R extends boolean | undefined = undefined>({
+  currency,
+  raw,
+}: {
+  currency: Omit<Parameters<typeof apiEditUserCurrency>[0], 'userId'>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiEditUserCurrency>>, R>({
+    method: 'put',
+    url: '/user/currency',
+    payload: { ...currency },
     raw,
   });
 }

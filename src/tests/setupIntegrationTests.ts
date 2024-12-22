@@ -5,8 +5,18 @@ import { redisClient } from '@root/redis';
 import { connection } from '@models/index';
 import { makeRequest, extractResponse } from '@tests/helpers';
 import { until } from '@common/helpers';
+import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 
-jest.mock('axios');
+import { setupMswServer } from './mocks/setup-mock-server';
+import { usersQuery } from '@controllers/banks/monobank.controller';
+
+const mswMockServer = setupMswServer();
+
+beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
+afterEach(() => mswMockServer.resetHandlers());
+afterAll(() => mswMockServer.close());
+
+global.mswMockServer = mswMockServer;
 
 const umzug = new Umzug({
   migrations: {
@@ -24,7 +34,8 @@ const umzug = new Umzug({
 });
 
 global.BASE_CURRENCY = null;
-global.BASE_CURRENCY_CODE = 'USD';
+// Should be non-USD so that some tests make sense
+global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
@@ -56,6 +67,13 @@ expect.extend({
       pass: false,
     };
   },
+  toBeWithinRange(received: number, target: number, range: number) {
+    const pass = Math.abs(received - target) <= range;
+    return {
+      pass,
+      message: () => `expected ${received} to be within ${range} of ${target}`,
+    };
+  },
 });
 
 beforeEach(async () => {
@@ -72,6 +90,7 @@ beforeEach(async () => {
       await redisClient.del(workerKeys);
     }
     await umzug.up();
+    usersQuery.clear();
 
     await makeRequest({
       method: 'post',
@@ -120,6 +139,7 @@ afterAll(async () => {
   try {
     await redisClient.quit();
     await serverInstance.close();
+    await loadCurrencyRatesJob.stop();
   } catch (err) {
     console.log('afterAll', err);
   }

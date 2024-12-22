@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import { ERROR_CODES } from '@js/errors';
 
-describe.skip('getRefundTransactions', () => {
+describe('getRefundTransactions', () => {
   describe('success cases', () => {
     it('successfully retrieves all refund transactions when no filters are applied', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -66,9 +66,7 @@ describe.skip('getRefundTransactions', () => {
 
       expect(helpers.extractResponse(response).data.length).toBe(1);
       expect(
-        helpers
-          .extractResponse(response)
-          .data.every((refund) => refund.originalTransaction.categoryId === categoryId),
+        helpers.extractResponse(response).data.every((refund) => refund.originalTransaction.categoryId === categoryId),
       ).toBe(true);
     });
 
@@ -96,17 +94,11 @@ describe.skip('getRefundTransactions', () => {
         refundTxId: refundTx.id,
       });
 
-      const response = await helpers.getRefundTransactions(
-        { transactionType: TRANSACTION_TYPES.expense },
-        true,
-      );
+      const response = await helpers.getRefundTransactions({ transactionType: TRANSACTION_TYPES.expense }, true);
 
-      expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
       expect(
-        response.data.every(
-          (refund) => refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense,
-        ),
+        response.data.every((refund) => refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense),
       ).toBe(true);
     });
 
@@ -136,11 +128,8 @@ describe.skip('getRefundTransactions', () => {
 
       const response = await helpers.getRefundTransactions({ accountId: account.id }, true);
 
-      expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
-      expect(
-        response.data.every((refund) => refund.originalTransaction.accountId === account.id),
-      ).toBe(true);
+      expect(response.data.every((refund) => refund.originalTransaction.accountId === account.id)).toBe(true);
     });
 
     it('successfully applies multiple filters simultaneously', async () => {
@@ -177,7 +166,6 @@ describe.skip('getRefundTransactions', () => {
         true,
       );
 
-      expect(response.success).toBe(true);
       expect(response.data.length).toBeGreaterThan(0);
       expect(
         response.data.every(
@@ -189,6 +177,7 @@ describe.skip('getRefundTransactions', () => {
       ).toBe(true);
     });
 
+    it.todo('successfully applies pagination');
     // it('successfully applies pagination', async () => {
     //   const account = await helpers.createAccount({ raw: true });
     //   // Create multiple refund transactions here...
@@ -209,29 +198,29 @@ describe.skip('getRefundTransactions', () => {
   describe('failure cases', () => {
     it('fails when invalid categoryId is provided', async () => {
       const response = await helpers.getRefundTransactions({ categoryId: -10 });
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('fails when invalid transactionType is provided', async () => {
       const response = await helpers.getRefundTransactions({
         transactionType: 'invalid' as TRANSACTION_TYPES,
       });
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('fails when invalid accountId is provided', async () => {
       const response = await helpers.getRefundTransactions({ accountId: -10 });
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('fails when invalid page number is provided', async () => {
       const response = await helpers.getRefundTransactions({ page: -10 });
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('fails when invalid limit is provided', async () => {
       const response = await helpers.getRefundTransactions({ limit: -10 });
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });

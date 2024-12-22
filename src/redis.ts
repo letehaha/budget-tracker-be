@@ -14,7 +14,6 @@ export const redisClient = createClient({
   },
 });
 
-console.time('connect-to-redis');
 redisClient
   .connect()
   .then(() => {

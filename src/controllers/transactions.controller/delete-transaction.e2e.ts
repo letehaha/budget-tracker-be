@@ -1,3 +1,4 @@
+import { describe, it, expect } from '@jest/globals';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE, TransactionModel } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -83,9 +84,7 @@ describe('Delete transaction controller', () => {
     it('cannot delete transactions from external account', async () => {
       await helpers.monobank.pair();
       const { transactions } = await helpers.monobank.mockTransactions();
-      const incomeTransaction = transactions.find(
-        (item) => item.transactionType === TRANSACTION_TYPES.income,
-      );
+      const incomeTransaction = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
 
       const res = await helpers.deleteTransaction({ id: incomeTransaction!.id });
 

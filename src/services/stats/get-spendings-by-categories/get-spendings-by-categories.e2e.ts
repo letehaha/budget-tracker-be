@@ -46,9 +46,7 @@ describe('[Stats] Spendings by categories', () => {
     const categoriesList = await helpers.getCategoriesList();
 
     // Prepare root-level categoris
-    const rootCategories = categoriesList
-      .filter((c) => !c.parentId)
-      .slice(0, CATEGORIES_AMOUNT_FOR_EACH_NESTING_LEVEL);
+    const rootCategories = categoriesList.filter((c) => !c.parentId).slice(0, CATEGORIES_AMOUNT_FOR_EACH_NESTING_LEVEL);
 
     // Prepare nested 1-level categories
     const excludedIds = new Set<number>([]);

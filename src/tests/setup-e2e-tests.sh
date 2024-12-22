@@ -38,8 +38,12 @@ docker compose -f ./docker/test/docker-compose.yml exec -T test-runner \
 # Capture the exit code
 TEST_EXIT_CODE=$?
 
-# Clean up
+# Clean up containers
 docker compose -f ./docker/test/docker-compose.yml down -v --remove-orphans --volumes
+
+# Clean up images
+echo "Cleaning up Docker images..."
+docker image prune -af --filter "label=com.docker.compose.project=test"
 
 # Check the exit code and display an error message if it's 1
 if [ $TEST_EXIT_CODE -eq 1 ]; then

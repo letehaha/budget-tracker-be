@@ -1,106 +1,59 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from 'axios';
 import { faker } from '@faker-js/faker';
 import { subDays } from 'date-fns';
-import {
-  ExternalMonobankClientInfoResponse,
-  ExternalMonobankTransactionResponse,
-} from 'shared-types';
+import { ExternalMonobankTransactionResponse } from 'shared-types';
 import * as helpers from '@tests/helpers';
 import Transactions from '@models/Transactions.model';
 import Accounts from '@models/Accounts.model';
 
-const getMockedClientData = (): {
-  data: ExternalMonobankClientInfoResponse;
-} => ({
-  data: {
-    clientId: 'sdfsdfsdf',
-    name: 'Test User',
-    webHookUrl: '',
-    permissions: '',
-    accounts: [
-      {
-        id: 'test-account-1',
-        sendId: 'test-send-id-1',
-        balance: 2500000,
-        creditLimit: 200000,
-        type: 'black',
-        currencyCode: 980,
-        cashbackType: 'Miles',
-        maskedPan: [],
-        iban: 'test iban 1',
-      },
-      {
-        id: 'test-account-2',
-        sendId: 'test-send-id-2',
-        balance: 1000,
-        creditLimit: 0,
-        type: 'black',
-        currencyCode: 840,
-        cashbackType: 'Miles',
-        maskedPan: [],
-        iban: 'test iban 2',
-      },
-    ],
-    jars: [],
-  },
-});
+import { getMockedClientData } from '@tests/mocks/monobank/data';
+import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 
 const getMockedTransactionData = (
   amount = 1,
   { initialBalance }: { initialBalance?: number } = {},
-): { data: ExternalMonobankTransactionResponse[] } => {
+): ExternalMonobankTransactionResponse[] => {
   const currentDate = helpers.randomDate();
   // To make balance change realistic, we store initial one here and the sub below
   let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
-  return {
-    data: new Array(amount).fill(0).map((_, index) => {
-      const amount = faker.number.int({ min: 1000, max: 99999 });
-      // Make expenses and incomes
-      const realisticAmount = index % 3 ? amount : amount * -1;
-      const newBalance = (initialAccountBalance = initialAccountBalance + realisticAmount);
+  return new Array(amount).fill(0).map((_, index) => {
+    const amount = faker.number.int({ min: 1000, max: 99999 });
+    // Make expenses and incomes
+    const realisticAmount = index % 3 ? amount : amount * -1;
+    const newBalance = (initialAccountBalance = initialAccountBalance + realisticAmount);
 
-      return {
-        id: faker.string.uuid(),
-        time: Math.abs(subDays(currentDate, index).getTime() / 1000),
-        description: '',
-        mcc: faker.number.int(300),
-        originalMcc: faker.number.int(300),
-        hold: false,
-        amount: realisticAmount,
-        operationAmount: faker.number.int(10000),
-        currencyCode: faker.number.int({ min: 10, max: 999 }),
-        commissionRate: 0,
-        cashbackAmount: 0,
-        balance: newBalance,
-        comment: '',
-        receiptId: '',
-        invoiceId: '',
-        counterEdrpou: '',
-        counterIban: '',
-        counterName: '',
-      };
-    }),
-  };
+    return {
+      id: faker.string.uuid(),
+      time: Math.abs(subDays(currentDate, index).getTime() / 1000),
+      description: '',
+      mcc: faker.number.int(300),
+      originalMcc: faker.number.int(300),
+      hold: false,
+      amount: realisticAmount,
+      operationAmount: faker.number.int(10000),
+      currencyCode: faker.number.int({ min: 10, max: 999 }),
+      commissionRate: 0,
+      cashbackAmount: 0,
+      balance: newBalance,
+      comment: '',
+      receiptId: '',
+      invoiceId: '',
+      counterEdrpou: '',
+      counterIban: '',
+      counterName: '',
+      __mocked: true,
+    };
+  });
 };
 
-const DUMB_MONOBANK_API_TOKEN = '234234234234';
-
-const callPairMonobankUser = () => {
+const pairMonobankUser = (token: string = VALID_MONOBANK_TOKEN) => {
   return helpers.makeRequest({
     method: 'post',
     url: '/banks/monobank/pair-user',
     payload: {
-      token: DUMB_MONOBANK_API_TOKEN,
+      token,
     },
   });
-};
-
-const pairMonobankUser = () => {
-  (axios as any).mockResolvedValueOnce(getMockedClientData());
-
-  return callPairMonobankUser();
 };
 
 const getTransactions = async () => {
@@ -124,11 +77,11 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
   );
   const account = accounts[1]!;
 
-  const mockedTransactions = helpers.monobank.mockedTransactions(amount, {
+  const mockedTransactions = getMockedTransactionData(amount, {
     initialBalance: account.initialBalance,
   });
 
-  (axios as any).mockResolvedValueOnce(mockedTransactions);
+  global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
 
   await helpers.makeRequest({
     method: 'get',
@@ -152,8 +105,6 @@ export default {
   pair: pairMonobankUser,
   getTransactions,
   mockTransactions: addTransactions,
-  callPair: callPairMonobankUser,
-  mockedTransactions: getMockedTransactionData,
-  mockedClient: getMockedClientData,
-  mockedToken: DUMB_MONOBANK_API_TOKEN,
+  mockedClientData: getMockedClientData,
+  mockedToken: VALID_MONOBANK_TOKEN,
 };

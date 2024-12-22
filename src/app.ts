@@ -24,10 +24,14 @@ import monobankRoutes from './routes/banks/monobank.route';
 import binanceRoutes from './routes/crypto/binance.route';
 import statsRoutes from './routes/stats.route';
 import accountGroupsRoutes from './routes/account-groups';
+import testsRoutes from './routes/tests.route';
+import exchangeRatesRoutes from './routes/exchange-rates';
 
 import { supportedLocales } from './translations';
 
 import middlewarePassword from './middlewares/passport';
+
+import { loadCurrencyRatesJob } from './crons/exchange-rates';
 
 import './redis';
 
@@ -39,15 +43,12 @@ middlewarePassword(passport);
 
 app.set('port', config.get('port'));
 
+loadCurrencyRatesJob.start();
+
 app.use(
   cors({
     origin(requestOrigin, callback) {
-      const ALLOWED_HOSTS = [
-        '127.0.0.1:8100',
-        'budget-tracker.com:8100',
-        '206.81.20.28:8081',
-        'gamanets.money',
-      ];
+      const ALLOWED_HOSTS = ['127.0.0.1:8100', 'budget-tracker.com:8100', '206.81.20.28:8081', 'gamanets.money'];
 
       if (process.env.NODE_ENV !== 'test') {
         if (!requestOrigin || !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))) {
@@ -80,13 +81,13 @@ app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
 app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
 app.use(`${apiPrefix}/stats`, statsRoutes);
 app.use(`${apiPrefix}/account-group`, accountGroupsRoutes);
+app.use(`${apiPrefix}/currencies/rates`, exchangeRatesRoutes);
+
+if (process.env.NODE_ENV === 'test') {
+  app.use(`${apiPrefix}/tests`, testsRoutes);
+}
 
 // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-export const serverInstance = app.listen(
-  process.env.NODE_ENV === 'test' ? 0 : app.get('port'),
-  () => {
-    // eslint-disable-next-line no-console
-    // eslint-disable-next-line no-undef
-    logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
-  },
-);
+export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
+  logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
+});

@@ -38,9 +38,7 @@ export const removeRefundLink = withTransaction(
         { individualHooks: false },
       );
 
-      logger.info(
-        `Refund link between transactions ${originalTxId} and ${refundTxId} removed successfully`,
-      );
+      logger.info(`Refund link between transactions ${originalTxId} and ${refundTxId} removed successfully`);
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {
         logger.error('Error removing refund link:', e);

@@ -36,6 +36,7 @@ export default class UsersCurrencies extends Model {
 
   // Since base currency is always the same, here we're setting exchange rate
   // between currencyId to user's base currency
+  // TODO: probably deprecated?
   @Column({
     allowNull: true,
     defaultValue: null,
@@ -62,7 +63,7 @@ export async function getCurrencies({ userId, ids }: { userId: number; ids?: num
 
   if (ids) where.currencyId = { [Op.in]: ids };
 
-  return UsersCurrencies.findAll({ where, include: { model: Currencies } });
+  return UsersCurrencies.findAll({ where, include: { model: Currencies }, raw: true, nest: true });
 }
 
 export const getBaseCurrency = async ({ userId }: { userId: number }) => {
@@ -75,13 +76,7 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({
-    userId,
-    currencyId,
-  }: {
-    userId: number;
-    currencyId: number;
-  }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({ userId, currencyId }: { userId: number; currencyId: number }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,
@@ -111,7 +106,7 @@ export const addCurrency = async ({
   userId,
   currencyId,
   exchangeRate,
-  liveRateUpdate,
+  liveRateUpdate = true,
   isDefaultCurrency,
 }: {
   userId: number;
@@ -124,6 +119,10 @@ export const addCurrency = async ({
   if (!currency) {
     throw new NotFoundError({ message: 'Currency with provided id does not exist!' });
   }
+
+  const existingCurrency = await UsersCurrencies.findOne({ where: { userId, currencyId }, raw: true });
+  if (existingCurrency) return existingCurrency;
+
   return UsersCurrencies.create(
     {
       userId,
@@ -134,6 +133,7 @@ export const addCurrency = async ({
     },
     {
       returning: true,
+      raw: true,
     },
   );
 };
@@ -169,13 +169,7 @@ export const updateCurrency = async ({
   return currency;
 };
 
-export const deleteCurrency = async ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
+export const deleteCurrency = async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
   const where = { userId, currencyId };
 
   return UsersCurrencies.destroy({

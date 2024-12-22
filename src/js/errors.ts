@@ -10,6 +10,7 @@ export enum ERROR_CODES {
   ValidationError = 422,
   TooManyRequests = 429,
   UnexpectedError = 500,
+  BadGateway = 502,
 }
 
 export class CustomError extends Error {
@@ -27,49 +28,25 @@ export class CustomError extends Error {
 }
 
 export class BadRequestError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.BadRequest,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.BadRequest, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.BadRequest, code, message);
   }
 }
 
 export class Unauthorized extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.unauthorized,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.unauthorized, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.Unauthorized, code, message);
   }
 }
 
 export class NotFoundError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.notFound,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.notFound, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.NotFoundError, code, message);
   }
 }
 
 export class NotAllowedError extends CustomError {
-  constructor({
-    code = API_ERROR_CODES.notAllowed,
-    message,
-  }: {
-    code?: API_ERROR_CODES;
-    message: string;
-  }) {
+  constructor({ code = API_ERROR_CODES.notAllowed, message }: { code?: API_ERROR_CODES; message: string }) {
     super(ERROR_CODES.NotAllowed, code, message);
   }
 }
@@ -123,7 +100,29 @@ export class UnexpectedError extends CustomError {
 }
 
 export class TooManyRequests extends CustomError {
-  constructor(code: API_ERROR_CODES, message: string) {
-    super(ERROR_CODES.TooManyRequests, code, message);
+  constructor({
+    code = API_ERROR_CODES.tooManyRequests,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.TooManyRequests, code, message, details);
+  }
+}
+
+export class BadGateway extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.badGateway,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.BadGateway, code, message, details);
   }
 }

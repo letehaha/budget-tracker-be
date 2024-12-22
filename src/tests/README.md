@@ -10,6 +10,8 @@ The current implementation of E2E tests uses multiple databases to facilitate pa
 
 We use Jest as our testing framework and have defined `JEST_WORKERS_AMOUNT` workers to run the tests in parallel. Each worker requires a separate database instance.
 
+You can toggle logs displaying when runnin tests using `SHOW_LOGS_IN_TESTS` env variable (`true` or `false`).
+
 ### Database Setup
 
 For each Jest worker, a corresponding database is created with the naming convention `{APPLICATION_DB_DATABASE}-{n}`, where `n` is the worker ID. This worker ID ranges exactly as `{1...JEST_WORKERS_AMOUNT}`.

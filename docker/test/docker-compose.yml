@@ -9,11 +9,15 @@ services:
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
     env_file: ../../.env.test
+    labels:
+      - 'com.docker.compose.project=test'
 
   test-redis:
     image: redis:6
     container_name: test-budget-tracker-redis
     volumes: ['test_redis_data:/data']
+    labels:
+      - 'com.docker.compose.project=test'
 
   test-runner:
     build:
@@ -25,6 +29,8 @@ services:
     environment:
       - NODE_ENV=test
     env_file: ../../.env.test
+    labels:
+      - 'com.docker.compose.project=test'
 
 volumes:
   test_db_data:

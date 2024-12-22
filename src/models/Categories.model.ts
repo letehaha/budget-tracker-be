@@ -65,12 +65,7 @@ export interface CreateCategoryPayload {
   type?: CATEGORY_TYPES;
 }
 
-export const createCategory = async ({
-  parentId,
-  color,
-  userId,
-  ...params
-}: CreateCategoryPayload) => {
+export const createCategory = async ({ parentId, color, userId, ...params }: CreateCategoryPayload) => {
   if (parentId) {
     const parent = await Categories.findOne({
       where: { id: parentId, userId },

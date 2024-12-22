@@ -52,9 +52,7 @@ export default class Balances extends Model {
   }
 
   // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(
-    payload: GetTotalBalanceHistoryPayload,
-  ): Promise<BalanceModel[]> {
+  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<BalanceModel[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
       where: {
@@ -107,8 +105,7 @@ export default class Balances extends Model {
     isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount =
-      data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
+    let amount = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
@@ -118,9 +115,7 @@ export default class Balances extends Model {
       } else if (prevData) {
         const originalDate = new Date(prevData.time);
         const originalAmount =
-          prevData.transactionType === TRANSACTION_TYPES.income
-            ? prevData.refAmount
-            : prevData.refAmount * -1;
+          prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount * -1;
         originalDate.setHours(0, 0, 0, 0);
 
         if (
@@ -163,9 +158,7 @@ export default class Balances extends Model {
       if (existingRecordForTheDate) {
         // Store the highest amount
         existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > (balance || 0)
-            ? existingRecordForTheDate.amount
-            : (balance as number);
+          existingRecordForTheDate.amount > (balance || 0) ? existingRecordForTheDate.amount : (balance as number);
 
         // existingRecordForTheDate.amount = balance
         // ? Math.max(existingRecordForTheDate.amount, balance)
@@ -183,15 +176,7 @@ export default class Balances extends Model {
   }
 
   // Update the balance for a specific system account and date
-  private static async updateRecord({
-    accountId,
-    date,
-    amount,
-  }: {
-    accountId: number;
-    date: Date;
-    amount: number;
-  }) {
+  private static async updateRecord({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
     // Try to find an existing balance for the account and date
     let balanceForTxDate = await this.findOne({
       where: {
@@ -277,13 +262,7 @@ export default class Balances extends Model {
     // }
   }
 
-  static async handleAccountChange({
-    account,
-    prevAccount,
-  }: {
-    account: Accounts;
-    prevAccount?: Accounts;
-  }) {
+  static async handleAccountChange({ account, prevAccount }: { account: Accounts; prevAccount?: Accounts }) {
     const { id: accountId, refInitialBalance } = account;
 
     // Try to find an existing balance for the account
