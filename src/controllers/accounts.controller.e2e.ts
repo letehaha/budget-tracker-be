@@ -151,10 +151,11 @@ describe('Accounts controller', () => {
         id: account.id,
         raw: true,
       });
+      const currencyRate = (await helpers.getCurrenciesRates({ codes: [newCurrency] }))[0]!.rate;
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
-      expect(accountAfterTxs.refCurrentBalance).toBe(-72);
+      expect(accountAfterTxs.refCurrentBalance).toBeWithinRange(-3000 * currencyRate, 2);
 
       // Update account balance directly, with no tx usage. In that case balance should
       // be changed as well as initialBalance
@@ -169,9 +170,9 @@ describe('Accounts controller', () => {
       // We changed currentBalance from -3000 to -500, so it means that
       // initialbalance should be increased on 2500
       expect(accountUpdateBalance.initialBalance).toBe(2500);
-      expect(accountUpdateBalance.refInitialBalance).toBe(60);
+      expect(accountUpdateBalance.refInitialBalance).toBeWithinRange(2500 * currencyRate, 2);
       expect(accountUpdateBalance.currentBalance).toBe(-500);
-      expect(accountUpdateBalance.refCurrentBalance).toBe(-12);
+      expect(accountUpdateBalance.refCurrentBalance).toBeWithinRange(-500 * currencyRate, 2);
     });
 
     it('updates and declines monobank accounts update correctly', async () => {

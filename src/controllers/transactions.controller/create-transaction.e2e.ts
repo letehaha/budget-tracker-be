@@ -52,7 +52,7 @@ describe('Create transaction controller', () => {
     });
 
     const transactions = await helpers.getTransactions({ raw: true });
-    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteId === currency.id);
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currency.code);
 
     expect(baseTx.currencyId).toBe(currency.id);
     expect(baseTx.currencyCode).toBe(currency.code);
@@ -189,8 +189,8 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteCode === currencyA.code);
-    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.quoteCode === currencyB.code);
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyA.code);
+    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyB.code);
 
     const DESTINATION_AMOUNT = 25000;
     const txPayload = {

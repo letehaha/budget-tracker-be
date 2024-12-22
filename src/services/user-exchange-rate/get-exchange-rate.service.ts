@@ -1,7 +1,7 @@
 import * as UserExchangeRates from '@models/UserExchangeRates.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as Currencies from '@models/Currencies.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
+import UsersCurrencies, { getBaseCurrency } from '@models/UsersCurrencies.model';
 import {
   fetchExchangeRatesForDate,
   API_LAYER_BASE_CURRENCY_CODE,
@@ -28,6 +28,7 @@ export async function getExchangeRate({
     pair = { baseCode: params.baseCode, quoteCode: params.quoteCode };
   }
 
+  // If base and qoute are the same currency, early return with `1`
   if (pair.baseCode === pair.quoteCode) {
     return {
       baseCode: pair.baseCode,
@@ -37,25 +38,33 @@ export async function getExchangeRate({
     };
   }
 
+  // When currencies are different, make sure that base_code currency is linked
+  // to user's currencies, since usually quite is always a user_default_currency
   const userCurrency = await UsersCurrencies.findOne({
     where: { userId },
+    attributes: ['liveRateUpdate'],
     include: [
       {
         model: Currencies.default,
         where: { code: pair.baseCode },
-        attributes: [],
+        attributes: [], // No need to fetch extra attributes
       },
     ],
+    raw: true,
   });
 
   if (!userCurrency) {
     throw new NotFoundError({ message: 'Asked currency is not connected' });
   }
 
-  if (userCurrency && userCurrency.liveRateUpdate === false) {
+  const userDefaultCurrency = await getBaseCurrency({ userId });
+
+  // If user has custom live rate AND quote_code is user's base_currency, then
+  // skip any checks and calculations and simply return what user has set
+  if (userCurrency && userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
     const [userExchangeRate] = await UserExchangeRates.getRates({
       userId,
-      pair: pair,
+      pair,
     });
 
     if (userExchangeRate) {
@@ -67,52 +76,58 @@ export async function getExchangeRate({
     }
   }
 
-  const liveRateWhereCondition = {
-    date: { [Op.between]: [startOfDay(date), endOfDay(date)] },
+  let baseRate: ExchangeRates.default | null = null;
+  let quoteRate: ExchangeRates.default | null = null;
+
+  const loadRate = (code: string, rateDate = date) => {
+    if (code === API_LAYER_BASE_CURRENCY_CODE) {
+      return null; // No need to fetch if it's the API's default base currency
+    }
+    const liveRateWhereCondition = {
+      date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
+    };
+    return ExchangeRates.default.findOne({
+      where: { ...liveRateWhereCondition, baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: code },
+      raw: true,
+    });
   };
 
-  let baseRate, quoteRate;
+  baseRate = await loadRate(pair.baseCode);
+  quoteRate = await loadRate(pair.quoteCode);
 
-  if (pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) {
-    baseRate = await ExchangeRates.default.findOne({
-      where: { ...liveRateWhereCondition, baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: pair.baseCode },
-      raw: true,
-    });
-  }
-
-  if (pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE) {
-    quoteRate = await ExchangeRates.default.findOne({
-      where: { ...liveRateWhereCondition, baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: pair.quoteCode },
-      raw: true,
-    });
-  }
-
+  // If none rates found in the DB, it means we need to sync data manually
   if (!baseRate || !quoteRate) {
     await fetchExchangeRatesForDate(date);
 
-    if (!baseRate && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) {
-      baseRate = await ExchangeRates.default.findOne({
-        where: { ...liveRateWhereCondition, baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: pair.baseCode },
-        raw: true,
-      });
-    }
-    if (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE) {
-      quoteRate = await ExchangeRates.default.findOne({
-        where: { ...liveRateWhereCondition, baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: pair.quoteCode },
-        raw: true,
-      });
-    }
+    // Retry fetching the missing rates after the API call
+    if (!baseRate) baseRate = await loadRate(pair.baseCode);
+    if (!quoteRate) quoteRate = await loadRate(pair.quoteCode);
+  }
+
+  // If still no rates found in the DB, it means something happened in the
+  // meanwhile, and we need to take the rate for the nearest date
+  if (!baseRate || !quoteRate) {
+    // TODO: if cannot load rate for "today", load for the nearest date, and send
+    // more fields to client to warn about it and say for which date currency rate
+    // is loaded
   }
 
   if (pair.baseCode === API_LAYER_BASE_CURRENCY_CODE) {
-    return quoteRate;
+    return {
+      ...pair,
+      rate: formatRate(quoteRate!.rate), // Directly use the base rate
+      date: quoteRate!.date,
+    };
   } else if (pair.quoteCode === API_LAYER_BASE_CURRENCY_CODE) {
-    return { ...baseRate, rate: 1 / baseRate!.rate };
+    return {
+      ...pair,
+      rate: formatRate(1 / baseRate!.rate), // Invert the quote rate
+      date: baseRate!.date,
+    };
   } else {
     const crossRate = quoteRate!.rate / baseRate!.rate;
     return {
-      baseCode: pair.baseCode,
-      quoteCode: pair.quoteCode,
+      ...pair,
       rate: formatRate(crossRate),
       date: quoteRate!.date,
     };

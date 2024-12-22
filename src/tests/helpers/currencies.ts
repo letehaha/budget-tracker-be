@@ -23,7 +23,7 @@ export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): 
     raw: true,
   });
 
-  return codes ? data.filter((item) => codes.includes(item.quoteCode)) : data;
+  return codes ? data.filter((item) => codes.includes(item.baseCode)) : data;
 }
 
 export function addUserCurrencies<R extends boolean | undefined = undefined>({

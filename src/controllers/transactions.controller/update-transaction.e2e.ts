@@ -211,6 +211,8 @@ describe('Update transaction controller', () => {
         const { transactions } = await helpers.monobank.mockTransactions();
 
         const externalTransaction = transactions.find((item) => item.transactionType === transactionType);
+        expect(externalTransaction).not.toBe(undefined);
+
         const accountB = await helpers.createAccount({
           raw: true,
         });

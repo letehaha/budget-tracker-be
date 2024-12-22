@@ -75,7 +75,8 @@ export const createAccountWithNewCurrency = async ({ currency }) => {
     },
     raw: true,
   });
-  const currencyRate = (await getCurrenciesRates({ codes: [currency] }))[0];
 
-  return { account, currency: currencyA, currencyRate };
+  const currencies = await getCurrenciesRates({ codes: [currency] });
+
+  return { account, currency: currencyA, currencyRate: currencies[0] };
 };

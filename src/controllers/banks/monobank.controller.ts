@@ -32,7 +32,7 @@ import { errorHandler } from '@controllers/helpers';
 import { ERROR_CODES, ValidationError } from '@js/errors';
 import { redisKeyFormatter } from '@common/lib/redis';
 
-const usersQuery = new Map();
+export const usersQuery = new Map();
 
 const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');

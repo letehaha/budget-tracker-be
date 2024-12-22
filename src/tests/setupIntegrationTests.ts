@@ -8,6 +8,7 @@ import { until } from '@common/helpers';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 
 import { setupMswServer } from './mocks/setup-mock-server';
+import { usersQuery } from '@controllers/banks/monobank.controller';
 
 const mswMockServer = setupMswServer();
 
@@ -33,7 +34,8 @@ const umzug = new Umzug({
 });
 
 global.BASE_CURRENCY = null;
-global.BASE_CURRENCY_CODE = 'USD';
+// Should be non-USD so that some tests make sense
+global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
@@ -65,6 +67,13 @@ expect.extend({
       pass: false,
     };
   },
+  toBeWithinRange(received: number, target: number, range: number) {
+    const pass = Math.abs(received - target) <= range;
+    return {
+      pass,
+      message: () => `expected ${received} to be within ${range} of ${target}`,
+    };
+  },
 });
 
 beforeEach(async () => {
@@ -81,6 +90,7 @@ beforeEach(async () => {
       await redisClient.del(workerKeys);
     }
     await umzug.up();
+    usersQuery.clear();
 
     await makeRequest({
       method: 'post',

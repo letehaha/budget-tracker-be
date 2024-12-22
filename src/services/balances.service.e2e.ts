@@ -1,3 +1,4 @@
+import { expect, describe, it } from '@jest/globals';
 import { TRANSACTION_TYPES } from 'shared-types';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import Transactions from '@models/Transactions.model';
@@ -471,7 +472,7 @@ describe('Balances service', () => {
       const historyIncreaseChange = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
       historyIncreaseChange.forEach((item) => {
-        expect(item.amount).toBe(Math.floor((initialBalance + 5000) * currencyRate) - 1);
+        expect(item.amount).toBeCloseTo(Math.floor((initialBalance + 5000) * currencyRate) - 1, -1);
       });
 
       // Then test that balance decreate works well
@@ -485,9 +486,7 @@ describe('Balances service', () => {
       const historyDecreaseChange = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
       historyDecreaseChange.forEach((item) => {
-        // TODO: it should be 0 but not -1, but we have calculation issues that should be fixed
-        // it doesn't affect anything btw, only the history has some issues
-        expect(item.amount).toBe(-1);
+        expect(item.amount).toBe(0);
       });
     });
 

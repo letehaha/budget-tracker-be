@@ -25,7 +25,7 @@ export const getSingleRefund = async (
 
 export const getRefundTransactions = async (params?: Omit<GetRefundTransactionsParams, 'userId'>, raw = false) => {
   const queryString = params
-    ? Object.entries(params)
+    ? Object.entries({ page: 1, limit: 10, ...params })
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&')
     : '';

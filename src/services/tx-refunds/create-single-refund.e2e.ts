@@ -232,6 +232,16 @@ describe('Refund Transactions service', () => {
       });
 
       it('successfully creates multiple partial refunds with different currencies', async () => {
+        /**
+         * Create base transaction for which multiple refunds will be added. Then
+         * create two refunds in different currencies.
+         * The point is that second refund is in another currency with lower rate,
+         * so even if we pass bigger `amount`, in fact `refAmount` will be lower,
+         * and this test tests that it works as expected.
+         */
+
+        const amounts = { tx: 1_000, refund_1: 100, refund_2: 1500 };
+
         const account = await helpers.createAccount({ raw: true });
         const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
         const accountB = await helpers.createAccount({
@@ -245,7 +255,7 @@ describe('Refund Transactions service', () => {
         const [baseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 100,
+            amount: amounts.tx,
             transactionType: TRANSACTION_TYPES.expense,
           }),
           raw: true,
@@ -255,7 +265,7 @@ describe('Refund Transactions service', () => {
         const [refundTx1] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 40,
+            amount: amounts.refund_1,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,
@@ -270,7 +280,7 @@ describe('Refund Transactions service', () => {
         const [refundTx2] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: accountB.id,
-            amount: 1000,
+            amount: amounts.refund_2,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,
@@ -349,8 +359,8 @@ describe('Refund Transactions service', () => {
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
-            // By default base currency is USD, so we need currency that has bigger exchange rate
-            currencyId: global.MODELS_CURRENCIES.find((item) => item.code === 'EUR').id,
+            // We need to use some currency with higher exchange rate, to achieve expected conditions
+            currencyId: global.MODELS_CURRENCIES.find((item) => item.code === 'GBP').id,
           },
           raw: true,
         });
@@ -358,7 +368,7 @@ describe('Refund Transactions service', () => {
         const [baseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 100,
+            amount: 1000,
             transactionType: TRANSACTION_TYPES.expense,
           }),
           raw: true,
@@ -367,7 +377,7 @@ describe('Refund Transactions service', () => {
         const [refundTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: accountB.id,
-            amount: 98,
+            amount: 950,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,

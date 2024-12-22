@@ -14,7 +14,7 @@ import { createRefund } from '@controllers/transactions.controller/refunds/creat
 import { deleteRefund } from '@controllers/transactions.controller/refunds/delete-refund';
 import { getTransactions, getTransactionsSchema } from '@controllers/transactions.controller/get-transaction';
 import { getRefund } from '@controllers/transactions.controller/refunds/get-refund';
-import { getRefunds } from '@controllers/transactions.controller/refunds/get-refunds';
+import { getRefunds, getRefundsSchema } from '@controllers/transactions.controller/refunds/get-refunds';
 import { getRefundsForTransactionById } from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
@@ -23,7 +23,7 @@ const router = Router({});
 
 // Define all named routes level above to avoid matching with /:id
 router.get('/refund', authenticateJwt, getRefund);
-router.get('/refunds', authenticateJwt, getRefunds);
+router.get('/refunds', authenticateJwt, validateEndpoint(getRefundsSchema), getRefunds);
 router.post('/refund', authenticateJwt, createRefund);
 router.delete('/refund', authenticateJwt, deleteRefund);
 

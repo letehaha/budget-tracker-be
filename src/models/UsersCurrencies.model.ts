@@ -133,6 +133,7 @@ export const addCurrency = async ({
     },
     {
       returning: true,
+      raw: true,
     },
   );
 };

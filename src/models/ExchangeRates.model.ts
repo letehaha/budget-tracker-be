@@ -34,7 +34,7 @@ export default class ExchangeRates extends Model {
   rate: number;
 
   @Column({ allowNull: false })
-  date: string;
+  date: Date;
 }
 
 export async function getRatesForCurrenciesPairs(
