@@ -49,11 +49,7 @@ module.exports = {
       });
 
       // 3. On monobank user deletion, delete all associated mono accounts
-      await queryInterface.removeConstraint(
-        'MonobankAccounts',
-        'MonobankAccounts_monoUserId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankAccounts', 'MonobankAccounts_monoUserId_fkey', { transaction });
       await queryInterface.addConstraint('MonobankAccounts', {
         fields: ['monoUserId'],
         type: 'foreign key',
@@ -85,11 +81,9 @@ module.exports = {
       });
 
       // 5. On monobank account deletion, delete all associated mono transactions
-      await queryInterface.removeConstraint(
-        'MonobankTransactions',
-        'MonobankTransactions_monoAccountId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankTransactions', 'MonobankTransactions_monoAccountId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('MonobankTransactions', {
         fields: ['monoAccountId'],
         type: 'foreign key',
@@ -179,11 +173,7 @@ module.exports = {
       });
 
       // 3. On monobank user deletion, delete all associated mono accounts
-      await queryInterface.removeConstraint(
-        'MonobankAccounts',
-        'MonobankAccounts_monoUserId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankAccounts', 'MonobankAccounts_monoUserId_fkey', { transaction });
       await queryInterface.addConstraint('MonobankAccounts', {
         fields: ['monoUserId'],
         type: 'foreign key',
@@ -215,11 +205,9 @@ module.exports = {
       });
 
       // 5. On monobank account deletion, delete all associated mono transactions
-      await queryInterface.removeConstraint(
-        'MonobankTransactions',
-        'MonobankTransactions_monoAccountId_fkey',
-        { transaction },
-      );
+      await queryInterface.removeConstraint('MonobankTransactions', 'MonobankTransactions_monoAccountId_fkey', {
+        transaction,
+      });
       await queryInterface.addConstraint('MonobankTransactions', {
         fields: ['monoAccountId'],
         type: 'foreign key',

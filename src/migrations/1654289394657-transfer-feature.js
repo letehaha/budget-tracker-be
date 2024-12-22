@@ -261,10 +261,9 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(
-        'UPDATE "MonobankTransactions" SET "transactionEntityId" = 2',
-        { transaction },
-      );
+      await queryInterface.sequelize.query('UPDATE "MonobankTransactions" SET "transactionEntityId" = 2', {
+        transaction,
+      });
 
       await queryInterface.removeColumn('Transactions', 'accountType', {
         transaction,
@@ -337,10 +336,7 @@ module.exports = {
         },
         { transaction },
       );
-      await queryInterface.sequelize.query(
-        'UPDATE "MonobankTransactions" SET "paymentTypeId" = 6',
-        { transaction },
-      );
+      await queryInterface.sequelize.query('UPDATE "MonobankTransactions" SET "paymentTypeId" = 6', { transaction });
 
       await queryInterface.removeColumn('Transactions', 'paymentType', {
         transaction,

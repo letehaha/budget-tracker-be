@@ -1,9 +1,4 @@
-import {
-  ACCOUNT_CATEGORIES,
-  ACCOUNT_TYPES,
-  API_RESPONSE_STATUS,
-  endpointsTypes,
-} from 'shared-types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from 'shared-types';
 import { CustomResponse } from '@common/types';
 import * as accountsService from '@services/accounts.service';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -82,13 +77,7 @@ export const createAccount = async (req, res) => {
 export const updateAccount = async (req, res) => {
   const { id } = req.params;
   const { id: userId } = req.user;
-  const {
-    accountCategory,
-    name,
-    creditLimit,
-    isEnabled,
-    currentBalance,
-  }: endpointsTypes.UpdateAccountBody = req.body;
+  const { accountCategory, name, creditLimit, isEnabled, currentBalance }: endpointsTypes.UpdateAccountBody = req.body;
   try {
     const account = await Accounts.findByPk(id);
 

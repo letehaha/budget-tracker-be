@@ -156,9 +156,7 @@ describe('Retrieve transactions with filters', () => {
     });
 
     expect(res.length).toBe(4); // income, expense, refunds
-    expect(res.every((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(
-      true,
-    );
+    expect(res.every((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(true);
   });
 
   it('should retrieve transactions excluding refunds', async () => {
@@ -185,9 +183,9 @@ describe('Retrieve transactions with filters', () => {
     });
 
     expect(res.length).toBe(6);
-    expect(
-      transactions.map((t) => t!.time).sort((a, b) => comparer(new Date(a), new Date(b))),
-    ).toEqual(res.map((t) => t.time));
+    expect(transactions.map((t) => t!.time).sort((a, b) => comparer(new Date(a), new Date(b)))).toEqual(
+      res.map((t) => t.time),
+    );
   });
 
   it('should retrieve transactions filtered by accountIds', async () => {

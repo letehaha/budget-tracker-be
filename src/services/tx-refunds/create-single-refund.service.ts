@@ -34,11 +34,7 @@ interface CreateSingleRefundParams {
  * @throws {Error} Throws an error if validation fails or if the operation fails.
  */
 export const createSingleRefund = withTransaction(
-  async ({
-    userId,
-    originalTxId,
-    refundTxId,
-  }: CreateSingleRefundParams): Promise<RefundTransactions.default> => {
+  async ({ userId, originalTxId, refundTxId }: CreateSingleRefundParams): Promise<RefundTransactions.default> => {
     try {
       // Fetch original and refund transactions
       const [originalTx, refundTx] = await Promise.all([

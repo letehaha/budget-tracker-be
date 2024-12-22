@@ -92,12 +92,7 @@ export async function getCurrencies({
   currencies?: string[];
   codes?: string[];
 }) {
-  if (
-    ids === undefined &&
-    currencies === undefined &&
-    codes === undefined &&
-    numbers === undefined
-  ) {
+  if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
     throw new ValidationError({
       message: 'Neither "ids", "currencies" or "codes" should be specified.',
     });

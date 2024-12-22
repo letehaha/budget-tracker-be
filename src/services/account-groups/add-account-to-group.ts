@@ -6,13 +6,7 @@ import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 import { logger } from '@js/utils';
 
 export const addAccountToGroup = withTransaction(
-  async ({
-    accountId,
-    groupId,
-  }: {
-    accountId: number;
-    groupId: number;
-  }): Promise<AccountGrouping> => {
+  async ({ accountId, groupId }: { accountId: number; groupId: number }): Promise<AccountGrouping> => {
     const existingAccount = await Accounts.findByPk(accountId);
     if (!existingAccount) {
       throw new NotFoundError({ message: 'Account with such id is not found.' });

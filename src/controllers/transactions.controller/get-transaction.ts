@@ -1,18 +1,10 @@
 import { z } from 'zod';
-import {
-  API_RESPONSE_STATUS,
-  SORT_DIRECTIONS,
-  TRANSACTION_TYPES,
-  ACCOUNT_TYPES,
-} from 'shared-types';
+import { API_RESPONSE_STATUS, SORT_DIRECTIONS, TRANSACTION_TYPES, ACCOUNT_TYPES } from 'shared-types';
 import { CustomRequest, CustomResponse } from '@common/types';
 import * as transactionsService from '@services/transactions';
 import { errorHandler } from '../helpers';
 
-export const getTransactions = async (
-  req: CustomRequest<typeof getTransactionsSchema>,
-  res: CustomResponse,
-) => {
+export const getTransactions = async (req: CustomRequest<typeof getTransactionsSchema>, res: CustomResponse) => {
   try {
     const { id: userId } = req.user;
     const { ...restParams } = req.validated.query;
@@ -62,10 +54,7 @@ export const getTransactionsSchema = z.object({
       nestedInclude: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeTransfer: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      startDate: z
-        .string()
-        .datetime({ message: 'Invalid ISO date string for startDate' })
-        .optional(),
+      startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
       amountLte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       amountGte: z.preprocess((val) => Number(val), z.number().positive()).optional(),

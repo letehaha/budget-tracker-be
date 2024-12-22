@@ -32,7 +32,7 @@ import { errorHandler } from '@controllers/helpers';
 import { ERROR_CODES, ValidationError } from '@js/errors';
 import { redisKeyFormatter } from '@common/lib/redis';
 
-const usersQuery = new Map();
+export const usersQuery = new Map();
 
 const hostWebhooksCallback = config.get('hostWebhooksCallback');
 const apiPrefix = config.get('apiPrefix');
@@ -104,9 +104,7 @@ async function createMonoTransaction({
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');
   } else {
-    categoryId = (await Users.getUserDefaultCategory({ id: userData.id }))!.get(
-      'defaultCategoryId',
-    );
+    categoryId = (await Users.getUserDefaultCategory({ id: userData.id }))!.get('defaultCategoryId');
 
     await UserMerchantCategoryCodes.createEntry({
       mccId: mccId.get('id'),

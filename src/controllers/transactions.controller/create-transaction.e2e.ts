@@ -1,3 +1,4 @@
+import { describe, it, expect } from '@jest/globals';
 import { TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from 'shared-types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -51,7 +52,7 @@ describe('Create transaction controller', () => {
     });
 
     const transactions = await helpers.getTransactions({ raw: true });
-    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseId === currency.id);
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currency.code);
 
     expect(baseTx.currencyId).toBe(currency.id);
     expect(baseTx.currencyCode).toBe(currency.code);
@@ -102,9 +103,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     expect(baseTx).toStrictEqual(transactions[0]);
@@ -162,9 +161,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
@@ -192,12 +189,8 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyRate = (await helpers.getCurrenciesRates()).find(
-      (c) => c.baseCode === currencyA.code,
-    );
-    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find(
-      (c) => c.baseCode === currencyB.code,
-    );
+    const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyA.code);
+    const oppositeCurrencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currencyB.code);
 
     const DESTINATION_AMOUNT = 25000;
     const txPayload = {
@@ -238,9 +231,7 @@ describe('Create transaction controller', () => {
 
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(oppositeTx!.transactionType).toBe(
-      txPayload.transactionType === TRANSACTION_TYPES.expense
-        ? TRANSACTION_TYPES.income
-        : TRANSACTION_TYPES.expense,
+      txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
@@ -288,9 +279,7 @@ describe('Create transaction controller', () => {
       expect(oppositeTx!.amount).toBe(destinationTx.amount);
       expect(baseTx.amount).toBe(expectedValues.baseTransaction.amount);
       expect(baseTx.transactionType).toBe(TRANSACTION_TYPES.expense);
-      expect(oppositeTx!.transactionType).toBe(
-        expectedValues.destinationTransaction.transactionType,
-      );
+      expect(oppositeTx!.transactionType).toBe(expectedValues.destinationTransaction.transactionType);
     });
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'link with external %s transaction',
@@ -302,10 +291,7 @@ describe('Create transaction controller', () => {
         const expectedValues = {
           accountId: accountA.id,
           amount: 50,
-          transactionType:
-            txType === TRANSACTION_TYPES.expense
-              ? TRANSACTION_TYPES.income
-              : TRANSACTION_TYPES.expense,
+          transactionType: txType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
         };
         const transferTxPayload = helpers.buildTransactionPayload({
           ...expectedValues,
