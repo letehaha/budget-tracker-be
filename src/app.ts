@@ -31,6 +31,7 @@ import { supportedLocales } from './translations';
 
 import middlewarePassword from './middlewares/passport';
 import { requestIdMiddleware } from '@middlewares/request-id';
+import { sessionMiddleware } from '@middlewares/session-id';
 
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 
@@ -61,6 +62,7 @@ app.use(
 
       return callback(null, true);
     },
+    exposedHeaders: ['x-session-id', 'x-request-id'],
   }),
 );
 app.use(express.json());
@@ -69,6 +71,7 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 app.use(locale(supportedLocales));
+app.use(sessionMiddleware);
 
 /**
  *  Routes include
