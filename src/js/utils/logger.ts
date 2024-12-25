@@ -1,6 +1,7 @@
 import winston, { format, transports } from 'winston';
 import LokiTransport from 'winston-loki';
 import { getCurrentRequestId } from '@common/lib/cls/logging';
+import { getCurrentSessionId } from '@common/lib/cls/session-id';
 
 const transportsArray: winston.transport[] = [new transports.Console()];
 const { GRAFANA_LOKI_HOST, GRAFANA_LOKI_AUTH, GRAFANA_LOKI_USER_ID } = process.env;
@@ -54,6 +55,7 @@ const createLogger =
         level: severity,
         message,
         requestId: getCurrentRequestId() ?? null,
+        sessionId: getCurrentSessionId() ?? null,
         ...meta,
       });
     }
