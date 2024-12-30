@@ -25,9 +25,9 @@ export const login = withTransaction(
               username: user.username,
               userId: user.id,
             },
-            config.get('jwtSecret'),
+            config.get('jwtSecret') as string,
             {
-              expiresIn: 60 * 60, // 1 hour
+              expiresIn: '7d',
             },
           );
 
