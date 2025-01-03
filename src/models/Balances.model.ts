@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from 'shared-types';
-import { subDays } from 'date-fns';
+import { subDays, startOfMonth } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
 
@@ -30,6 +30,13 @@ export default class Balances extends Model {
     allowNull: false,
     type: DataType.INTEGER,
   })
+  /**
+   * Representation of the account balance at the specific date. Each time a new
+   * transaction is being added, changed or removed, we update account balance,
+   * and also this `amount` field, so that we always have actual balance for the
+   * specific date.
+   * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
+   */
   amount: number;
 
   @ForeignKey(() => Accounts)
@@ -177,6 +184,38 @@ export default class Balances extends Model {
 
   // Update the balance for a specific system account and date
   private static async updateRecord({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
+    // If there's no record for the 1st of the month, create it based on the closest record prior it
+    // so it's easier to calculate stats for the period
+    const firstDayOfMonth = startOfMonth(new Date(date));
+    let firstDayBalance = await this.findOne({
+      where: {
+        accountId,
+        date: firstDayOfMonth,
+      },
+    });
+
+    if (!firstDayBalance) {
+      const latestBalancePrior = await this.findOne({
+        where: {
+          date: {
+            [Op.lt]: firstDayOfMonth,
+          },
+          accountId,
+        },
+        attributes: ['amount'],
+        order: [['date', 'DESC']],
+      });
+
+      if (latestBalancePrior) {
+        // Create a record for the 1st day of the month
+        firstDayBalance = await this.create({
+          accountId,
+          date: firstDayOfMonth,
+          amount: latestBalancePrior.amount,
+        });
+      }
+    }
+
     // Try to find an existing balance for the account and date
     let balanceForTxDate = await this.findOne({
       where: {
@@ -221,14 +260,14 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date: subDays(new Date(date), 1),
-          amount: account!.initialBalance,
+          amount: account!.refInitialBalance,
         });
 
         // (2) Then we create a record for that transaction
         await this.create({
           accountId,
           date,
-          amount: account!.initialBalance + amount,
+          amount: account!.refInitialBalance + amount,
         });
         // }
       } else {
