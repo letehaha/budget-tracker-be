@@ -25,6 +25,7 @@ const sequelize = new Sequelize({
     max: 50,
     evict: 10000,
   },
+  logging: process.env.NODE_ENV === 'production',
 });
 
 if (process.env.NODE_ENV === 'defelopment') {
