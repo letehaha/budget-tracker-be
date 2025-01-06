@@ -31,6 +31,7 @@ import { logger } from '@js/utils/logger';
 import { errorHandler } from '@controllers/helpers';
 import { ERROR_CODES, ValidationError } from '@js/errors';
 import { redisKeyFormatter } from '@common/lib/redis';
+import { encryptData } from '@root/services/encrypt/encrypt';
 
 export const usersQuery = new Map();
 
@@ -211,11 +212,12 @@ export const getUser = async (req, res: CustomResponse) => {
 export const updateUser = async (req, res: CustomResponse) => {
   const { id: systemUserId } = req.user;
   const { apiToken, name, webHookUrl, clientId }: endpointsTypes.UpdateMonobankUserBody = req.body;
+  const encryptedToken = apiToken ? encryptData<string>(apiToken) : undefined;
 
   try {
     const user = await monobankUsersService.updateUser({
       systemUserId,
-      apiToken,
+      apiToken: encryptedToken,
       name,
       webHookUrl,
       clientId,

@@ -20,6 +20,7 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from './common';
 import { redisKeyFormatter } from '@common/lib/redis';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import { encryptData } from './encrypt';
 
 export const getAccounts = withTransaction(
   async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> => Accounts.getAccounts(payload),
@@ -140,9 +141,11 @@ export const pairMonobankAccount = withTransaction(async (payload: { token: stri
     clientInfo = JSON.parse(response);
   }
 
+  const encryptedToken = encryptData<string>(token);
+
   user = await monobankUsersService.createUser({
     userId,
-    token,
+    token: encryptedToken,
     clientId: clientInfo.clientId,
     name: clientInfo.name,
     webHookUrl: clientInfo.webHookUrl,

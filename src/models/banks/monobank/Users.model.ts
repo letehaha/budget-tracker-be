@@ -1,6 +1,7 @@
 import { Table, Column, Model, ForeignKey, Length } from 'sequelize-typescript';
 import { endpointsTypes } from 'shared-types';
 import Users from '../../Users.model';
+import { decryptData } from '@root/services/encrypt/encrypt';
 
 @Table({
   timestamps: true,
@@ -33,8 +34,9 @@ export default class MonobankUsers extends Model {
 }
 
 export const getUserByToken = async ({ token, userId }: { token: string; userId: number }) => {
+  const decryptedToken = decryptData<string>(token)
   const user = await MonobankUsers.findOne({
-    where: { apiToken: token, systemUserId: userId },
+    where: { apiToken: decryptedToken, systemUserId: userId },
     raw: true,
   });
 
