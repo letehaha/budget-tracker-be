@@ -15,6 +15,7 @@ import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
 import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
 import { withTransaction } from '../common';
+import Balances from '@models/Balances.model';
 
 type CreateOppositeTransactionParams = [
   creationParams: (CreateTransactionParams | UpdateTransactionParams) & { time: Date },
@@ -95,6 +96,15 @@ export const calcTransferTransactionRefAmount = async ({
  * 3. Calculate correct refAmount for both base and opposite tx. Logic is described down in the code
  */
 export const createOppositeTransaction = async (params: CreateOppositeTransactionParams) => {
+  logger.info('State before transfer', {
+    accountFrom: {
+      balance: 10,
+      refBalance: 100,
+      balance_in_table: 100,
+    },
+    accountTo: {},
+  });
+
   const [creationParams, baseTransaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
@@ -209,6 +219,17 @@ export const createTransaction = withTransaction(
         });
       }
 
+      await logDataBefore({
+        amount,
+        refAmount: generalTxParams.refAmount,
+        userId,
+        accountId,
+        transferNature,
+        destinationTransactionId,
+        refundsTxId,
+        ...payload,
+      });
+
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
       let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction!];
@@ -220,6 +241,7 @@ export const createTransaction = withTransaction(
           refundTxId: baseTransaction!.id,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        logger.info('Transfer transaction creation');
         /**
          * If transaction is transfer between two accounts, add transferId to both
          * transactions to connect them, and use destinationAmount and destinationAccountId
@@ -273,3 +295,53 @@ export const createTransaction = withTransaction(
     }
   },
 );
+
+// {
+//   "accountId": 40,
+//   "amount": 150_000,
+//   "balance": 684_278,
+//   "balanceDetails": 2_056_344,
+//   "level": "info",
+//   "message": "Before",
+//   "refAmount": 1_518_517,
+//   "refBalance": 6_331_767,
+// }
+
+const logDataBefore = async (params: CreateTransactionParams & { refAmount?: number }) => {
+  try {
+    const { transferNature, destinationTransactionId, userId, accountId, transactionType } = params;
+    const isTransfer = transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+    const transferWithoutLinking = isTransfer && !destinationTransactionId;
+    const isBasicExpense =
+      transactionType === TRANSACTION_TYPES.expense && transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer;
+
+    const baseAccount = (await Accounts.getAccountById({ userId, id: params.accountId }))!;
+    const baseAccountBalance = (await Balances.findOne({
+      where: { accountId },
+      order: [['date', 'DESC']],
+      attributes: ['amount'],
+    }))!;
+
+    if (isBasicExpense) {
+      logger.info('Create expense transaction');
+      logger.info('Before', {
+        accountId,
+        balance: baseAccount.currentBalance,
+        amount: params.amount,
+        refBalance: baseAccount.refCurrentBalance,
+        refAmount: params.refAmount,
+        balanceDetails: baseAccountBalance.amount,
+      });
+    } else if (transferWithoutLinking) {
+      logger.info(`Details before basic transfer:
+        Account from:
+          accountId: ${accountId}
+          balance: ${baseAccount.currentBalance}
+          refBalance: ${baseAccount.refCurrentBalance}
+          balanceDetails: ${baseAccountBalance.amount}
+        `);
+    }
+  } catch (err) {
+    logger.error(err);
+  }
+};
