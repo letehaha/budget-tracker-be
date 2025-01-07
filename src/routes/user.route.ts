@@ -11,6 +11,8 @@ import {
   deleteUser,
   removeUserCurrencyExchangeRate,
 } from '@controllers/user.controller';
+import { getUserSettings } from '@controllers/user-settings/get-settings';
+import { updateUserSettings, updateUserSettingsSchema } from '@controllers/user-settings/update-settings';
 import {
   editCurrencyExchangeRate,
   editCurrencyExchangeRateSchema,
@@ -42,5 +44,8 @@ router.put(
 
 router.delete('/currency', authenticateJwt, deleteUserCurrency);
 router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate);
+
+router.get('/settings', authenticateJwt, getUserSettings);
+router.put('/settings', authenticateJwt, validateEndpoint(updateUserSettingsSchema), updateUserSettings);
 
 export default router;

@@ -2,8 +2,10 @@ import { TransactionModel, TRANSACTION_TYPES, TRANSACTION_TRANSFER_NATURE } from
 import { removeUndefinedKeys } from '@js/helpers';
 
 import * as Transactions from '@models/Transactions.model';
+import { getUserSettings } from '../user-settings/get-user-settings';
 import { getWhereConditionForTime } from './utils';
 import { withTransaction } from '../common';
+import { Op } from 'sequelize';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   TransactionModel,
@@ -58,12 +60,19 @@ export const getExpensesHistory = withTransaction(
       'transactionType',
     ];
 
+    const settings = await getUserSettings({ userId });
+
+    const excludedCategories = settings.stats.expenses.excludedCategories;
+
     const transactions = await Transactions.default.findAll({
       where: removeUndefinedKeys({
         accountId,
         userId,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         transactionType: TRANSACTION_TYPES.expense,
+        categoryId: {
+          [Op.notIn]: excludedCategories,
+        },
         ...getWhereConditionForTime({ from, to, columnName: 'time' }),
       }),
       order: [['time', 'ASC']],
