@@ -5,24 +5,25 @@ import { errorHandler } from '@controllers/helpers';
 import { CustomResponse } from '@common/types';
 
 export const editExcludedCategoriesHandler = async (
-  req, res: CustomResponse,
+  req,
+  res: CustomResponse
 ) => {
   try {
     const { addIds, removeIds } = editExcludedCategoriesSchema.parse(req.body);
     const { user } = req;
 
-    const updatedSettings = await editExcludedCategories({
-      userId: user?.id,
+    const updatedCategories = await editExcludedCategories({
+      userId: user.id,
       addIds,
       removeIds,
     });
 
     res.status(200).json({
       status: API_RESPONSE_STATUS.success,
-      response: updatedSettings,
+      response: updatedCategories,
     });
   } catch (error) {
-    errorHandler(res, error);
+    errorHandler(res,error);
   }
 };
 
