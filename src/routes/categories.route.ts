@@ -3,7 +3,6 @@ import { getCategories } from '@controllers/categories.controller/get-categories
 import { deleteCategory, deleteCategorySchema } from '@controllers/categories.controller/delete-category';
 import { createCategory, createCategorySchema } from '@controllers/categories.controller/create-category';
 import { updateCategorySchema, editCategory } from '@controllers/categories.controller/update-category';
-import { editCategories, editCategoriesSchema } from '@controllers/categories.controller/editing-categories';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 
@@ -13,6 +12,5 @@ router.get('/', authenticateJwt, getCategories);
 router.post('/', authenticateJwt, validateEndpoint(createCategorySchema), createCategory);
 router.put('/:id', authenticateJwt, validateEndpoint(updateCategorySchema), editCategory);
 router.delete('/:id', authenticateJwt, validateEndpoint(deleteCategorySchema), deleteCategory);
-router.put('/edit', authenticateJwt, validateEndpoint(editCategoriesSchema), editCategories);
 
 export default router;
