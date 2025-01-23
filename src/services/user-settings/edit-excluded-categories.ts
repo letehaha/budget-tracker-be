@@ -1,4 +1,4 @@
-import UserSettings from '@models/UserSettings.model';
+import UserSettings, { ZodSettingsSchema } from '@models/UserSettings.model';
 import { withTransaction } from '../common';
 
 export const editExcludedCategories = withTransaction(
@@ -13,15 +13,7 @@ export const editExcludedCategories = withTransaction(
   }): Promise<number[]> => {
     const [existingSettings] = await UserSettings.findOrCreate({
       where: { userId },
-      defaults: {
-        settings: { 
-          stats: {
-            expenses: {
-              excludedCategories: []
-            }
-          } 
-        },
-      },
+      defaults: { ZodSettingsSchema },
     });
 
     const currentExcludedCategories =

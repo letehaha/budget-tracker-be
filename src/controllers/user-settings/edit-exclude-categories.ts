@@ -1,5 +1,6 @@
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { z } from 'zod';
+import { recordId } from '@common/lib/zod/custom-types';
 import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 import { errorHandler } from '@controllers/helpers';
 import { CustomResponse } from '@common/types';
@@ -9,7 +10,7 @@ export const editExcludedCategoriesHandler = async (
   res: CustomResponse
 ) => {
   try {
-    const { addIds, removeIds } = editExcludedCategoriesSchema.parse(req.body);
+    const { addIds, removeIds } = req.validated; 
     const { user } = req;
 
     const updatedCategories = await editExcludedCategories({
@@ -27,7 +28,7 @@ export const editExcludedCategoriesHandler = async (
   }
 };
 
-const editExcludedCategoriesSchema = z.object({
-  addIds: z.array(z.number().int().positive().finite()).optional().default([]),
-  removeIds: z.array(z.number().int().positive().finite()).optional().default([]),
+export const editExcludedCategoriesSchema = z.object({
+  addIds: z.array(recordId()).optional().default([]),
+  removeIds: z.array(recordId()).optional().default([]),
 });
