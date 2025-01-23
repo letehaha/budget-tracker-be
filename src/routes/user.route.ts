@@ -48,6 +48,6 @@ router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate
 
 router.get('/settings', authenticateJwt, getUserSettings);
 router.put('/settings', authenticateJwt, validateEndpoint(updateUserSettingsSchema), updateUserSettings);
-router.put('/edit-excluded-categories', authenticateJwt, validateEndpoint(editExcludedCategoriesSchema), editExcludedCategoriesHandler);
+router.put('/settings/edit-excluded-categories', authenticateJwt, validateEndpoint(editExcludedCategoriesSchema), editExcludedCategoriesHandler);
 
 export default router;
