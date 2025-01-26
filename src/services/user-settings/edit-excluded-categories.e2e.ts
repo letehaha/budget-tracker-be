@@ -1,139 +1,110 @@
-import { expect } from '@jest/globals';
-// import * as helpers from '@tests/helpers';
-import UserSettings, { DEFAULT_SETTINGS } from '@models/UserSettings.model';
-import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
-
-jest.mock('@models/UserSettings.model', () => ({
-  findOrCreate: jest.fn(),
-}));
+import * as helpers from '@tests/helpers';
 
 describe('editExcludedCategories', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  it('should add new categories to excluded list', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+    const category2 = await helpers.addCustomCategory({ name: 'Category 2', raw: true });
 
-  it('creates user settings with default values if none exist', async () => {
-    const userId = 1;
-
-    (UserSettings.findOrCreate as jest.Mock).mockResolvedValue([
-      {
-        settings: DEFAULT_SETTINGS,
-        changed: jest.fn(),
-        save: jest.fn(),
-      },
-    ]);
-
-    const result = await editExcludedCategories({ userId });
-
-    expect(UserSettings.findOrCreate).toHaveBeenCalledWith({
-      where: { userId },
-      defaults: { settings: DEFAULT_SETTINGS },
+    const result = await helpers.editExcludedCategories({
+      addIds: [category1.id, category2.id],
+      raw: true,
     });
 
-    expect(result).toEqual([]);
+    expect(result).toContain(category1.id);
+    expect(result).toContain(category2.id);
   });
 
-  it('adds new excludedCategories to the user settings', async () => {
-    const userId = 2;
-    const existingCategories = [1, 2];
-    const addIds = [3, 4];
+  it('should remove categories from excluded list', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+    const category2 = await helpers.addCustomCategory({ name: 'Category 2', raw: true });
 
-    const mockSave = jest.fn();
-    (UserSettings.findOrCreate as jest.Mock).mockResolvedValue([
-      {
-        settings: {
-          stats: {
-            expenses: {
-              excludedCategories: existingCategories,
-            },
-          },
-        },
-        changed: jest.fn(),
-        save: mockSave,
-      },
-    ]);
+    await helpers.editExcludedCategories({
+      addIds: [category1.id, category2.id],
+      raw: true,
+    });
 
-    const result = await editExcludedCategories({ userId, addIds });
+    const result = await helpers.editExcludedCategories({
+      removeIds: [category1.id],
+      raw: true,
+    });
 
-    expect(result).toEqual([1, 2, 3, 4]);
-    expect(mockSave).toHaveBeenCalled();
+    expect(result).not.toContain(category1.id);
+    expect(result).toContain(category2.id);
   });
 
-  it('removes specified excludedCategories from the user settings', async () => {
-    const userId = 3;
-    const existingCategories = [1, 2, 3];
-    const removeIds = [2];
+  it('should handle adding and removing categories simultaneously', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+    const category2 = await helpers.addCustomCategory({ name: 'Category 2', raw: true });
 
-    const mockSave = jest.fn();
-    (UserSettings.findOrCreate as jest.Mock).mockResolvedValue([
-      {
-        settings: {
-          stats: {
-            expenses: {
-              excludedCategories: existingCategories,
-            },
-          },
-        },
-        changed: jest.fn(),
-        save: mockSave,
-      },
-    ]);
+    await helpers.editExcludedCategories({
+      addIds: [category1.id],
+      raw: true,
+    });
 
-    const result = await editExcludedCategories({ userId, removeIds });
+    const result = await helpers.editExcludedCategories({
+      addIds: [category2.id],
+      removeIds: [category1.id],
+      raw: true,
+    });
 
-    expect(result).toEqual([1, 3]);
-    expect(mockSave).toHaveBeenCalled();
+    expect(result).not.toContain(category1.id);
+    expect(result).toContain(category2.id);
   });
 
-  it('handles adding and removing categories simultaneously', async () => {
-    const userId = 4;
-    const existingCategories = [1, 2, 3];
-    const addIds = [4];
-    const removeIds = [2];
+  it('should ignore non-existent categories when adding', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
 
-    const mockSave = jest.fn();
-    (UserSettings.findOrCreate as jest.Mock).mockResolvedValue([
-      {
-        settings: {
-          stats: {
-            expenses: {
-              excludedCategories: existingCategories,
-            },
-          },
-        },
-        changed: jest.fn(),
-        save: mockSave,
-      },
-    ]);
+    const result = await helpers.editExcludedCategories({
+      addIds: [category1.id, 9999],
+      raw: true,
+    });
 
-    const result = await editExcludedCategories({ userId, addIds, removeIds });
-
-    expect(result).toEqual([1, 3, 4]);
-    expect(mockSave).toHaveBeenCalled();
+    expect(result).toContain(category1.id);
+    expect(result).not.toContain(9999);
   });
 
-  it('returns unchanged excludedCategories when no addIds or removeIds are provided', async () => {
-    const userId = 5;
-    const existingCategories = [1, 2, 3];
+  it('should ignore non-existent categories when removing', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
 
-    const mockSave = jest.fn();
-    (UserSettings.findOrCreate as jest.Mock).mockResolvedValue([
-      {
-        settings: {
-          stats: {
-            expenses: {
-              excludedCategories: existingCategories,
-            },
-          },
-        },
-        changed: jest.fn(),
-        save: mockSave,
-      },
-    ]);
+    await helpers.editExcludedCategories({
+      addIds: [category1.id],
+      raw: true,
+    });
 
-    const result = await editExcludedCategories({ userId });
+    const result = await helpers.editExcludedCategories({
+      removeIds: [9999],
+      raw: true,
+    });
 
-    expect(result).toEqual(existingCategories); // Nothing is added or removed
-    expect(mockSave).toHaveBeenCalled();
+    expect(result).toContain(category1.id);
+  });
+
+  it('should handle duplicate categories when adding', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+
+    const result = await helpers.editExcludedCategories({
+      addIds: [category1.id, category1.id],
+      raw: true,
+    });
+
+    expect(result).toContain(category1.id);
+    expect(result.length).toBe(1);
+  });
+
+  it('should handle empty addIds and removeIds', async () => {
+    const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+
+    await helpers.editExcludedCategories({
+      addIds: [category1.id],
+      raw: true,
+    });
+
+    const result = await helpers.editExcludedCategories({
+      addIds: [],
+      removeIds: [],
+      raw: true,
+    });
+
+    expect(result).toContain(category1.id);
   });
 });
