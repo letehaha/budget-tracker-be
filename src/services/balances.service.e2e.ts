@@ -1,6 +1,6 @@
 import { expect, describe, it } from '@jest/globals';
 import { TRANSACTION_TYPES } from 'shared-types';
-import { format, addDays, subDays, startOfDay } from 'date-fns';
+import { format, addDays, subDays, startOfDay, addMonths, startOfMonth } from 'date-fns';
 import Transactions from '@models/Transactions.model';
 import Balances from '@models/Balances.model';
 import Currencies from '@models/Currencies.model';
@@ -354,11 +354,13 @@ describe('Balances service', () => {
     it('updating transaction amount, date, transactionType and accountId', async () => {
       const { accountData, transactionResults } = await mockBalanceHistory();
 
+      const testDate = new Date();
+
       await helpers.updateTransaction({
         id: transactionResults[0]!.id,
         payload: {
           amount: 150,
-          time: startOfDay(subDays(new Date(), 4)).toISOString(),
+          time: startOfDay(subDays(testDate, 4)).toISOString(),
           transactionType: TRANSACTION_TYPES.income,
         },
       });
@@ -367,27 +369,30 @@ describe('Balances service', () => {
 
       expect(newBalanceHistory1).toStrictEqual([
         {
-          date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 5), 'yyyy-MM-dd'),
           amount: accountData.initialBalance,
         },
-        { date: format(subDays(new Date(), 4), 'yyyy-MM-dd'), amount: 1150 },
-        { date: format(subDays(new Date(), 3), 'yyyy-MM-dd'), amount: 1150 },
-        { date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1150 },
-        { date: format(subDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1350 },
-        { date: format(new Date(), 'yyyy-MM-dd'), amount: 1500 },
-        { date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), amount: 1400 },
-        { date: format(addDays(new Date(), 2), 'yyyy-MM-dd'), amount: 1350 },
+        { date: format(subDays(testDate, 4), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(testDate, 3), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(testDate, 2), 'yyyy-MM-dd'), amount: 1150 },
+        { date: format(subDays(testDate, 1), 'yyyy-MM-dd'), amount: 1350 },
+        { date: format(testDate, 'yyyy-MM-dd'), amount: 1500 },
+        { date: format(addDays(testDate, 1), 'yyyy-MM-dd'), amount: 1400 },
+        { date: format(addDays(testDate, 2), 'yyyy-MM-dd'), amount: 1350 },
       ]);
 
       const { accountData: oneMoreAccountData } = await buildAccount({
         accountInitialBalance: 0,
       });
 
+      // Update transaction for the next month
+      const newAccountTxDate = addMonths(startOfDay(addDays(testDate, 5)), 1);
+
       await helpers.updateTransaction({
         id: transactionResults[3]!.id,
         payload: {
           amount: 150,
-          time: startOfDay(addDays(new Date(), 5)).toISOString(),
+          time: newAccountTxDate.toISOString(),
           transactionType: TRANSACTION_TYPES.income,
           accountId: oneMoreAccountData.id,
         },
@@ -398,52 +403,59 @@ describe('Balances service', () => {
       // Yeah it looks really hard, but that's the way to verify everything is okay
       expect(newBalanceHistory2).toStrictEqual([
         {
-          date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 5), 'yyyy-MM-dd'),
           amount: accountData.initialBalance,
           accountId: accountData.id,
         },
         {
-          date: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 4), 'yyyy-MM-dd'),
           amount: 1150,
           accountId: accountData.id,
         },
         {
-          date: format(subDays(new Date(), 3), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 3), 'yyyy-MM-dd'),
           amount: 1150,
           accountId: accountData.id,
         },
         {
-          date: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 2), 'yyyy-MM-dd'),
           amount: 1150,
           accountId: accountData.id,
         },
         {
-          date: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+          date: format(subDays(testDate, 1), 'yyyy-MM-dd'),
           amount: 1350,
           accountId: accountData.id,
         },
         {
-          date: format(new Date(), 'yyyy-MM-dd'),
+          date: format(testDate, 'yyyy-MM-dd'),
           amount: 1500,
           accountId: accountData.id,
         },
         {
-          date: format(new Date(), 'yyyy-MM-dd'),
+          date: format(testDate, 'yyyy-MM-dd'),
           amount: oneMoreAccountData.initialBalance,
           accountId: oneMoreAccountData.id,
         },
         {
-          date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+          date: format(addDays(testDate, 1), 'yyyy-MM-dd'),
           amount: 1400,
           accountId: accountData.id,
         },
         {
-          date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+          date: format(addDays(testDate, 2), 'yyyy-MM-dd'),
           amount: 1400,
           accountId: accountData.id,
         },
+        // When updated transaction to the next month, also make sure that transaction
+        // for the beginning of the month is added
         {
-          date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
+          date: format(startOfMonth(newAccountTxDate), 'yyyy-MM-dd'),
+          amount: 0,
+          accountId: oneMoreAccountData.id,
+        },
+        {
+          date: format(newAccountTxDate, 'yyyy-MM-dd'),
           amount: 150,
           accountId: oneMoreAccountData.id,
         },
