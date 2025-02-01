@@ -1,5 +1,6 @@
 import UserSettings, { DEFAULT_SETTINGS } from '@models/UserSettings.model';
 import { withTransaction } from '../common';
+import Categories from '@models/Categories.model';
 
 export const editExcludedCategories = withTransaction(
   async ({
@@ -11,7 +12,6 @@ export const editExcludedCategories = withTransaction(
     addIds?: number[];
     removeIds?: number[];
   }): Promise<number[]> => {
-    console.log("addIds: ", addIds)
     const [existingSettings] = await UserSettings.findOrCreate({
       where: { userId },
       defaults: {
@@ -22,21 +22,21 @@ export const editExcludedCategories = withTransaction(
     let currentExcludedCategories =
       existingSettings.settings.stats.expenses.excludedCategories || [];
 
+    const validAddIds = await Categories.findAll({
+      where: { id: addIds },
+    }).then((categories) => categories.map((category) => category.id));
+
     currentExcludedCategories = currentExcludedCategories.filter(
       (id) => !removeIds?.includes(id),
     );
 
-    const add = addIds?.length ? addIds : []
-
     currentExcludedCategories = [
-      ...new Set([...currentExcludedCategories, ...add]),
+      ...new Set([...currentExcludedCategories, ...validAddIds]),
     ];
 
     existingSettings.settings.stats.expenses.excludedCategories = currentExcludedCategories;
     existingSettings.changed('settings', true);
     await existingSettings.save();
-
-    console.log('Updated excluded categories:', currentExcludedCategories);
 
     return currentExcludedCategories;
   },

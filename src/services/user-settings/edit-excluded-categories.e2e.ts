@@ -1,8 +1,6 @@
 import * as helpers from '@tests/helpers';
 import { CategoryModel } from '../../../shared-types/models';
 
-
-
 describe('editExcludedCategories', () => {
   let rootCategory: CategoryModel;
   let subCategory1: CategoryModel;
@@ -33,105 +31,96 @@ describe('editExcludedCategories', () => {
       raw: true,
     });
 
-    console.log('Result:', result);
-
-    // expect(result).toBeDefined();
+    expect(result).toBeDefined();
     expect(result).toContain(subCategory1.id);
     expect(result).toContain(subCategory2.id);
   });
 
+  it('should remove categories from excluded list', async () => {
+    await helpers.editExcludedCategories({
+      addIds: [subCategory1.id, subCategory2.id],
+      removeIds: [],
+      raw: true,
+    });
 
-  // it('should remove categories from excluded list', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
-  //   const category2 = await helpers.addCustomCategory({ name: 'Category 2', raw: true });
+    const result = await helpers.editExcludedCategories({
+      addIds: [],
+      removeIds: [subCategory1.id],
+      raw: true,
+    });
 
-  //   await helpers.editExcludedCategories({
-  //     addIds: [category1.id, category2.id],
-  //     raw: true,
-  //   });
+    expect(result).not.toContain(subCategory1.id);
+    expect(result).toContain(subCategory2.id);
+  });
 
-  //   const result = await helpers.editExcludedCategories({
-  //     removeIds: [category1.id],
-  //     raw: true,
-  //   });
+  it('should handle adding and removing categories simultaneously', async () => {
+    await helpers.editExcludedCategories({
+      addIds: [subCategory1.id],
+      removeIds: [],
+      raw: true,
+    });
 
-  //   expect(result).not.toContain(category1.id);
-  //   expect(result).toContain(category2.id);
-  // });
+    const result = await helpers.editExcludedCategories({
+      addIds: [subCategory2.id],
+      removeIds: [subCategory1.id],
+      raw: true,
+    });
 
-  // it('should handle adding and removing categories simultaneously', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
-  //   const category2 = await helpers.addCustomCategory({ name: 'Category 2', raw: true });
+    expect(result).not.toContain(subCategory1.id);
+    expect(result).toContain(subCategory2.id);
+  });
 
-  //   await helpers.editExcludedCategories({
-  //     addIds: [category1.id],
-  //     raw: true,
-  //   });
+  it('should ignore non-existent categories when adding', async () => {
+    const result = await helpers.editExcludedCategories({
+      addIds: [subCategory1.id, 9999],
+      removeIds: [],
+      raw: true,
+    });
 
-  //   const result = await helpers.editExcludedCategories({
-  //     addIds: [category2.id],
-  //     removeIds: [category1.id],
-  //     raw: true,
-  //   });
+    expect(result).toContain(subCategory1.id);
+    expect(result).not.toContain(9999);
+  });
 
-  //   expect(result).not.toContain(category1.id);
-  //   expect(result).toContain(category2.id);
-  // });
+  it('should ignore non-existent categories when removing', async () => {
+    await helpers.editExcludedCategories({
+      addIds: [subCategory1.id],
+      removeIds: [],
+      raw: true,
+    });
 
-  // it('should ignore non-existent categories when adding', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+    const result = await helpers.editExcludedCategories({
+      addIds: [],
+      removeIds: [9999],
+      raw: true,
+    });
 
-  //   const result = await helpers.editExcludedCategories({
-  //     addIds: [category1.id, 9999],
-  //     raw: true,
-  //   });
+    expect(result).toContain(subCategory1.id);
+  });
 
-  //   expect(result).toContain(category1.id);
-  //   expect(result).not.toContain(9999);
-  // });
+  it('should handle duplicate categories when adding', async () => {
+    const result = await helpers.editExcludedCategories({
+      addIds: [subCategory1.id, subCategory1.id],
+      removeIds: [],
+      raw: true,
+    });
 
-  // it('should ignore non-existent categories when removing', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
+    expect(result).toContain(subCategory1.id);
+    expect(result.length).toBe(1);
+  });
 
-  //   await helpers.editExcludedCategories({
-  //     addIds: [category1.id],
-  //     raw: true,
-  //   });
+  it('should handle empty addIds and removeIds', async () => {
+    await helpers.editExcludedCategories({
+      addIds: [subCategory1.id],
+      removeIds: [],
+      raw: true,
+    });
 
-  //   const result = await helpers.editExcludedCategories({
-  //     removeIds: [9999],
-  //     raw: true,
-  //   });
+    const result = await helpers.editExcludedCategories({
+      addIds: [],
+      removeIds: [],
+      raw: true,
+    });
 
-  //   expect(result).toContain(category1.id);
-  // });
-
-  // it('should handle duplicate categories when adding', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
-
-  //   const result = await helpers.editExcludedCategories({
-  //     addIds: [category1.id, category1.id],
-  //     raw: true,
-  //   });
-
-  //   expect(result).toContain(category1.id);
-  //   expect(result.length).toBe(1);
-  // });
-
-  // it('should handle empty addIds and removeIds', async () => {
-  //   const category1 = await helpers.addCustomCategory({ name: 'Category 1', raw: true });
-
-  //   await helpers.editExcludedCategories({
-  //     addIds: [category1.id],
-  //     raw: true,
-  //   });
-
-  //   const result = await helpers.editExcludedCategories({
-  //     addIds: [],
-  //     removeIds: [],
-  //     raw: true,
-  //   });
-
-  //   expect(result).toContain(category1.id);
-  // });
+    expect(result).toContain(subCategory1.id);
+  });
 });

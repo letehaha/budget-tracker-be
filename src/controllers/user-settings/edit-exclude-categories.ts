@@ -10,7 +10,7 @@ export const editExcludedCategoriesHandler = async (
   res: CustomResponse
 ) => {
   try {
-    const { addIds, removeIds } = req.validated; 
+    const { addIds, removeIds } = req.validated.body;
     const { user } = req;
 
     const updatedCategories = await editExcludedCategories({
@@ -18,17 +18,19 @@ export const editExcludedCategoriesHandler = async (
       addIds,
       removeIds,
     });
-
+    
     res.status(200).json({
       status: API_RESPONSE_STATUS.success,
       response: updatedCategories,
     });
   } catch (error) {
-    errorHandler(res,error);
+    errorHandler(res, error);
   }
 };
 
 export const editExcludedCategoriesSchema = z.object({
-  addIds: z.array(recordId()).optional().default([]),
-  removeIds: z.array(recordId()).optional().default([]),
+  body: z.object({
+    addIds: z.array(recordId()).optional().default([]),
+    removeIds: z.array(recordId()).optional().default([]),
+  }),
 });
