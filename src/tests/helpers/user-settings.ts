@@ -26,15 +26,16 @@ export async function updateUserSettings<R extends boolean | undefined = undefin
 }
 
 export async function editExcludedCategories<R extends boolean | undefined = undefined>({
+  addIds,
+  removeIds,
   raw,
-  ...payload
 }: Omit<Parameters<typeof apiEditExcludedCategories>[0], 'userId'> & {
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof apiEditExcludedCategories>>, R>({
-    method: 'post',
-    url: '/settings/edit-exclude-categories',
-    payload,
+    method: 'put',
+    url: '/user/settings/edit-excluded-categories',
+    payload: { addIds, removeIds },
     raw,
   });
 }

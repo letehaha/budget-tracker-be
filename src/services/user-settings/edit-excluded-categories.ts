@@ -4,13 +4,14 @@ import { withTransaction } from '../common';
 export const editExcludedCategories = withTransaction(
   async ({
     userId,
-    addIds = [],
-    removeIds = [],
+    addIds,
+    removeIds,
   }: {
     userId: number;
     addIds?: number[];
     removeIds?: number[];
   }): Promise<number[]> => {
+    console.log("addIds: ", addIds)
     const [existingSettings] = await UserSettings.findOrCreate({
       where: { userId },
       defaults: {
@@ -18,21 +19,25 @@ export const editExcludedCategories = withTransaction(
       },
     });
 
-    const currentExcludedCategories =
+    let currentExcludedCategories =
       existingSettings.settings.stats.expenses.excludedCategories || [];
 
-    let updatedExcludedCategories = currentExcludedCategories.filter(
-      (id) => !removeIds.includes(id),
+    currentExcludedCategories = currentExcludedCategories.filter(
+      (id) => !removeIds?.includes(id),
     );
 
-    updatedExcludedCategories = [
-      ...new Set([...updatedExcludedCategories, ...addIds]),
+    const add = addIds?.length ? addIds : []
+
+    currentExcludedCategories = [
+      ...new Set([...currentExcludedCategories, ...add]),
     ];
 
-    existingSettings.settings.stats.expenses.excludedCategories = updatedExcludedCategories;
+    existingSettings.settings.stats.expenses.excludedCategories = currentExcludedCategories;
     existingSettings.changed('settings', true);
     await existingSettings.save();
 
-    return updatedExcludedCategories;
+    console.log('Updated excluded categories:', currentExcludedCategories);
+
+    return currentExcludedCategories;
   },
 );
