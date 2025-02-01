@@ -10,7 +10,7 @@ export const ZodSettingsSchema = z.object({
   }),
 });
 
-export const DEFAULT_SETTINGS: z.infer<typeof ZodSettingsSchema> = {
+export const DEFAULT_SETTINGS: SettingsSchema = {
   stats: {
     expenses: {
       excludedCategories: [],
