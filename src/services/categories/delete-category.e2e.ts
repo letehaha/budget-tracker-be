@@ -79,6 +79,28 @@ describe('Delete custom categories', () => {
 
     expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
   });
+  it('should remove deleted category from excluded categories in user settings', async () => {
+    const customCategory = await helpers.addCustomCategory({
+      name: 'Category to Exclude',
+      color: '#FF0000',
+      raw: true,
+    });
+  
+    await helpers.editExcludedCategories({
+      addIds: [customCategory.id],
+      raw: true,
+    });
+    let userSettings = await helpers.getUserSettings({ raw: true });
+    expect(userSettings.stats.expenses.excludedCategories).toContain(customCategory.id);
+  
+    await helpers.deleteCustomCategory({
+      categoryId: customCategory.id,
+      raw: false,
+    });
+  
+    userSettings = await helpers.getUserSettings({ raw: true });
+    expect(userSettings.stats.expenses.excludedCategories).not.toContain(customCategory.id);
+  });
   it('should return validation error when category id is invalid', async () => {
     const res = await helpers.deleteCustomCategory({
       categoryId: 'invalid-category-id',
