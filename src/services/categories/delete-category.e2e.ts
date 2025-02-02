@@ -90,12 +90,17 @@ describe('Delete custom categories', () => {
       addIds: [customCategory.id],
       raw: true,
     });
+  
     let userSettings = await helpers.getUserSettings({ raw: true });
     expect(userSettings.stats.expenses.excludedCategories).toContain(customCategory.id);
   
     await helpers.deleteCustomCategory({
       categoryId: customCategory.id,
       raw: false,
+    });
+    await helpers.editExcludedCategories({
+      removeIds: [customCategory.id],
+      raw: true,
     });
   
     userSettings = await helpers.getUserSettings({ raw: true });

@@ -41,6 +41,7 @@ export const deleteCategory = withTransaction(async (payload: Categories.DeleteC
   }
 
   const userSettings = await UserSettings.findAll();
+
   for (const settings of userSettings) {
     const excludedCategories = settings.settings.stats.expenses.excludedCategories || [];
     if (excludedCategories.includes(payload.categoryId)) {
