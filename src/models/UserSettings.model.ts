@@ -10,6 +10,14 @@ export const ZodSettingsSchema = z.object({
   }),
 });
 
+export const DEFAULT_SETTINGS: SettingsSchema = {
+  stats: {
+    expenses: {
+      excludedCategories: [],
+    },
+  },
+};
+
 // Infer the TypeScript type from the Zod schema
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
