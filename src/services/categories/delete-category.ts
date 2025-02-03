@@ -2,7 +2,7 @@ import { withTransaction } from '@services/common/index';
 import * as Categories from '@models/Categories.model';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Transactions from '@models/Transactions.model';
-import UserSettings from '@models/UserSettings.model';
+import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
 export const deleteCategory = withTransaction(async (payload: Categories.DeleteCategoryPayload) => {
   const rootCategory = await Categories.default.findOne({
@@ -40,17 +40,10 @@ export const deleteCategory = withTransaction(async (payload: Categories.DeleteC
     });
   }
 
-  const userSettings = await UserSettings.findAll();
-
-  for (const settings of userSettings) {
-    const excludedCategories = settings.settings.stats.expenses.excludedCategories || [];
-    if (excludedCategories.includes(payload.categoryId)) {
-      settings.settings.stats.expenses.excludedCategories = excludedCategories.filter(
-        (id) => id !== payload.categoryId
-      );
-      await settings.save();
-    }
-  }
+  await editExcludedCategories({
+    userId: payload.userId,
+    removeIds: [payload.categoryId],
+  });
 
   // When deleting, make all transactions related to that category being related
   // to parentId if exists. If no parent, then to Other category (or maybe create Unknown)

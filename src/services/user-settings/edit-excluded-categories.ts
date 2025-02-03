@@ -5,8 +5,8 @@ import Categories from '@models/Categories.model';
 export const editExcludedCategories = withTransaction(
   async ({
     userId,
-    addIds,
-    removeIds,
+    addIds = [],
+    removeIds = [],
   }: {
     userId: number;
     addIds?: number[];
