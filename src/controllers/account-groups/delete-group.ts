@@ -14,7 +14,7 @@ export const deleteAccountGroup = async (req, res: CustomResponse) => {
       userId,
     });
 
-    return res.status(204).send();
+    return res.status(200).send({});
   } catch (err) {
     errorHandler(res, err);
   }
