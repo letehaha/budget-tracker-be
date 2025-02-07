@@ -16,7 +16,7 @@ describe('Remove account from group', () => {
     });
 
     const result = await helpers.removeAccountFromGroup({
-      accountId: account.id,
+      accountIds: [account.id],
       groupId: group.id,
     });
 
@@ -25,7 +25,7 @@ describe('Remove account from group', () => {
 
   it('fails when trying to remove non-existing account', async () => {
     const result = await helpers.removeAccountFromGroup({
-      accountId: 9999,
+      accountIds: [9999],
       groupId: group.id,
     });
 
@@ -39,12 +39,12 @@ describe('Remove account from group', () => {
     });
 
     await helpers.removeAccountFromGroup({
-      accountId: account.id,
+      accountIds: [account.id],
       groupId: group.id,
     });
 
     const result = await helpers.removeAccountFromGroup({
-      accountId: account.id,
+      accountIds: [account.id],
       groupId: group.id,
     });
 

@@ -6,7 +6,6 @@ import { errorHandler } from '@controllers/helpers';
 import * as accountGroupService from '@services/account-groups';
 
 export const removeAccountFromGroup = async (req, res: CustomResponse) => {
-  console.log(req.payload)
   try {
     const { groupId }: RemoveAccountFromGroupParams['params'] = req.validated.params;
     const { accountIds }: RemoveAccountFromGroupParams['body'] = req.validated.body;
