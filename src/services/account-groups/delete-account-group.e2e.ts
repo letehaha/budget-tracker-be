@@ -12,13 +12,13 @@ describe('Delete account group', () => {
       groupId: group.id,
     });
 
-    expect(result.statusCode).toBe(204);
+    expect(result.statusCode).toBe(200);
   });
   it('returns successful response for non-existing record deletion', async () => {
     const result = await helpers.deleteAccountGroup({
       groupId: 99999,
     });
 
-    expect(result.statusCode).toBe(204);
+    expect(result.statusCode).toBe(200);
   });
 });
