@@ -5,8 +5,8 @@ import Categories from '@models/Categories.model';
 export const editExcludedCategories = withTransaction(
   async ({
     userId,
-    addIds,
-    removeIds,
+    addIds = [],
+    removeIds = [],
   }: {
     userId: number;
     addIds?: number[];
@@ -19,20 +19,15 @@ export const editExcludedCategories = withTransaction(
       },
     });
 
-    let currentExcludedCategories =
-      existingSettings.settings.stats.expenses.excludedCategories || [];
+    let currentExcludedCategories = existingSettings.settings.stats.expenses.excludedCategories || [];
 
     const validAddIds = await Categories.findAll({
       where: { id: addIds },
     }).then((categories) => categories.map((category) => category.id));
 
-    currentExcludedCategories = currentExcludedCategories.filter(
-      (id) => !removeIds?.includes(id),
-    );
+    currentExcludedCategories = currentExcludedCategories.filter((id) => !removeIds?.includes(id));
 
-    currentExcludedCategories = [
-      ...new Set([...currentExcludedCategories, ...validAddIds]),
-    ];
+    currentExcludedCategories = [...new Set([...currentExcludedCategories, ...validAddIds])];
 
     existingSettings.settings.stats.expenses.excludedCategories = currentExcludedCategories;
     existingSettings.changed('settings', true);
