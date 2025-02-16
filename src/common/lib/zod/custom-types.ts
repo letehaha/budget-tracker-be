@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const recordId = () => z.coerce.number().int().positive().finite();
+export const recordArrayIds = () => z.array(recordId());
 
 /**
  * Used for the case when array is expected to be received like 1,2,3.
