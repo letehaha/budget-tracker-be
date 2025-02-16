@@ -2,6 +2,7 @@ import { withTransaction } from '@services/common/index';
 import * as Categories from '@models/Categories.model';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Transactions from '@models/Transactions.model';
+import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
 export const deleteCategory = withTransaction(async (payload: Categories.DeleteCategoryPayload) => {
   const rootCategory = await Categories.default.findOne({
@@ -38,6 +39,11 @@ export const deleteCategory = withTransaction(async (payload: Categories.DeleteC
         'You cannot delete category that has any transactions linked. You need to delete or change category of all linked transactions.',
     });
   }
+
+  await editExcludedCategories({
+    userId: payload.userId,
+    removeIds: [payload.categoryId],
+  });
 
   // When deleting, make all transactions related to that category being related
   // to parentId if exists. If no parent, then to Other category (or maybe create Unknown)

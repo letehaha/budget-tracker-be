@@ -41,7 +41,7 @@ router.post(
 );
 
 router.delete(
-  '/:groupId/accounts/:accountId',
+  '/:groupId/accounts',
   authenticateJwt,
   validateEndpoint(accountGroupController.removeAccountFromGroupSchema),
   accountGroupController.removeAccountFromGroup,

@@ -20,6 +20,7 @@ import {
 import { addUserCurrencies, addUserCurrenciesSchema } from '@controllers/currencies/add-user-currencies';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
+import { editExcludedCategoriesHandler, editExcludedCategoriesSchema } from '@controllers/user-settings/edit-exclude-categories';
 
 const router = Router({});
 
@@ -47,5 +48,6 @@ router.delete('/currency/rates', authenticateJwt, removeUserCurrencyExchangeRate
 
 router.get('/settings', authenticateJwt, getUserSettings);
 router.put('/settings', authenticateJwt, validateEndpoint(updateUserSettingsSchema), updateUserSettings);
+router.put('/settings/edit-excluded-categories', authenticateJwt, validateEndpoint(editExcludedCategoriesSchema), editExcludedCategoriesHandler);
 
 export default router;

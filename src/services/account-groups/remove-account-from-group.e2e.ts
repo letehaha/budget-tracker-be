@@ -16,7 +16,45 @@ describe('Remove account from group', () => {
     });
 
     const result = await helpers.removeAccountFromGroup({
+      accountIds: [account.id],
+      groupId: group.id,
+    });
+
+    expect(result.statusCode).toBe(200);
+  });
+
+  it('successfully removes multiple accounts from group', async () => {
+    const accountB = await helpers.createAccount({ raw: true });
+    await helpers.addAccountToGroup({
       accountId: account.id,
+      groupId: group.id,
+    });
+    await helpers.addAccountToGroup({
+      accountId: accountB.id,
+      groupId: group.id,
+    });
+
+    const result = await helpers.removeAccountFromGroup({
+      accountIds: [account.id, accountB.id],
+      groupId: group.id,
+    });
+
+    expect(result.statusCode).toBe(200);
+  });
+
+  it('successfully removes only one account from multiple connected ones', async () => {
+    const accountB = await helpers.createAccount({ raw: true });
+    await helpers.addAccountToGroup({
+      accountId: account.id,
+      groupId: group.id,
+    });
+    await helpers.addAccountToGroup({
+      accountId: accountB.id,
+      groupId: group.id,
+    });
+
+    const result = await helpers.removeAccountFromGroup({
+      accountIds: [account.id],
       groupId: group.id,
     });
 
@@ -25,26 +63,26 @@ describe('Remove account from group', () => {
 
   it('fails when trying to remove non-existing account', async () => {
     const result = await helpers.removeAccountFromGroup({
-      accountId: 9999,
+      accountIds: [9999],
       groupId: group.id,
     });
 
     expect(result.statusCode).toBe(404);
   });
 
-  it('does not fails when trying to remove non-existing match', async () => {
+  it('does not fail when trying to remove non-existing match', async () => {
     await helpers.addAccountToGroup({
       accountId: account.id,
       groupId: group.id,
     });
 
     await helpers.removeAccountFromGroup({
-      accountId: account.id,
+      accountIds: [account.id],
       groupId: group.id,
     });
 
     const result = await helpers.removeAccountFromGroup({
-      accountId: account.id,
+      accountIds: [account.id],
       groupId: group.id,
     });
 
