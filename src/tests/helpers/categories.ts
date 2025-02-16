@@ -17,7 +17,7 @@ export async function addCustomCategory({
   ...params
 }: BaseCreationPayload & {
   raw?: boolean;
-} = {}): Promise<Response | CategoryModel> {
+}): Promise<Response | CategoryModel> {
   const result = await helpers.makeRequest({
     method: 'post',
     url: '/categories',
