@@ -29,7 +29,7 @@ export const removeAccountFromGroupSchema = z.object({
   }),
   body: z.object({
     accountIds: recordArrayIds(),
-  })
+  }),
 });
 
 type RemoveAccountFromGroupParams = z.infer<typeof removeAccountFromGroupSchema>;
