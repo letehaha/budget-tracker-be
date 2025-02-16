@@ -39,5 +39,73 @@ describe('Update user settings', () => {
     },
   );
 
-  it.todo('ignores setting non-existing categories');
+  it('throws error when excluded categories do not exist', async () => {
+    const nonExistentCategoryId = 999;
+    const newSettings: SettingsSchema = {
+      stats: {
+        expenses: {
+          excludedCategories: [nonExistentCategoryId],
+        },
+      },
+    };
+
+    const updater = await helpers.updateUserSettings({
+      settings: newSettings,
+    });
+
+    expect(updater.statusCode).toBe(422);
+  });
+
+  it('accepts valid category IDs', async () => {
+    const category = await helpers.addCustomCategory({ name: 'test', color: '#FF0000', raw: true });
+    const newSettings: SettingsSchema = {
+      stats: {
+        expenses: {
+          excludedCategories: [category.id],
+        },
+      },
+    };
+
+    const updatedSettings = await helpers.updateUserSettings({
+      raw: true,
+      settings: newSettings,
+    });
+
+    expect(updatedSettings).toStrictEqual(newSettings);
+  });
+
+  it('handles mixed valid and invalid category IDs', async () => {
+    const category = await helpers.addCustomCategory({ name: 'test', color: '#FF0000', raw: true });
+    const nonExistentId = 999;
+    const newSettings: SettingsSchema = {
+      stats: {
+        expenses: {
+          excludedCategories: [category.id, nonExistentId],
+        },
+      },
+    };
+
+    const updater = await helpers.updateUserSettings({
+      settings: newSettings,
+    });
+
+    expect(updater.statusCode).toBe(422);
+  });
+
+  it('handles empty excluded categories array', async () => {
+    const newSettings: SettingsSchema = {
+      stats: {
+        expenses: {
+          excludedCategories: [],
+        },
+      },
+    };
+
+    const updatedSettings = await helpers.updateUserSettings({
+      raw: true,
+      settings: newSettings,
+    });
+
+    expect(updatedSettings).toStrictEqual(newSettings);
+  });
 });
