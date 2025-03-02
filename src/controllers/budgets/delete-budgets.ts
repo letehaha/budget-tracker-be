@@ -1,0 +1,47 @@
+import { z } from 'zod';
+import { API_RESPONSE_STATUS } from 'shared-types';
+import { CustomResponse } from '@common/types';
+import * as deleteBudgetService from '@services/budgets/delete-budgets';
+import { errorHandler } from '@controllers/helpers';
+import { DeleteBudgetPayload } from '@models/Budget.model';
+
+export const deleteBudget = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { id: budgetId }: DeleteBudgetPayload = req.params;
+
+  console.log(budgetId, '--->ID');
+
+  if (!budgetId || isNaN(Number(budgetId)) || Number(budgetId) <= 0) {
+    return res.status(400).json({
+      status: API_RESPONSE_STATUS.error,
+      response: { message: 'Invalid or missing budget ID', code: 'INVALID_ID' },
+    });
+  }
+
+  const id = Number(budgetId);
+
+  try {
+    const result = await deleteBudgetService.deleteBudget({
+      id,
+      userId,
+    });
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+      response: result,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+};
+
+const paramsZodSchema = z.object({
+  id: z.string().refine((val) => !isNaN(Number(val)), {
+    message: 'ID must be a valid number',
+  }),
+});
+
+export const deleteBudgetParamsSchema = z.object({
+  params: paramsZodSchema,
+});
+
+export const deleteBudgetSchema = deleteBudgetParamsSchema;

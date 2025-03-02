@@ -67,6 +67,11 @@ export interface CreateBudgetPayload {
   category_id?: number | null;
 }
 
+export interface DeleteBudgetPayload {
+  id: number;
+  userId?: number;
+}
+
 export const createBudget = async ({
   name,
   userId,
@@ -98,7 +103,7 @@ export const createBudget = async ({
   return budget;
 };
 
-export const deleteBudget = async ({ id, userId }: { id: number; userId: number }) => {
+export const deleteBudget = async ({ id, userId }: DeleteBudgetPayload) => {
   const budget = await Budgets.findOne({
     where: { id, userId },
   });
