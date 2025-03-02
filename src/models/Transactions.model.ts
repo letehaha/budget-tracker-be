@@ -20,6 +20,7 @@ import {
   ForeignKey,
   DataType,
   BelongsTo,
+  BelongsToMany,
 } from 'sequelize-typescript';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
@@ -29,6 +30,8 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
+import Budgets from './Budget.model';
+import BudgetTransactions from '@models/BudgetTransactions.model';
 
 // TODO: replace with scopes
 const prepareTXInclude = ({
@@ -127,6 +130,13 @@ export default class Transactions extends Model {
   @ForeignKey(() => Users)
   @Column
   userId: number;
+
+  @BelongsToMany(() => Budgets, {
+    through: { model: () => BudgetTransactions, unique: false },
+    foreignKey: 'transaction_id',
+    otherKey: 'budget_id',
+  })
+  budgets: Budgets[];
 
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
   transactionType: TRANSACTION_TYPES;
@@ -347,6 +357,7 @@ export const findWithFilters = async ({
   endDate,
   amountGte,
   amountLte,
+  categoryId,
 }: {
   from: number;
   limit?: number;
@@ -367,6 +378,7 @@ export const findWithFilters = async ({
   endDate?: string;
   amountGte?: number;
   amountLte?: number;
+  categoryId?: number;
 }) => {
   const include = prepareTXInclude({
     includeUser,
@@ -383,6 +395,7 @@ export const findWithFilters = async ({
       transactionType,
       transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
       refundLinked: excludeRefunds ? false : undefined,
+      categoryId: categoryId || undefined,
     }),
   };
 
