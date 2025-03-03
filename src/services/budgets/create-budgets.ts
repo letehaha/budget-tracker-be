@@ -27,13 +27,14 @@ export const createBudget = withTransaction(async (payload: Budgets.CreateBudget
   }
 
   const budgetData = cleanPayload({
-    name: payload.name,
-    userId: payload.userId,
-    start_date: payload.start_date,
-    end_date: payload.end_date,
-    auto_include: payload.auto_include ?? false,
-    limit_amount: payload.limit_amount,
-    category_id: payload.category_id,
+    ...payload
+    // name: payload.name,
+    // userId: payload.userId,
+    // start_date: payload.start_date,
+    // end_date: payload.end_date,
+    // auto_include: payload.auto_include ?? false,
+    // limit_amount: payload.limit_amount,
+    // category_id: payload.category_id,
   });
 
   const budget = await Budgets.createBudget(budgetData);
