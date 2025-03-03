@@ -120,3 +120,29 @@ export const deleteBudget = async ({ id, userId }: DeleteBudgetPayload) => {
 
   return { success: true };
 };
+
+export interface EditBudgetPayload {
+  id: number;
+  userId: number;
+  name?: string;
+  transactionIds?: Transactions[]
+}
+
+export const editBudget = async ({ id, userId, name }: EditBudgetPayload) => {
+  console.log('editBudget: id=', id, 'userId=', userId, 'name=', name);
+
+  const budget = await Budgets.findOne({
+    where: { id, userId },
+  });
+
+  if (!budget) {
+    throw new Error('Budget not found');
+  }
+
+  if (name) {
+    budget.name = name;
+    await budget.save();
+  }
+
+  return budget;
+};
