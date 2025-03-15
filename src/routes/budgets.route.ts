@@ -8,8 +8,6 @@ import { editBudget, editBudgetSchema } from '@controllers/budgets/edit-budgets'
 
 const router = Router({});
 
-router.get('/')
-
 router.get('/', authenticateJwt, getBudgets);
 router.post('/', authenticateJwt, validateEndpoint(createBudgetSchema), createBudget);
 router.put('/:id', authenticateJwt, validateEndpoint(editBudgetSchema), editBudget);
