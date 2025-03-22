@@ -1,15 +1,17 @@
 import { z } from 'zod';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import * as deleteBudgetService from '@services/budgets/delete-budgets';
+import * as deleteBudgetService from '@root/services/budgets/delete-budget';
 import { errorHandler } from '@controllers/helpers';
-import { DeleteBudgetPayload } from '@models/Budget.model';
+
+export interface DeleteBudgetPayload {
+  id: number;
+  userId?: number;
+}
 
 export const deleteBudget = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const { id: budgetId }: DeleteBudgetPayload = req.params;
-
-  console.log(budgetId, '--->ID');
 
   if (!budgetId || isNaN(Number(budgetId)) || Number(budgetId) <= 0) {
     return res.status(400).json({

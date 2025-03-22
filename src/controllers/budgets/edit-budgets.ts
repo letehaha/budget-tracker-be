@@ -1,21 +1,20 @@
 import { z } from 'zod';
 import { API_RESPONSE_STATUS } from 'shared-types';
 import { CustomResponse } from '@common/types';
-import * as editBudgetService from '@services/budgets/edit-budgets';
+import { editBudgetService } from '@services/budgets/edit-budget';
 import { errorHandler } from '@controllers/helpers';
 import { recordArrayIds, recordId } from '@common/lib/zod/custom-types';
 
 export const editBudget = async (req, res: CustomResponse) => {
   const { id: userId } = req.user || {};
   const { id: budgetId }: z.infer<typeof paramsSchema> = req.validated.params;
-  const { name, transactionIds }: z.infer<typeof bodySchema> = req.validated.body;
+  const { name }: z.infer<typeof bodySchema> = req.validated.body;
 
   try {
-    const result = await editBudgetService.editBudgets({
+    const result = await editBudgetService({
       id: budgetId,
       userId,
       name,
-      transactionIds,
     });
     return res.status(200).json({
       status: API_RESPONSE_STATUS.success,

@@ -17,3 +17,19 @@ export const getBudgets = async (req, res: CustomResponse) => {
     errorHandler(res, err);
   }
 };
+
+export const getBudgetById = async (req, res: CustomResponse) => {
+  const { id: userId } = req.user;
+  const { id: budgetId } = req.params;
+
+  try {
+    const data = await budgetService.getBudgetById({ id:budgetId, userId });
+
+    return res.status(200).json({
+      status: API_RESPONSE_STATUS.success,
+      response: data,
+    });
+  } catch (err) {
+    errorHandler(res, err);
+  }
+};
