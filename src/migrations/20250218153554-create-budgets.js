@@ -3,97 +3,129 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('Budgets', {
-      id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
-      },
-      name: {
-        type: Sequelize.STRING(255),
-        allowNull: false,
-      },
-      start_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: true,
-      },
-      end_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: true,
-      },
-      auto_include: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false,
-      },
-      limit_amount: {
-        type: Sequelize.DECIMAL(10, 2),
-        allowNull: true,
-      },
-      userId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'Users',
-          key: 'id',
+    const transaction = await queryInterface.sequelize.transaction();
+    try {
+      await queryInterface.createTable(
+        'Budgets',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+            allowNull: false,
+          },
+          name: {
+            type: Sequelize.STRING(255),
+            allowNull: false,
+          },
+          status: {
+            type: Sequelize.ENUM('active', 'closed'),
+            allowNull: false,
+            defaultValue: 'active',
+          },
+          categoryName: {
+            type: Sequelize.STRING(255),
+            allowNull: true,
+          },
+          startDate: {
+            type: Sequelize.DATEONLY,
+            allowNull: true,
+          },
+          endDate: {
+            type: Sequelize.DATEONLY,
+            allowNull: true,
+          },
+          autoInclude: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false,
+          },
+          limitAmount: {
+            type: Sequelize.DECIMAL(10, 2),
+            allowNull: true,
+          },
+          userId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Users',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          // categoriesIds: {
+          //   type: Sequelize.INTEGER,
+          //   allowNull: true,
+          //   references: {
+          //     model: 'Categories',
+          //     key: 'id',
+          //   },
+          //   onUpdate: 'CASCADE',
+          //   onDelete: 'SET NULL',
+          // },
         },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
-      },
-      category_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'Categories',
-          key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-      },
-      created_at: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-      },
-      updated_at: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-      },
-    });
+        { transaction },
+      );
 
-    await queryInterface.createTable('BudgetTransactions', {
-      budget_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'Budgets',
-          key: 'id',
+      await queryInterface.createTable(
+        'BudgetTransactions',
+        {
+          budgetId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Budgets',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          transactionId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Transactions',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
         },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
-      },
-      transaction_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'Transactions',
-          key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
-      },
-    });
+        { transaction },
+      );
 
-    await queryInterface.addConstraint('BudgetTransactions', {
-      fields: ['budget_id', 'transaction_id'],
-      type: 'primary key',
-      name: 'budget_transactions_pkey',
-    });
+      await queryInterface.addConstraint('BudgetTransactions', {
+        fields: ['budgetId', 'transactionId'],
+        type: 'primary key',
+        name: 'budgetTransactionsPkey',
+        transaction,
+      });
+
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('BudgetTransactions');
-    await queryInterface.dropTable('Budgets');
+    const transaction = await queryInterface.sequelize.transaction();
+    try {
+      const budgetTransactionsExists = await queryInterface.tableExists('BudgetTransactions');
+      if (budgetTransactionsExists) {
+        await queryInterface.removeConstraint('BudgetTransactions', 'budgetTransactionsPkey', { transaction });
+        await queryInterface.dropTable('BudgetTransactions', { transaction });
+      }
+
+      const budgetsExists = await queryInterface.tableExists('Budgets');
+      if (budgetsExists) {
+        await queryInterface.dropTable('Budgets', { transaction });
+      }
+
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   },
 };
