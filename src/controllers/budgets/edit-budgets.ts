@@ -35,10 +35,10 @@ const paramsSchema = z.object({
 
 const bodySchema = z.object({
   name: z.string().min(1, 'Name is required').max(200, 'Name must not exceed 200 characters').trim().optional(),
-  startDate: z.string().datetime().nullable().optional(),
-  endDate: z.string().datetime().nullable().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
   autoInclude: z.boolean().optional().default(false), 
-  limitAmount: z.number().positive('Limit amount must be positive').nullable().optional(),
+  limitAmount: z.number().positive('Limit amount must be positive').optional(),
 });
 
 const editBudgetParamsSchema = z.object({
