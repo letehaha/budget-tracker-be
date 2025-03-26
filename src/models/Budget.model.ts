@@ -1,6 +1,6 @@
-import { Table, Column, Model, ForeignKey, BelongsToMany } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import Users from '@models/Users.model';
-import Categories from '@models/Categories.model';
+// import Categories from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
 
@@ -14,135 +14,36 @@ export default class Budgets extends Model {
   @Column({ allowNull: false })
   name: string;
 
-  @Column({ allowNull: true })
-  start_date: Date;
+  @Column({ allowNull: false })
+  status: string;
 
   @Column({ allowNull: true })
-  end_date: Date;
+  categoryName: string;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  startDate: Date;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  endDate: Date;
 
   @Column({ defaultValue: false })
-  auto_include: boolean;
+  autoInclude: boolean;
 
   @Column({ allowNull: true })
-  limit_amount: number;
+  limitAmount: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false })
   userId: number;
 
-  @ForeignKey(() => Categories)
-  @Column({ allowNull: true })
-  category_id: number;
+  // @ForeignKey(() => Categories)
+  // @Column({ allowNull: true })
+  // categoriesIds: number;
 
   @BelongsToMany(() => Transactions, {
     through: { model: () => BudgetTransactions, unique: false },
-    foreignKey: 'budget_id',
-    otherKey: 'transaction_id',
+    foreignKey: 'budgetId',
+    otherKey: 'transactionId',
   })
-  transactions: Transactions[];
-
-  public setTransactions!: (transactions: Transactions[]) => Promise<void>;
-  public getTransactions!: () => Promise<Transactions[]>;
-  public addTransactions!: (transactions: Transactions[]) => Promise<void>;
+  transactions: number[];
 }
-
-export const getBudgets = async ({ userId }: { userId: number }) => {
-  const budgets = await Budgets.findAll({
-    where: { userId },
-    include: [{ model: Transactions, as: 'transactions' }],
-  });
-  return budgets.map(budget => ({
-    ...budget.toJSON(),
-    transactions: budget.transactions.map(t => t.toJSON()),
-  }));
-};
-
-export interface CreateBudgetPayload {
-  userId: number;
-  name: string;
-  start_date?: Date | null;
-  end_date?: Date | null;
-  auto_include?: boolean;
-  limit_amount?: number | null;
-  category_id?: number | null;
-}
-
-export interface DeleteBudgetPayload {
-  id: number;
-  userId?: number;
-}
-
-export const createBudget = async ({
-  name,
-  userId,
-  start_date,
-  end_date,
-  auto_include,
-  limit_amount,
-  category_id,
-}: CreateBudgetPayload) => {
-  if (!name || !userId) {
-    throw new Error('Name and userId are required fields');
-  }
-
-  const budgetData = {
-    name,
-    userId,
-    start_date: start_date || null,
-    end_date: end_date || null,
-    auto_include: auto_include ?? false,
-    limit_amount: limit_amount ?? null,
-    category_id: category_id ?? null,
-  };
-
-  if (start_date && end_date && start_date > end_date) {
-    throw new Error('Start date cannot be later than end date');
-  }
-
-  const budget = await Budgets.create(budgetData);
-  return budget;
-};
-
-export const deleteBudget = async ({ id, userId }: DeleteBudgetPayload) => {
-  const budget = await Budgets.findOne({
-    where: { id, userId },
-  });
-
-  if (!budget) {
-    throw new Error('Budget not found');
-  }
-
-  await BudgetTransactions.destroy({
-    where: { budget_id: id },
-  });
-
-  await budget.destroy();
-
-  return { success: true };
-};
-
-export interface EditBudgetPayload {
-  id: number;
-  userId: number;
-  name?: string;
-  transactionIds?: Transactions[]
-}
-
-export const editBudget = async ({ id, userId, name }: EditBudgetPayload) => {
-  console.log('editBudget: id=', id, 'userId=', userId, 'name=', name);
-
-  const budget = await Budgets.findOne({
-    where: { id, userId },
-  });
-
-  if (!budget) {
-    throw new Error('Budget not found');
-  }
-
-  if (name) {
-    budget.name = name;
-    await budget.save();
-  }
-
-  return budget;
-};

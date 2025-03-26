@@ -7,9 +7,9 @@ import Transactions from './Transactions.model';
 export default class BudgetTransactions extends Model {
   @ForeignKey(() => Budgets)
   @Column({ primaryKey: true, allowNull: false })
-  budget_id: number;
+  budgetId: number;
 
   @ForeignKey(() => Transactions)
   @Column({ primaryKey: true, allowNull: false })
-  transaction_id: number;
+  transactionId: number;
 }

@@ -133,8 +133,8 @@ export default class Transactions extends Model {
 
   @BelongsToMany(() => Budgets, {
     through: { model: () => BudgetTransactions, unique: false },
-    foreignKey: 'transaction_id',
-    otherKey: 'budget_id',
+    foreignKey: 'transactionId',
+    otherKey: 'budgetId',
   })
   budgets: Budgets[];
 
@@ -342,6 +342,7 @@ export const findWithFilters = async ({
   limit = 20,
   accountType,
   accountIds,
+  budgetIds,
   userId,
   order = SORT_DIRECTIONS.desc,
   includeUser,
@@ -364,6 +365,7 @@ export const findWithFilters = async ({
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
+  budgetIds?: number[];
   userId: number;
   order?: SORT_DIRECTIONS;
   includeUser?: boolean;
@@ -431,8 +433,24 @@ export const findWithFilters = async ({
     }
   }
 
+  const queryInclude: Includeable[] = Array.isArray(include) ? [...include] : include ? [include] : [];
+
+  if (budgetIds && budgetIds.length > 0) {
+    queryInclude.push({
+      model: Budgets,
+      through: {
+        where: {
+          budgetId: {
+            [Op.in]: budgetIds,
+          }
+        }
+      },
+      required: true,
+    });
+  }
+
   const transactions = await Transactions.findAll({
-    include,
+    include: queryInclude,
     where: whereClause,
     offset: from,
     limit: limit,
