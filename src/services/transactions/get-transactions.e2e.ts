@@ -119,7 +119,6 @@ describe('Retrieve transactions with filters', () => {
     const budget = await helpers.createCustomBudget({
       name: 'Test Budget',
       userId,
-      categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,
