@@ -10,11 +10,19 @@ interface TestCreateBudgetPayload {
   userId: number;
   name: string;
   status?: string;
-  categoryName?: string;
+  // categoryName?: string;
   startDate?: string | Date | null;
   endDate?: string | Date | null; 
   autoInclude?: boolean;
   limitAmount?: number | null;
+}
+
+interface EditBudgetPayload {
+  name?: string;
+  startDate?: string;
+  endDate?: string;
+  limitAmount?: number;
+  autoInclude?: boolean;
 }
 
 export async function createCustomBudget<R extends boolean | undefined = undefined>({
@@ -67,4 +75,29 @@ export async function deleteCustomBudget<R extends boolean | undefined = undefin
     url: `/budgets/${id}`,
     raw,
   });
+}
+
+export async function editCustomBudget({ id, params, raw }: { id: number; params: EditBudgetPayload; raw?: false }): Promise<Response>;
+export async function editCustomBudget({ id, params, raw }: { id: number; params: EditBudgetPayload; raw?: true }): Promise<{ status: string }>;
+export async function editCustomBudget({
+  id,
+  params,
+  raw = true,
+}: {
+  id: number;
+  params: EditBudgetPayload;
+  raw?: boolean;
+}): Promise<Response | { status: string }> {
+  const result = await makeRequest({
+    method: 'put',
+    url: `/budgets/${id}`,
+    payload: params,
+    raw,
+  });
+
+  if (raw && !result) {
+    return { status: 'success' } as { status: string };
+  }
+
+  return result;
 }
