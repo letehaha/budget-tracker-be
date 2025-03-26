@@ -8,7 +8,7 @@ export const createBudget = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const {
     name,
-    categoryName,
+    // categoryName,
     startDate,
     endDate,
     autoInclude,
@@ -19,7 +19,7 @@ export const createBudget = async (req, res: CustomResponse) => {
   const params = {
     name,
     userId,
-    categoryName,
+    // categoryName,
     status: 'active',
     startDate: startDate ? new Date(startDate) : undefined,
     endDate: endDate ? new Date(endDate) : undefined,
@@ -47,11 +47,11 @@ export const CreationBudgetPayloadSchema = z
       .min(1, 'Name is required')
       .max(200, 'The name must not exceed 200 characters')
       .trim(),
-    categoryName: z
-    .string()
-    .min(1, 'Name is required')
-    .max(200, 'The name must not exceed 200 characters')
-    .trim(),
+    // categoryName: z
+    // .string()
+    // .min(1, 'Name is required')
+    // .max(200, 'The name must not exceed 200 characters')
+    // .trim(),
     startDate: z.string().datetime().nullable().optional(),
     endDate: z.string().datetime().nullable().optional(),
     autoInclude: z.boolean().optional().default(false), 
