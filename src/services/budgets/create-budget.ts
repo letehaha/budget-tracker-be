@@ -19,9 +19,8 @@ export interface CreateBudgetPayload {
 
 const prepareTransactionFilters = (payload: CreateBudgetPayload) => ({
   userId: payload.userId,
-  categoryName: payload.categoryName,
-  startDate: payload.startDate?.toISOString(),
-  endDate: payload.endDate?.toISOString(),
+  startDate: payload.startDate,
+  endDate: payload.endDate,
   autoInclude: payload.autoInclude,
   // categoriesIds: payload.categoriesIds || undefined,
 });

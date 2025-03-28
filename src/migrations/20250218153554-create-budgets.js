@@ -28,11 +28,11 @@ module.exports = {
             allowNull: true,
           },
           startDate: {
-            type: Sequelize.DATEONLY,
+            type: Sequelize.DATE,
             allowNull: true,
           },
           endDate: {
-            type: Sequelize.DATEONLY,
+            type: Sequelize.DATE,
             allowNull: true,
           },
           autoInclude: {
@@ -40,8 +40,9 @@ module.exports = {
             defaultValue: false,
           },
           limitAmount: {
-            type: Sequelize.DECIMAL(10, 2),
+            type: Sequelize.INTEGER,
             allowNull: true,
+            defaultValue: 0,
           },
           userId: {
             type: Sequelize.INTEGER,
