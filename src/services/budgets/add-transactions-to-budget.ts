@@ -36,7 +36,9 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
     isManual: true,
   }));
 
-  await BudgetTransactions.bulkCreate(budgetTransactions, {
-    ignoreDuplicates: true,
-  });
+  await BudgetTransactions.bulkCreate(budgetTransactions);
+
+  return {
+    message: 'Transactions added successfully',
+  };
 });

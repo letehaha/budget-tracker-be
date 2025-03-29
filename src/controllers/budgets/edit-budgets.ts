@@ -6,7 +6,7 @@ import { errorHandler } from '@controllers/helpers';
 import { recordId } from '@common/lib/zod/custom-types';
 
 export const editBudget = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user || {};
+  const { id: userId } = req.user;
   const { id: budgetId }: z.infer<typeof paramsSchema> = req.validated.params;
   const { name, startDate, endDate, limitAmount, autoInclude }: z.infer<typeof bodySchema> = req.validated.body;
 

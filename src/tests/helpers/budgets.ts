@@ -1,6 +1,7 @@
 // tests/helpers/budget-helpers.ts
 import { makeRequest } from './common';
 import * as budgetService from '@root/services/budgets/create-budget';
+import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
 import { BudgetModel } from 'shared-types';
 
 // type omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
@@ -23,6 +24,10 @@ interface EditBudgetPayload {
   endDate?: string;
   limitAmount?: number;
   autoInclude?: boolean;
+}
+
+interface addingTransactionToBudgetPayload {
+  transactionIds: number[]
 }
 
 export async function createCustomBudget<R extends boolean | undefined = undefined>({
@@ -56,7 +61,7 @@ export async function getCustomBudgetById<R extends boolean | undefined = undefi
   id: number;
   raw?: R;
 }) {
-  return makeRequest<Awaited<ReturnType<typeof budgetService.createBudget>> | null, R>({
+  return makeRequest<Awaited<ReturnType<typeof getCustomBudgetById>> | null, R>({
     method: 'get',
     url: `/budgets/${id}`,
     raw,
@@ -100,4 +105,23 @@ export async function editCustomBudget({
   }
 
   return result;
+}
+
+export async function addTransactionToCustomBudget<R extends boolean | undefined = undefined>({
+  id,
+  payload,
+  raw,
+}: {
+  id: number;
+  payload: addingTransactionToBudgetPayload,
+  raw?: R;
+}) {
+  console.log(payload, "PAYLOAD")
+  console.log(id, "ID")
+  return makeRequest<Awaited<ReturnType<typeof addTransactionsToBudget>> | null, R>({
+    method: 'post',
+    url: `/budgets/${id}/transactions`,
+    payload,
+    raw,
+  });
 }

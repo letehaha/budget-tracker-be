@@ -3,7 +3,7 @@ import { CustomResponse } from "@common/types";
 import { API_RESPONSE_STATUS } from "shared-types";
 import { errorHandler } from "@controllers/helpers";
 import { recordId } from "@common/lib/zod/custom-types";
-import { addTransactionsToBudget as addTransactionsToBudgetService } from "@root/services/budgets/add-transaction-to-budget";
+import { addTransactionsToBudget as addTransactionsToBudgetService } from "@services/budgets/add-transactions-to-budget";
 
 export const addTransactionsToBudget = async (req, res: CustomResponse) => {
   const { id: userId } = req.user; 
