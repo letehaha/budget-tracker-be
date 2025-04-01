@@ -49,6 +49,19 @@ export interface AccountModel {
   isEnabled: boolean;
 }
 
+export interface BudgetModel {
+    id: number;
+    userId: number;
+    status: string;
+    name: string;
+    // categoryName: string;
+    startDate?: Date;
+    endDate?: Date;
+    limitAmount?: number;
+    // categoriesIds: number[]
+    autoInclude?: boolean;
+}
+
 export interface MonobankUserModel {
   id: number;
   clientId: string;
