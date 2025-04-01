@@ -54,12 +54,12 @@ export interface BudgetModel {
     userId: number;
     status: string;
     name: string;
-    categoryName: string;
-    startDate: Date;
-    endDate: Date;
-    limitAmount: number;
+    // categoryName: string;
+    startDate?: Date;
+    endDate?: Date;
+    limitAmount?: number;
     // categoriesIds: number[]
-    autoInclude: boolean;
+    autoInclude?: boolean;
 }
 
 export interface MonobankUserModel {
